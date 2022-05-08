@@ -1,7 +1,7 @@
 FROM rust:1.60.0-slim-buster
 
 # install updates and base packages
-RUN apt-get update && apt-get install -y git curl pkg-config libssl-dev
+RUN apt-get update && apt-get install -y clang git curl pkg-config libssl-dev
 
 # create the user for the runnign env
 RUN useradd -ms /bin/bash hippo
@@ -10,5 +10,5 @@ RUN useradd -ms /bin/bash hippo
 USER hippo
 
 # install move and aptos cli
-RUN cargo install --git https://github.com/aptos-labs/move move-cli --branch main && \
+RUN cargo install --git https://github.com/move-language/move move-cli --branch main --features address32 && \
     cargo install --git https://github.com/aptos-labs/aptos-core.git aptos
