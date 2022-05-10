@@ -2,7 +2,7 @@
 
 function run_test {
     printf "🚀🚀🚀Running Tests NOW\n"
-    move package test --coverage
+    cargo test
 
     if [ $? -ne 0 ]; then
         printf "❌❌❌ Oops, not all tests passed ❌❌❌"
@@ -24,4 +24,4 @@ function check_coverage {
 }
 
 run_test
-check_coverage
+#check_coverage

@@ -7,4 +7,4 @@ AptosFramework = { git = "https://github.com/aptos-labs/aptos-core.git", subdir 
 
 [addresses]
 HippoSwap = "0xCAFE"
-
+AptosFramework = "0x1"
