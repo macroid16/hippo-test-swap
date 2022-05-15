@@ -1,12 +1,12 @@
 // Math implementation for number manipulation.
 module HippoSwap::Math {
     /// babylonian method (https://en.wikipedia.org/wiki/Methods_of_computing_square_roots#Babylonian_method)
-    public fun sqrt(y: u128): u64 {
+    public fun sqrt(y: u128): u128 {
         if (y < 4) {
             if (y == 0) {
-                0u64
+                0u128
             } else {
-                1u64
+                1u128
             }
         } else {
             let z = y;
@@ -15,8 +15,12 @@ module HippoSwap::Math {
                 z = x;
                 x = (y / x + x) / 2;
             };
-            (z as u64)
+            z
         }
+    }
+
+    public fun min(a: u128, b: u128): u128 {
+        if (a > b) b else a
     }
 
     // ================ Tests ================
