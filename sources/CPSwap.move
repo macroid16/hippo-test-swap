@@ -1,4 +1,5 @@
-module HippoSwap::ConstantSwap {
+/// Uniswap v2 like token swap program
+module HippoSwap::CPSwap {
     use Std::Signer;
     use Std::Option;
     use Std::ASCII;
@@ -21,13 +22,12 @@ module HippoSwap::ConstantSwap {
     const ERROR_ALREADY_LOCKED: u64 = 3;
     const ERROR_INSUFFICIENT_LIQUIDITY_MINTED: u64 = 4;
     const ERROR_OVERFLOW: u64 = 5;
+    const ERROR_INSUFFICIENT_AMOUNT: u64 = 6;
+    const ERROR_INSUFFICIENT_LIQUIDITY: u64 = 7;
+    const ERROR_INVALID_AMOUNT: u64 = 8;
 
     /// The LP Token type
     struct LPToken<phantom T0, phantom T1> has key {}
-
-    /// TODO: This is just a temp solution as Coin does not have method to
-    /// TODO: check if the account has already registered.
-    struct AddressMeta<phantom T0, phantom T1> has key { }
 
     /// Stores the metadata required for the token pairs
     struct TokenPairMetadata<phantom T0, phantom T1> has key {
@@ -55,20 +55,23 @@ module HippoSwap::ConstantSwap {
         block_timestamp_last: u64
     }
 
-    public(script) fun create_token_pair<T0, T1>(sender: signer, fee_to: address, fee_on: bool) {
+    public fun create_token_pair<T0, T1>(
+        sender: signer,
+        fee_to: address,
+        fee_on: bool,
+        lp_name: vector<u8>,
+        lp_symbol: vector<u8>
+    ) {
         let sender_addr = Signer::address_of(&sender);
-
         // TODO: consider removing this restriction in the future
         assert!(sender_addr == MODULE_ADMIN, ERROR_ONLY_ADMIN);
-
         assert!(!exists<TokenPairReserve<T0, T1>>(sender_addr), ERROR_ALREADY_INITIALIZED);
 
         // now we init the LP token
-        // TODO: someone give it a better name and symbol
         let (mint_cap, burn_cap) = Coin::initialize<LPToken<T0, T1>>(
             &sender,
-            ASCII::string(b"LP-TOKEN"),
-            ASCII::string(b"LP"),
+            ASCII::string(lp_name),
+            ASCII::string(lp_symbol),
             18,
             true
         );
@@ -99,20 +102,8 @@ module HippoSwap::ConstantSwap {
 
     /// The init process for a sender. One must call this function first
     /// before interacting with the mint/burn.
-    /// TODO: remove this method if Coin::is_account_register or sth similar
-    /// TODO: is provided
-    public fun register<T0, T1>(sender: signer) {
-        if (!is_registered<T0, T1>(Signer::address_of(&sender))) {
-            let meta = AddressMeta<T0, T1> {};
-            Coin::register<LPToken<T0, T1>>(&sender);
-            move_to(&sender, meta);
-        };
-    }
-
-    /// TODO: remove this method if Coin::is_account_register or sth similar
-    /// TODO: is provided
-    public fun is_registered<T0, T1>(addr: address): bool {
-        exists<AddressMeta<T0, T1>>(addr)
+    public fun register_account<T0, T1>(sender: signer) {
+        Coin::register<LPToken<T0, T1>>(&sender);
     }
 
     public fun get_reserves<T0, T1>(): (u64, u64, u64) acquires TokenPairReserve {
@@ -124,12 +115,46 @@ module HippoSwap::ConstantSwap {
         )
     }
 
+    public fun add_liquidity<T0, T1>(
+        sender: signer,
+        amount0: u64,
+        amount1: u64
+    ): (u64, u64, u64) acquires TokenPairReserve, TokenPairMetadata {
+        let (reserve0, reserve1, _) = get_reserves<T0, T1>();
+        let (a0, a1) = if (reserve0 == 0 && reserve1 == 0) {
+            (amount0, amount1)
+        } else {
+            let amount1_optimal = quote(amount0, reserve0, reserve1);
+            if (amount1_optimal <= amount1) {
+                (amount0, amount1_optimal)
+            } else {
+                let amount0_optimal = quote(amount1, reserve1, reserve0);
+                assert!(amount0_optimal <= amount0, ERROR_INVALID_AMOUNT);
+                (amount0_optimal, amount1)
+            }
+        };
+
+        Coin::deposit(
+            @HippoSwap,
+            Coin::withdraw<T0>(&sender, a0)
+        );
+        Coin::deposit(
+            @HippoSwap,
+            Coin::withdraw<T1>(&sender, a1)
+        );
+
+        (a0, a1, mint<T0, T1>(sender))
+    }
+
     /// Mint LP Token.
     /// This low-level function should be called from a contract which performs important safety checks
-    public fun mint<T0, T1>(sender: signer, creator: address): u128 acquires TokenPairReserve, TokenPairMetadata {
-        let metadata = borrow_global_mut<TokenPairMetadata<T0, T1>>(creator);
-        // should have no need to check the creator again
+    fun mint<T0, T1>(sender: signer): u64 acquires TokenPairReserve, TokenPairMetadata {
+        let addr = Signer::address_of(&sender);
+        let metadata = borrow_global_mut<TokenPairMetadata<T0, T1>>(addr);
+
+        // Lock it, reentrancy protection
         assert!(!metadata.locked, ERROR_ALREADY_LOCKED);
+        metadata.locked = true;
 
         let reserves = borrow_global_mut<TokenPairReserve<T0, T1>>(MODULE_ADMIN);
         let balance0 = Coin::balance<T0>(@HippoSwap);
@@ -164,14 +189,20 @@ module HippoSwap::ConstantSwap {
         };
 
         assert!(liquidity > 0u128, ERROR_INSUFFICIENT_LIQUIDITY_MINTED);
-        deposit_lp<T0, T1>(Signer::address_of(&sender), (liquidity as u64), &metadata.mint_cap);
+        deposit_lp<T0, T1>(
+            Signer::address_of(&sender),
+            (liquidity as u64), &metadata.mint_cap
+        );
 
         update<T0, T1>(balance0, balance1, reserves);
 
         if (metadata.fee_on)
             metadata.k_last = SafeMath::mul((reserves.reserve0 as u128), (reserves.reserve1 as u128));
 
-        liquidity
+        // Unlock it
+        metadata.locked = false;
+
+        (liquidity as u64)
     }
 
     fun update<T0, T1>(balance0: u64, balance1: u64, reserve: &mut TokenPairReserve<T0, T1>) {
@@ -240,6 +271,18 @@ module HippoSwap::ConstantSwap {
             &Coin::supply<LPToken<T0, T1>>(),
             0u64
         )
+    }
+
+    fun quote(amount0: u64, reserve0: u64, reserve1: u64): u64 {
+        assert!(amount0 > 0, ERROR_INSUFFICIENT_AMOUNT);
+        assert!(reserve0 > 0 && reserve1 > 0, ERROR_INSUFFICIENT_LIQUIDITY);
+        (SafeMath::div(
+            SafeMath::mul(
+                (amount0 as u128),
+                (reserve1 as u128)
+            ),
+            (reserve0 as u128)
+        ) as u64)
     }
 
     // ================ Tests ================
