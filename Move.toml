@@ -5,6 +5,8 @@ version = "0.0.1"
 [dependencies]
 AptosFramework = { git = "https://github.com/aptos-labs/aptos-core.git", subdir = "aptos-move/framework/aptos-framework/", rev = "1e190630f" }
 SmoothAptos = { git = "https://github.com/hippospace/smooth-aptos.git", rev = "5bc76a8aa72b"}
+MoveNursery = { git = "https://github.com/aptos-labs/aptos-core.git", subdir = "aptos-move/framework/move-stdlib/nursery/", rev = "main" }
 
 [addresses]
 HippoSwap = "0xCAFE"
+HippoSwapFee = "0xCAFF"

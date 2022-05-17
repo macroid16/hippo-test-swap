@@ -3,3 +3,4 @@ build
 .coverage_map.mvcov
 .trace
 !.git/hooks/pre-commit
+storage
