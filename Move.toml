@@ -1,10 +1,10 @@
 [package]
-name = "hippo-swap"
+name = "HippoSwap"
 version = "0.0.1"
 
 [dependencies]
-AptosFramework = { git = "https://github.com/aptos-labs/aptos-core.git", subdir = "aptos-move/framework/aptos-framework/", rev = "main" }
+AptosFramework = { git = "https://github.com/aptos-labs/aptos-core.git", subdir = "aptos-move/framework/aptos-framework/", rev = "1e190630f" }
+SmoothAptos = { git = "https://github.com/hippospace/smooth-aptos.git", rev = "5bc76a8aa72b"}
 
 [addresses]
 HippoSwap = "0xCAFE"
-
