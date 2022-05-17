@@ -115,6 +115,8 @@ module HippoSwap::CPSwap {
         )
     }
 
+    /// Add more liquidity to token types. This method explicitly assumes the
+    /// min of both tokens are 0.
     public fun add_liquidity<T0, T1>(
         sender: signer,
         amount0: u64,
