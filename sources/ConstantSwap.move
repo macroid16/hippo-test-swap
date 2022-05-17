@@ -124,7 +124,9 @@ module HippoSwap::ConstantSwap {
         )
     }
 
-    public(script) fun mint<T0, T1>(sender: signer, creator: address): u128 acquires TokenPairReserve, TokenPairMetadata {
+    /// Mint LP Token.
+    /// This low-level function should be called from a contract which performs important safety checks
+    public fun mint<T0, T1>(sender: signer, creator: address): u128 acquires TokenPairReserve, TokenPairMetadata {
         let metadata = borrow_global_mut<TokenPairMetadata<T0, T1>>(creator);
         // should have no need to check the creator again
         assert!(!metadata.locked, ERROR_ALREADY_LOCKED);
