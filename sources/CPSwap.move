@@ -10,7 +10,7 @@ module HippoSwap::CPSwap {
     use HippoSwap::SafeMath;
     use HippoSwap::Math;
 
-    const MODULE_ADMIN: address = @HippoSwapAdmin;
+    const MODULE_ADMIN: address = @HippoSwap;
     const MINIMUM_LIQUIDITY: u128 = 1000;
     const LIQUIDITY_LOCK: address = @0x1;
     const BALANCE_MAX: u128 = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFF; // 2**112
@@ -48,36 +48,34 @@ module HippoSwap::CPSwap {
     }
 
     /// Stores the reservation info required for the token pairs
-    struct TokenPairReserve<phantom T0, phantom T1> has key {
+    struct TokenPairReserve<phantom T0: key, phantom T1: key> has key {
         // TODO: seems like reserve can be u64, kiv.
         reserve0: u64,
         reserve1: u64,
         block_timestamp_last: u64
     }
 
-    public fun create_token_pair<T0, T1>(
-        sender: signer,
+    public fun create_token_pair<T0: key, T1: key>(
+        sender: &signer,
         fee_to: address,
         fee_on: bool,
         lp_name: vector<u8>,
         lp_symbol: vector<u8>
     ) {
-        let sender_addr = Signer::address_of(&sender);
-        // TODO: consider removing this restriction in the future
-        assert!(sender_addr == MODULE_ADMIN, ERROR_ONLY_ADMIN);
+        let sender_addr = Signer::address_of(sender);
         assert!(!exists<TokenPairReserve<T0, T1>>(sender_addr), ERROR_ALREADY_INITIALIZED);
 
         // now we init the LP token
         let (mint_cap, burn_cap) = Coin::initialize<LPToken<T0, T1>>(
-            &sender,
+            sender,
             ASCII::string(lp_name),
             ASCII::string(lp_symbol),
-            18,
+            8,
             true
         );
 
         move_to<TokenPairReserve<T0, T1>>(
-            &sender,
+            sender,
             TokenPairReserve {
                 reserve0: 0,
                 reserve1: 0,
@@ -86,7 +84,7 @@ module HippoSwap::CPSwap {
         );
 
         move_to<TokenPairMetadata<T0, T1>>(
-            &sender,
+            sender,
             TokenPairMetadata {
                 locked: false,
                 creator: sender_addr,
@@ -102,11 +100,11 @@ module HippoSwap::CPSwap {
 
     /// The init process for a sender. One must call this function first
     /// before interacting with the mint/burn.
-    public fun register_account<T0, T1>(sender: signer) {
-        Coin::register<LPToken<T0, T1>>(&sender);
+    public fun register_account<T0, T1>(sender: &signer) {
+        Coin::register<LPToken<T0, T1>>(sender);
     }
 
-    public fun get_reserves<T0, T1>(): (u64, u64, u64) acquires TokenPairReserve {
+    public fun get_reserves<T0: key, T1: key>(): (u64, u64, u64) acquires TokenPairReserve {
         let reserve = borrow_global<TokenPairReserve<T0, T1>>(MODULE_ADMIN);
         (
             reserve.reserve0,
@@ -117,8 +115,8 @@ module HippoSwap::CPSwap {
 
     /// Add more liquidity to token types. This method explicitly assumes the
     /// min of both tokens are 0.
-    public fun add_liquidity<T0, T1>(
-        sender: signer,
+    public fun add_liquidity<T0: key, T1: key>(
+        sender: &signer,
         amount0: u64,
         amount1: u64
     ): (u64, u64, u64) acquires TokenPairReserve, TokenPairMetadata {
@@ -138,11 +136,11 @@ module HippoSwap::CPSwap {
 
         Coin::deposit(
             @HippoSwap,
-            Coin::withdraw<T0>(&sender, a0)
+            Coin::withdraw<T0>(sender, a0)
         );
         Coin::deposit(
             @HippoSwap,
-            Coin::withdraw<T1>(&sender, a1)
+            Coin::withdraw<T1>(sender, a1)
         );
 
         (a0, a1, mint<T0, T1>(sender))
@@ -150,9 +148,8 @@ module HippoSwap::CPSwap {
 
     /// Mint LP Token.
     /// This low-level function should be called from a contract which performs important safety checks
-    fun mint<T0, T1>(sender: signer): u64 acquires TokenPairReserve, TokenPairMetadata {
-        let addr = Signer::address_of(&sender);
-        let metadata = borrow_global_mut<TokenPairMetadata<T0, T1>>(addr);
+    fun mint<T0: key, T1: key>(sender: &signer): u64 acquires TokenPairReserve, TokenPairMetadata {
+        let metadata = borrow_global_mut<TokenPairMetadata<T0, T1>>(MODULE_ADMIN);
 
         // Lock it, reentrancy protection
         assert!(!metadata.locked, ERROR_ALREADY_LOCKED);
@@ -192,7 +189,7 @@ module HippoSwap::CPSwap {
 
         assert!(liquidity > 0u128, ERROR_INSUFFICIENT_LIQUIDITY_MINTED);
         deposit_lp<T0, T1>(
-            Signer::address_of(&sender),
+            Signer::address_of(sender),
             (liquidity as u64), &metadata.mint_cap
         );
 
@@ -207,7 +204,7 @@ module HippoSwap::CPSwap {
         (liquidity as u64)
     }
 
-    fun update<T0, T1>(balance0: u64, balance1: u64, reserve: &mut TokenPairReserve<T0, T1>) {
+    fun update<T0: key, T1: key>(balance0: u64, balance1: u64, reserve: &mut TokenPairReserve<T0, T1>) {
         assert!(
             (balance0 as u128) <= BALANCE_MAX && (balance1 as u128) <= BALANCE_MAX,
             ERROR_OVERFLOW
@@ -288,21 +285,96 @@ module HippoSwap::CPSwap {
     }
 
     // ================ Tests ================
-//    #[test_only]
-//    struct TokenX {}
-//    #[test_only]
-//    struct TokenY {}
-//
-//    #[test(admin = @HippoSwapAdmin)]
-//    public(script) fun init_works(admin: signer) {
-//        create_token_pair<TokenX, TokenY>(admin, Signer::address_of(&admin));
-//    }
-    
-    // #[test(admin = @HippoSwap)]
-    // public(script) fun mint_works(admin: signer) {
-    //     let decimals: u64 = 18;
-    //     let total_supply: u64 = 1000000 * 10 ^ decimals;
+    #[test_only]
+    struct Token0 has key {}
 
-    //     Coin::initialize<Token1>(&admin, b"token1", total_supply, true);
-    // }
+    #[test_only]
+    struct Token1 has key {}
+
+    #[test_only]
+    struct CapContainer<phantom T: key> has key {
+        mc: Coin::MintCapability<T>,
+        bc: Coin::BurnCapability<T>
+    }
+
+    #[test_only]
+    fun issue_token<T: key>(admin: &signer, to: &signer, name: vector<u8>, total_supply: u64) {
+        let (mc, bc) = Coin::initialize<T>(
+            admin,
+            ASCII::string(name),
+            ASCII::string(name),
+            8u64,
+            true
+        );
+
+        Coin::register<T>(admin);
+        Coin::register<T>(to);
+
+        let a = Coin::mint(total_supply, &mc);
+        Coin::deposit(Signer::address_of(to), a);
+        move_to<CapContainer<T>>(admin, CapContainer{ mc, bc });
+    }
+
+    #[test(admin = @HippoSwap)]
+    public fun init_works(admin: signer) {
+        let fee_to = Signer::address_of(&admin);
+        create_token_pair<Token0, Token1>(
+            &admin,
+            fee_to,
+            true,
+            b"name",
+            b"symbol"
+        );
+    }
+    
+     #[test(admin = @HippoSwap, lp_provider = @0x02, lock = @0x01, core = @0xa550c18)]
+     public fun mint_works(admin: signer, lp_provider: signer, lock: signer, core: signer) acquires TokenPairReserve, TokenPairMetadata {
+         let decimals: u64 = 8;
+         let total_supply: u64 = 1000000 * 10 ^ decimals;
+
+         issue_token<Token0>(&admin, &lp_provider, b"t0", total_supply);
+         issue_token<Token1>(&admin, &lp_provider, b"t1", total_supply);
+
+         let fee_to = Signer::address_of(&admin);
+         create_token_pair<Token0, Token1>(
+             &admin,
+             fee_to,
+             true,
+             b"name",
+             b"symbol"
+         );
+
+         Timestamp::set_time_has_started_for_testing(&core);
+         register_account<Token0, Token1>(&lp_provider);
+         register_account<Token0, Token1>(&lock);
+
+         add_liquidity<Token0, Token1>(
+             &lp_provider,
+             10000u64,
+             10000u64
+         );
+
+         assert!(
+             Coin::balance<Token0>(Signer::address_of(&admin)) > 0,
+             0
+         );
+         assert!(
+             Coin::balance<Token1>(Signer::address_of(&admin)) > 0,
+             0
+         );
+
+         // check balance of lp provider
+         assert!(
+             Coin::balance<LPToken<Token0, Token1>>(Signer::address_of(&lp_provider)) > 0,
+             0
+         );
+         assert!(
+             Coin::balance<Token0>(Signer::address_of(&lp_provider)) < total_supply,
+             0
+         );
+         assert!(
+             Coin::balance<Token1>(Signer::address_of(&lp_provider)) < total_supply,
+             0
+         );
+     }
 }

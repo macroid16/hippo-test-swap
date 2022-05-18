@@ -19,7 +19,10 @@ module HippoSwap::SafeMath {
     }
     // ================ Tests ================
     #[test]
-    public fun add_works() {
+    public fun works() {
         assert!(add(1, 1) == 2, 0);
+
+        assert!(sub(1, 1) == 0, 0);
+        assert!(sub(0, 0) == 0, 0);
     }
 }
