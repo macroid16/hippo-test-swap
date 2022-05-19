@@ -1,11 +1,11 @@
 module HippoSwap::StableCurveSwap {
     use Std::ASCII;
     use Std::Option;
-    use Std::Debug;
     use AptosFramework::Coin;
     use AptosFramework::Timestamp;
 
     use HippoSwap::HippoConfig;
+    use SmoothAptos::Math;
 
     // Token
 
@@ -29,11 +29,14 @@ module HippoSwap::StableCurveSwap {
 
 
     const DECIMALS: u64 = 18;
+    const PRECISION: u128 = 1000000000000000000;   // 10 ** 18
+    const A_PRECISION: u128 = 100;
 
     const ERROR_SWAP_INVALID_TOKEN_PAIR: u64 = 2000;
     const ERROR_SWAP_BURN_CALC_INVALID: u64 = 2004;
     const ERROR_SWAP_ADDLIQUIDITY_INVALID: u64 = 2007;
     const ERROR_SWAP_TOKEN_NOT_EXISTS: u64 = 2008;
+    const ERROR_SWAP_INVALID_DIRIVIATION: u64 = 2020;
 
     // Token utilities
 
@@ -58,6 +61,9 @@ module HippoSwap::StableCurveSwap {
         Coin::burn<LPToken<X, Y>>(to_burn, &liquidity_cap.burn);
     }
 
+//    public fun balance<X, Y>(): u64 {
+//        Coin::balance<LPToken<X, Y>>(HippoConfig::admin_address())
+//    }
 
     #[test_only]
     fun init_mock_coin<Money: store>(creator: &signer): Coin::Coin<Money> {
@@ -139,6 +145,75 @@ module HippoSwap::StableCurveSwap {
         } else { a1 }
     }
 
+    fun precision_multiplier(decimal: u64): u128 {
+        Math::pow(10, 18) / Math::pow(10, decimal)
+    }
+
+    fun rates<X, Y>(): (u128, u128) {
+        (
+            precision_multiplier(Coin::decimals<X>()) * Math::pow(10, 18),
+            precision_multiplier(Coin::decimals<Y>()) * Math::pow(10, 18)
+        )
+    }
+
+    fun xp_mem<X, Y>(x_reserve: u64, y_reserve: u64): (u128, u128) {
+        let (rate_x, rate_y) = rates<X, Y>();
+        (rate_x * (x_reserve as u128) / PRECISION, rate_y * (y_reserve as u128) / PRECISION)
+    }
+
+    /// D invariant calculation in non-overflowing integer operations iteratively
+    ///
+    /// A * sum(x_i) * n**n + D = A * D * n**n + D**(n+1) / (n**n * prod(x_i))
+    ///
+    /// Converging solution:
+    ///
+    ///  D[j+1] = (A * n**n * sum(x_i) - D[j]**(n+1) / (n**n prod(x_i))) / (A * n**n - 1)
+    ///
+    fun get_D<X, Y>(x: u128, y: u128, amp: u128): u128 {
+        let s = x + y;
+        if ( s == 0 ) {
+            s
+        } else {
+            let (d, d_prev, ann, iter, end) = (s, 0,  amp * 2, 0, 255);
+            let result: u128 = 0;
+            while ( iter < end ) {
+                iter = iter + 1;
+                let d_p = d;
+                d_p = d_p * d / (x * 2);
+                d_p = d_p * d / (y * 2);
+                d_prev = d;
+
+                // D = (Ann * S / A_PRECISION + D_P * N_COINS) * D / ((Ann - A_PRECISION) * D / A_PRECISION + (N_COINS + 1) * D_P)
+                d = ( ann * s / A_PRECISION + d_p * 2) * d / ((ann - A_PRECISION) * d / A_PRECISION + 3 * d_p);
+                if ( d > d_prev ) {
+                    if ( d - d_prev <= 1 ) {
+                        result = d;
+                        break
+                    }
+                } else {
+                    if ( d_prev -d <= 1) {
+                        result = d;
+                        break
+                    }
+                };
+            };
+
+            // convergence typically occurs in 4 rounds or less, this should be unreachable!
+            // if it does happen the pool is borked and LPs can withdraw via `remove_liquidity`
+
+            // It's weird that the compile raise warning[W09003]: unused assignment without the clause below.
+            // d_prev refered in while scope seems to be ignored.
+            assert!(d_prev != 0, ERROR_SWAP_INVALID_DIRIVIATION);
+            assert!(result != 0, ERROR_SWAP_INVALID_DIRIVIATION);
+            result
+        }
+    }
+
+    fun get_D_mem<X, Y>(x: u64, y: u64, amp: u128): u128 {
+        let (new_x, new_y) = xp_mem<X, Y>(x, y);
+        get_D<X, Y>(new_x, new_y, amp)
+    }
+
     public fun deposit_liquidity<X: copy + store, Y: copy + store>(x: Coin::Coin<X>, y: Coin::Coin<Y>,
     ): Coin::Coin<LPToken<X, Y>> acquires SwapPair, LPCapability {
         let (x_reserve, y_reserve) = get_reserves<X, Y>();
@@ -146,8 +221,9 @@ module HippoSwap::StableCurveSwap {
         let y_value_prev = Coin::value<Y>(&y);
 
         let amp = get_raw_A<X, Y>();
+        let d0 = get_D_mem<X, Y>(x_reserve, y_reserve, amp);
         // TODO: Need to be corrected.
-        let liquidity = x_value_prev + y_value_prev + (amp as u64);
+        let liquidity = x_value_prev + y_value_prev + (amp as u64) + ( d0 as u64);
         assert!(liquidity > 0, ERROR_SWAP_ADDLIQUIDITY_INVALID);
         let token_pair = borrow_global_mut<SwapPair<X, Y>>(HippoConfig::admin_address());
         Coin::merge(&mut token_pair.x_reserve, x);
@@ -279,7 +355,7 @@ module HippoSwap::StableCurveSwap {
         swap_pair.future_A = 20;
         swap_pair.initial_A = 4;
         let k = get_raw_A<MockCoin::WETH, MockCoin::WDAI>();
-        Debug::print(&k)
+        Std::Debug::print(&k)
     }
 
     #[test(admin = @HippoSwap, core = @CoreResources, vm = @0)]
@@ -293,7 +369,13 @@ module HippoSwap::StableCurveSwap {
         swap_pair.future_A = 4;
         swap_pair.initial_A = 20;
         let k = get_raw_A<MockCoin::WETH, MockCoin::WDAI>();
-        Debug::print(&k)
+        Std::Debug::print(&k);
+        let d0 = get_D_mem<MockCoin::WETH, MockCoin::WDAI>(100, 200, 1000);
+        Std::Debug::print(&1000009);
+        Std::Debug::print(&d0);
+        let d1 = get_D_mem<MockCoin::WETH, MockCoin::WDAI>(101010, 200, 50);
+        Std::Debug::print(&9000001);
+        Std::Debug::print(&d1);
     }
 
 }

@@ -32,7 +32,9 @@ function check_coverage {
     for (( i=0; i<${#COVERAGE[@]}; i++ ))
     do
       if [[ ${COVERAGE[$i]} =~ ^"$MATCH".*  ]]; then
-        if ! [[ ${COVERAGE[$i]} =~ ^"$PASS".* ]]; then
+        NUMBER=$( echo ${COVERAGE[$i]} | sed "s/[^0-9.]*//g" )
+        INT=${NUMBER%.*}
+        if [[ $INT -lt 98 ]]; then
           ERRORMODULE=$(( ERRORMODULE + 1 ))
         fi
       fi
