@@ -8,6 +8,7 @@ module HippoSwap::CPSwap {
     use AptosFramework::Timestamp;
 
     use HippoSwap::SafeMath;
+    use HippoSwap::Utils;
     use HippoSwap::Math;
 
     const MODULE_ADMIN: address = @HippoSwap;
@@ -25,9 +26,15 @@ module HippoSwap::CPSwap {
     const ERROR_INSUFFICIENT_AMOUNT: u64 = 6;
     const ERROR_INSUFFICIENT_LIQUIDITY: u64 = 7;
     const ERROR_INVALID_AMOUNT: u64 = 8;
+    const ERROR_TOKENS_NOT_SORTED: u64 = 9;
+    const ERROR_INSUFFICIENT_LIQUIDITY_BURNED: u64 = 10;
 
     /// The LP Token type
     struct LPToken<phantom T0, phantom T1> has key {}
+
+    struct GenericTokenBalance<phantom T> has key {
+        coin: Coin::Coin<T>
+    }
 
     /// Stores the metadata required for the token pairs
     struct TokenPairMetadata<phantom T0, phantom T1> has key {
@@ -55,6 +62,22 @@ module HippoSwap::CPSwap {
         block_timestamp_last: u64
     }
 
+    public fun register_token<T: key>(sender: &signer) {
+        let sender_addr = Signer::address_of(sender);
+        assert!(sender_addr == MODULE_ADMIN, ERROR_NOT_CREATOR);
+
+        assert!(
+            !exists<GenericTokenBalance<T>>(sender_addr),
+            ERROR_ALREADY_INITIALIZED
+        );
+
+        move_to<GenericTokenBalance<T>>(
+            sender,
+            GenericTokenBalance { coin: Coin::zero<T>() }
+        );
+    }
+
+    /// Create the specified token pair
     public fun create_token_pair<T0: key, T1: key>(
         sender: &signer,
         fee_to: address,
@@ -62,7 +85,10 @@ module HippoSwap::CPSwap {
         lp_name: vector<u8>,
         lp_symbol: vector<u8>
     ) {
+        assert!(Utils::is_tokens_sorted<T0, T1>(), ERROR_TOKENS_NOT_SORTED);
+
         let sender_addr = Signer::address_of(sender);
+        assert!(sender_addr == MODULE_ADMIN, ERROR_NOT_CREATOR);
         assert!(!exists<TokenPairReserve<T0, T1>>(sender_addr), ERROR_ALREADY_INITIALIZED);
 
         // now we init the LP token
@@ -101,10 +127,12 @@ module HippoSwap::CPSwap {
     /// The init process for a sender. One must call this function first
     /// before interacting with the mint/burn.
     public fun register_account<T0, T1>(sender: &signer) {
+        assert!(Utils::is_tokens_sorted<T0, T1>(), ERROR_TOKENS_NOT_SORTED);
         Coin::register<LPToken<T0, T1>>(sender);
     }
 
     public fun get_reserves<T0: key, T1: key>(): (u64, u64, u64) acquires TokenPairReserve {
+        assert!(Utils::is_tokens_sorted<T0, T1>(), ERROR_TOKENS_NOT_SORTED);
         let reserve = borrow_global<TokenPairReserve<T0, T1>>(MODULE_ADMIN);
         (
             reserve.reserve0,
@@ -119,7 +147,9 @@ module HippoSwap::CPSwap {
         sender: &signer,
         amount0: u64,
         amount1: u64
-    ): (u64, u64, u64) acquires TokenPairReserve, TokenPairMetadata {
+    ): (u64, u64, u64) acquires TokenPairReserve, TokenPairMetadata, GenericTokenBalance {
+        assert!(Utils::is_tokens_sorted<T0, T1>(), ERROR_TOKENS_NOT_SORTED);
+
         let (reserve0, reserve1, _) = get_reserves<T0, T1>();
         let (a0, a1) = if (reserve0 == 0 && reserve1 == 0) {
             (amount0, amount1)
@@ -134,18 +164,26 @@ module HippoSwap::CPSwap {
             }
         };
 
-        Coin::deposit(
-            @HippoSwap,
-            Coin::withdraw<T0>(sender, a0)
-        );
-        Coin::deposit(
-            @HippoSwap,
-            Coin::withdraw<T1>(sender, a1)
-        );
-
+        deposit_token<T0>(Coin::withdraw<T0>(sender, a0));
+        deposit_token<T1>(Coin::withdraw<T1>(sender, a1));
         (a0, a1, mint<T0, T1>(sender))
     }
 
+    /// Remove liquidity to token types. This method explicitly assumes the
+    /// min of both tokens are 0.
+    public fun remove_liquidity<T0: key, T1: key>(
+        sender: &signer,
+        liquidity: u64,
+        amount0: u64,
+        amount1: u64
+    ): (u64, u64) acquires TokenPairMetadata, TokenPairReserve {
+        assert!(Utils::is_tokens_sorted<T0, T1>(), ERROR_TOKENS_NOT_SORTED);
+
+        let to_burn = Coin::withdraw<LPToken<T0, T1>>(sender, liquidity);
+        burn(to_burn)
+    }
+
+    // ======================= Internal Functions ==============================
     /// Mint LP Token.
     /// This low-level function should be called from a contract which performs important safety checks
     fun mint<T0: key, T1: key>(sender: &signer): u64 acquires TokenPairReserve, TokenPairMetadata {
@@ -204,6 +242,44 @@ module HippoSwap::CPSwap {
         (liquidity as u64)
     }
 
+    fun burn<T0: key, T1: key>(to_burn: Coin::Coin<LPToken<T0, T1>>): (u64, u64)
+        acquires TokenPairMetadata, TokenPairReserve
+    {
+        let metadata = borrow_global_mut<TokenPairMetadata<T0, T1>>(MODULE_ADMIN);
+
+        // Lock it, reentrancy protection
+        assert!(!metadata.locked, ERROR_ALREADY_LOCKED);
+        metadata.locked = true;
+
+        let reserves = borrow_global_mut<TokenPairReserve<T0, T1>>(MODULE_ADMIN);
+        let balance0 = Coin::balance<T0>(@HippoSwap);
+        let balance1 = Coin::balance<T1>(@HippoSwap);
+        let liquidity = Coin::balance<LPToken<T0, T1>>(@HippoSwap) + Coin::value(&to_burn);
+
+        mint_fee(reserves.reserve0, reserves.reserve1, metadata);
+
+        let total_lp_supply = total_lp_supply<T0, T1>();
+        let amount0 = SafeMath::div(
+            SafeMath::mul(
+                (balance0 as u128),
+                (liquidity as u128)
+            ),
+        (total_lp_supply as u128)
+        );
+        let amount1 = SafeMath::div(
+            SafeMath::mul(
+                (balance1 as u128),
+                (liquidity as u128)
+            ),
+        (total_lp_supply as u128)
+        );
+        assert!(amount0 > 0 && amount1 > 0, ERROR_INSUFFICIENT_LIQUIDITY_BURNED);
+
+        Coin::burn(to_burn, &metadata.burn_cap);
+
+        (0, 0)
+    }
+
     fun update<T0: key, T1: key>(balance0: u64, balance1: u64, reserve: &mut TokenPairReserve<T0, T1>) {
         assert!(
             (balance0 as u128) <= BALANCE_MAX && (balance1 as u128) <= BALANCE_MAX,
@@ -230,6 +306,11 @@ module HippoSwap::CPSwap {
     ) {
         let coins = Coin::mint<LPToken<T0, T1>>(amount, mint_cap);
         Coin::deposit(to, coins);
+    }
+
+    fun deposit_token<T: key>(amount: Coin::Coin<T>) acquires GenericTokenBalance {
+        let balance = borrow_global_mut<GenericTokenBalance<T>>(MODULE_ADMIN);
+        Coin::merge(&mut balance.coin, amount);
     }
 
     fun mint_fee<T0, T1>(reserve0: u64, reserve1: u64, metadata: &mut TokenPairMetadata<T0, T1>) {
