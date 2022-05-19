@@ -20,7 +20,7 @@ module HippoSwap::Utils {
         let r = if (name_compare != COMPARE_EQUAL) { name_compare }
         else { compare_vec(&s0, &s1) };
 
-        r == COMPARE_LESS
+        r != COMPARE_GREATER
     }
 
     /// This is custom vec comparison logic, only for `is_tokens_sorted`
