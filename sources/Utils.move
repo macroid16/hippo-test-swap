@@ -33,9 +33,9 @@ module HippoSwap::Utils {
             let i = 0u64;
             loop {
                 // we have exhausted the vecs
-                if (i == n1) { return COMPARE_EQUAL; };
+                if (i == n1) { return COMPARE_EQUAL };
                 let r = compare_u8(*Vector::borrow(v1, i), *Vector::borrow(v2, i));
-                if (r != COMPARE_EQUAL) { return r; };
+                if (r != COMPARE_EQUAL) { return r };
             }
         }
     }
