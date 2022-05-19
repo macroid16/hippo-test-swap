@@ -35,7 +35,7 @@ module MockCoin {
             decimals,
             true
         );
-        Coin::register<TokenType>(account);
+        Coin::register_internal<TokenType>(account);
 
         move_to(account, TokenSharedCapability { mint: mint_capability, burn: burn_capability });
     }
