@@ -1,7 +1,9 @@
 module HippoSwap::StableCurveSwap {
     use Std::ASCII;
     use Std::Option;
+    use Std::Debug;
     use AptosFramework::Coin;
+    use AptosFramework::Timestamp;
 
     use HippoSwap::HippoConfig;
 
@@ -19,12 +21,16 @@ module HippoSwap::StableCurveSwap {
     struct SwapPair<phantom X, phantom Y> has key, store {
         x_reserve: Coin::Coin<X>,
         y_reserve: Coin::Coin<Y>,
-        last_k: u128
+        initial_A: u128,
+        future_A: u128,
+        initial_A_time: u128,
+        future_A_time: u128,
     }
 
 
     const DECIMALS: u64 = 18;
 
+    const ERROR_SWAP_INVALID_TOKEN_PAIR: u64 = 2000;
     const ERROR_SWAP_BURN_CALC_INVALID: u64 = 2004;
     const ERROR_SWAP_ADDLIQUIDITY_INVALID: u64 = 2007;
     const ERROR_SWAP_TOKEN_NOT_EXISTS: u64 = 2008;
@@ -32,6 +38,8 @@ module HippoSwap::StableCurveSwap {
     // Token utilities
 
     public fun initialize_coin<X, Y>(signer: &signer, name: ASCII::String, symbol: ASCII::String) {
+        assert!(Coin::is_coin_initialized<X>(), ERROR_SWAP_INVALID_TOKEN_PAIR);
+        assert!(Coin::is_coin_initialized<Y>(), ERROR_SWAP_INVALID_TOKEN_PAIR);
         let (mint_capability, burn_capability) = Coin::initialize<LPToken<X, Y>>(
             signer, name, symbol, DECIMALS, true
         );
@@ -50,9 +58,20 @@ module HippoSwap::StableCurveSwap {
         Coin::burn<LPToken<X, Y>>(to_burn, &liquidity_cap.burn);
     }
 
+
+    #[test_only]
+    fun init_mock_coin<Money: store>(creator: &signer): Coin::Coin<Money> {
+        use HippoSwap::MockCoin;
+        MockCoin::initialize<Money>(creator, 9);
+        MockCoin::mint<Money>(20)
+    }
+
     #[test(admin = @HippoSwap, core_resource_account = @CoreResources)]
     fun mint_mock_coin(admin: &signer) acquires LPCapability {
-        initialize<HippoSwap::MockCoin::WETH, HippoSwap::MockCoin::WDAI>(
+        use HippoSwap::MockCoin;
+        MockCoin::initialize<HippoSwap::MockCoin::WETH>(admin, 9);
+        MockCoin::initialize<HippoSwap::MockCoin::WDAI>(admin, 9);
+        initialize_coin<HippoSwap::MockCoin::WETH, HippoSwap::MockCoin::WDAI>(
             admin,
             ASCII::string(b"Curve:WETH-WDAI"),
             ASCII::string(b"WEWD")
@@ -62,6 +81,23 @@ module HippoSwap::StableCurveSwap {
     }
 
     // Swap utilities
+
+    public fun get_initial_A<X, Y>(): u128 acquires SwapPair {
+        borrow_global<SwapPair<X, Y>>(HippoConfig::admin_address()).initial_A
+    }
+
+    public fun get_initial_A_time<X, Y>(): u128 acquires SwapPair {
+        borrow_global<SwapPair<X, Y>>(HippoConfig::admin_address()).initial_A_time
+    }
+
+    public fun get_future_A_time<X, Y>(): u128 acquires SwapPair {
+        borrow_global<SwapPair<X, Y>>(HippoConfig::admin_address()).future_A_time
+    }
+
+    public fun get_future_A<X, Y>(): u128 acquires SwapPair {
+        borrow_global<SwapPair<X, Y>>(HippoConfig::admin_address()).future_A
+    }
+
 
     public fun get_reserves<X: copy + store, Y: copy + store>(): (u64, u64) acquires SwapPair {
         let pair = borrow_global<SwapPair<X, Y>>(HippoConfig::admin_address());
@@ -74,23 +110,44 @@ module HippoSwap::StableCurveSwap {
         SwapPair<X, Y>{
             x_reserve: Coin::zero<X>(),
             y_reserve: Coin::zero<Y>(),
-            last_k: 0,
+            initial_A: 0,
+            future_A: 0,
+            initial_A_time: 0,
+            future_A_time: 0,
         }
     }
 
     public fun initialize<X: copy + store, Y: copy + store>(signer: &signer, name: ASCII::String, symbol: ASCII::String) {
+        initialize_coin<X, Y>(signer, name, symbol);
         let token_pair = make_swap_pair<X, Y>();
         move_to(signer, token_pair);
-        initialize_coin<X, Y>(signer, name, symbol)
     }
 
-    public fun add_liquidity<X: copy + store, Y: copy + store>(x: Coin::Coin<X>, y: Coin::Coin<Y>
+
+    fun get_raw_A<X, Y>(): u128 acquires SwapPair {
+        let t1 = get_future_A_time<X, Y>();
+        let a1 = get_future_A<X, Y>();
+        let block_timestamp = (Timestamp::now_seconds() as u128);
+        if ( block_timestamp < t1 ) {
+            let a0 = get_initial_A<X, Y>();
+            let t0 = get_initial_A_time<X, Y>();
+            if ( a1 < a0 ) {
+                a0 - (a0 - a1) * (block_timestamp - t0) / (t1 - t0)
+            } else {
+                a0 + (a1 - a0) * (block_timestamp - t0) / (t1 - t0)
+            }
+        } else { a1 }
+    }
+
+    public fun deposit_liquidity<X: copy + store, Y: copy + store>(x: Coin::Coin<X>, y: Coin::Coin<Y>,
     ): Coin::Coin<LPToken<X, Y>> acquires SwapPair, LPCapability {
         let (x_reserve, y_reserve) = get_reserves<X, Y>();
-        let x_value = Coin::value<X>(&x);
-        let y_value = Coin::value<Y>(&y);
+        let x_value_prev = Coin::value<X>(&x);
+        let y_value_prev = Coin::value<Y>(&y);
+
+        let amp = get_raw_A<X, Y>();
         // TODO: Need to be corrected.
-        let liquidity = x_value + y_value;
+        let liquidity = x_value_prev + y_value_prev + (amp as u64);
         assert!(liquidity > 0, ERROR_SWAP_ADDLIQUIDITY_INVALID);
         let token_pair = borrow_global_mut<SwapPair<X, Y>>(HippoConfig::admin_address());
         Coin::merge(&mut token_pair.x_reserve, x);
@@ -121,52 +178,122 @@ module HippoSwap::StableCurveSwap {
     fun update_oracle<X: copy + store, Y: copy + store>(x_reserve: u64, y_reserve: u64, ) acquires SwapPair {
         let token_pair = borrow_global_mut<SwapPair<X, Y>>(HippoConfig::admin_address());
         // TODO: Not implemented.
-        token_pair.last_k = ((x_reserve * y_reserve) as u128);
+        token_pair.future_A = ((x_reserve * y_reserve) as u128);
+    }
+
+
+    // Tests
+
+    #[test_only]
+    fun genesis(core: &signer){
+        use AptosFramework::Genesis;
+        Genesis::setup(core);
     }
 
     #[test_only]
-    fun init_mock_coin<Money: store>(creator: &signer): Coin::Coin<Money> {
-        use HippoSwap::MockCoin;
-        MockCoin::initialize<Money>(creator, 9);
-        MockCoin::mint<Money>(20)
+    fun update_time(account: &signer, time: u64) {
+        use AptosFramework::Timestamp;
+        Timestamp::update_global_time(account, @0x1000010, time);
     }
 
-    #[test(admin = @HippoSwap, core_resource_account = @CoreResources)]
-    fun mint_lptoken_coin(admin: &signer, ) acquires SwapPair, LPCapability {
-        use Std::Signer;
-        //        use AptosFramework::Genesis;
+    #[test_only]
+    fun init_lp_token(admin: &signer, core: &signer){
 
-        //        Genesis::setup(core_resource_account);
+        use HippoSwap::MockCoin;
+        genesis(core);
 
+        MockCoin::initialize<MockCoin::WETH>(admin, 18);
+        MockCoin::initialize<MockCoin::WDAI>(admin, 18);
         initialize<HippoSwap::MockCoin::WETH, HippoSwap::MockCoin::WDAI>(
             admin,
             ASCII::string(b"Curve:WETH-WDAI"),
             ASCII::string(b"WEWD")
         );
 
-        let x = init_mock_coin<HippoSwap::MockCoin::WETH>(admin);
-        let y = init_mock_coin<HippoSwap::MockCoin::WDAI>(admin);
-        let liquidity = add_liquidity(x, y);
+    }
+
+    #[test(admin = @HippoSwap, core = @CoreResources)]
+    fun mint_lptoken_coin(admin: &signer, core: &signer) acquires SwapPair, LPCapability {
+        use Std::Signer;
+        use HippoSwap::MockCoin;
+        init_lp_token(admin, core);
+        let x = MockCoin::mint<MockCoin::WETH>(10);
+        let y = MockCoin::mint<MockCoin::WDAI>(10);
+        let liquidity = deposit_liquidity(x, y);
         let (x, y) = remove_liquidity(liquidity);
         Coin::deposit(Signer::address_of(admin), x);
         Coin::deposit(Signer::address_of(admin), y);
     }
 
-    #[test(source = @HippoSwap)]
+    #[test(admin = @HippoSwap,  core = @CoreResources)]
     #[expected_failure(abort_code = 2007)]
-    public fun fail_add_liquidity(source: &signer) acquires SwapPair, LPCapability {
+    public fun fail_add_liquidity(admin: &signer, core: &signer) acquires SwapPair, LPCapability {
         use Std::Signer;
         use HippoSwap::MockCoin;
+
+        genesis(core);
+
+        MockCoin::initialize<HippoSwap::MockCoin::WETH>(admin, 18);
+        MockCoin::initialize<HippoSwap::MockCoin::WDAI>(admin, 18);
         initialize<HippoSwap::MockCoin::WETH, HippoSwap::MockCoin::WDAI>(
-            source,
+            admin,
             ASCII::string(b"Curve:WETH-WDAI"),
             ASCII::string(b"WEWD")
         );
-        MockCoin::initialize<MockCoin::WETH>(source, 18);
-        MockCoin::initialize<MockCoin::WDAI>(source, 18);
         let x = MockCoin::mint<MockCoin::WETH>(0);
         let y = MockCoin::mint<MockCoin::WDAI>(0);
-        let liquidity = add_liquidity(x, y);
-        Coin::deposit(Signer::address_of(source), liquidity)
+        let liquidity = deposit_liquidity(x, y);
+        Coin::deposit(Signer::address_of(admin), liquidity)
     }
+
+    #[test(admin = @HippoSwap)]
+    #[expected_failure(abort_code = 2000)]
+    public fun fail_x(admin: &signer) {
+        initialize<HippoSwap::MockCoin::WETH, HippoSwap::MockCoin::WDAI>(
+            admin,
+            ASCII::string(b"Curve:WETH-WDAI"),
+            ASCII::string(b"WEWD")
+        );
+    }
+
+    #[test(admin = @HippoSwap)]
+    #[expected_failure(abort_code = 2000)]
+    public fun fail_y(admin: &signer) {
+        use HippoSwap::MockCoin;
+        MockCoin::initialize<HippoSwap::MockCoin::WETH>(admin, 18);
+        initialize<HippoSwap::MockCoin::WETH, HippoSwap::MockCoin::WDAI>(
+            admin,
+            ASCII::string(b"Curve:WETH-WDAI"),
+            ASCII::string(b"WEWD")
+        );
+    }
+
+    #[test(admin = @HippoSwap, core = @CoreResources, vm = @0)]
+    fun test_swap_pair_case_A(admin: &signer, core: &signer, vm: &signer) acquires SwapPair {
+        use HippoSwap::MockCoin;
+        init_lp_token(admin, core);
+        let swap_pair = borrow_global_mut<SwapPair<MockCoin::WETH, MockCoin::WDAI>>(HippoConfig::admin_address());
+        update_time(vm, 0x1100000);
+        let block_timestamp = (Timestamp::now_seconds() as u128);
+        swap_pair.future_A_time = block_timestamp + 2;
+        swap_pair.future_A = 20;
+        swap_pair.initial_A = 4;
+        let k = get_raw_A<MockCoin::WETH, MockCoin::WDAI>();
+        Debug::print(&k)
+    }
+
+    #[test(admin = @HippoSwap, core = @CoreResources, vm = @0)]
+    fun test_swap_pair_case_B(admin: &signer, core: &signer, vm: &signer) acquires SwapPair {
+        use HippoSwap::MockCoin;
+        init_lp_token(admin, core);
+        let swap_pair = borrow_global_mut<SwapPair<MockCoin::WETH, MockCoin::WDAI>>(HippoConfig::admin_address());
+        update_time(vm, 0x1100000);
+        let block_timestamp = (Timestamp::now_seconds() as u128);
+        swap_pair.future_A_time = block_timestamp + 2;
+        swap_pair.future_A = 4;
+        swap_pair.initial_A = 20;
+        let k = get_raw_A<MockCoin::WETH, MockCoin::WDAI>();
+        Debug::print(&k)
+    }
+
 }
