@@ -20,13 +20,12 @@ module HippoSwap::Utils {
         let r = if (name_compare != COMPARE_EQUAL) { name_compare }
         else { compare_vec(&s0, &s1) };
 
-        r != COMPARE_GREATER
+        r == COMPARE_LESS
     }
 
     /// This is custom vec comparison logic, only for `is_tokens_sorted`
     fun compare_vec(v1: &vector<u8>, v2: &vector<u8>): u8 {
         let (n1, n2) = (Vector::length(v1), Vector::length(v2));
-
         let r = compare_u64(n1, n2);
         if (r != COMPARE_EQUAL) { r }
         else {
