@@ -223,7 +223,7 @@ module HippoSwap::CPSwap {
         sender: &signer,
         amount_in: u64,
         to: address,
-    ): u64 acquires TokenPairReserve, GenericTokenBalance {
+    ): u64 acquires TokenPairReserve, GenericTokenBalance, TokenPairMetadata {
         let coins = Coin::withdraw<In>(sender, amount_in);
 
         let amount_out;
@@ -247,12 +247,17 @@ module HippoSwap::CPSwap {
         amount0_out: u64,
         amount1_out: u64,
         to: address,
-    ) acquires TokenPairReserve, GenericTokenBalance {
+    ) acquires TokenPairReserve, GenericTokenBalance, TokenPairMetadata {
         assert!(Utils::is_tokens_sorted<T0, T1>(), ERROR_TOKENS_NOT_SORTED);
-
         assert!(amount0_out > 0 || amount1_out > 0, ERROR_INSUFFICIENT_OUTPUT_AMOUNT);
         let reserves = borrow_global_mut<TokenPairReserve<T0, T1>>(MODULE_ADMIN);
         assert!(amount0_out < reserves.reserve0 && amount1_out < reserves.reserve1, ERROR_INSUFFICIENT_LIQUIDITY);
+
+        let metadata = borrow_global_mut<TokenPairMetadata<T0, T1>>(MODULE_ADMIN);
+
+        // Lock it, reentrancy protection
+        assert!(!metadata.locked, ERROR_ALREADY_LOCKED);
+        metadata.locked = true;
 
         // TODO: this required? `require(to != _token0 && to != _token1, 'UniswapV2: INVALID_TO')`
         if (amount0_out > 0) transfer_token<T0, T0, T1>(amount0_out, to);
@@ -285,6 +290,8 @@ module HippoSwap::CPSwap {
         assert!(SafeMath::mul(balance0_adjusted, balance1_adjusted) >= k, ERROR_K);
 
         update(balance0, balance1, reserves);
+
+        metadata.locked = false;
     }
 
     /// Mint LP Token.
@@ -390,6 +397,8 @@ module HippoSwap::CPSwap {
 
         if (metadata.fee_on)
             metadata.k_last = SafeMath::mul((reserves.reserve0 as u128), (reserves.reserve1 as u128));
+
+        metadata.locked = false;
 
         (amount0, amount1)
     }
