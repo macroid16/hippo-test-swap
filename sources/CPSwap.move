@@ -160,7 +160,17 @@ module HippoSwap::CPSwap {
 
     /// Obtain the LP token balance of `addr`
     public fun lp_balance<T0: key, T1: key>(addr: address): u64 {
+        assert!(Utils::is_tokens_sorted<T0, T1>(), ERROR_TOKENS_NOT_SORTED);
         Coin::balance<LPToken<T0, T1>>(addr)
+    }
+
+    /// The amount of balance currently in pools of the liquidity pair
+    public fun token_balances<T0: key, T1: key>(): (u64, u64) acquires GenericTokenBalance {
+        assert!(Utils::is_tokens_sorted<T0, T1>(), ERROR_TOKENS_NOT_SORTED);
+        (
+            balance_token<T0, T0, T1>(),
+            balance_token<T1, T0, T1>()
+        )
     }
 
     // ===================== Update functions ======================
@@ -229,7 +239,6 @@ module HippoSwap::CPSwap {
             amount_out = CPSwapUtils::get_amount_out(amount_in, rin, rout);
             swap<Out, In>(amount_out, 0, to);
         };
-
         amount_out
     }
 
