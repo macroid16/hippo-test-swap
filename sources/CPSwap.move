@@ -34,11 +34,19 @@ module HippoSwap::CPSwap {
     const ERROR_INSUFFICIENT_OUTPUT_AMOUNT: u64 = 13;
     const ERROR_INSUFFICIENT_INPUT_AMOUNT: u64 = 14;
     const ERROR_K: u64 = 15;
+    const ERROR_T0_NOT_REGISTERED: u64 = 16;
+    const ERROR_T1_NOT_REGISTERED: u64 = 16;
 
     /// The LP Token type
     struct LPToken<phantom T0, phantom T1> has key {}
 
-    struct GenericTokenBalance<phantom T> has key {
+    /// Struct that stores the balance of each token in a LP tokens pair.
+    /// For example, we might have swap from BTC <-> ETH and BTC <-> USDT
+    /// then the balance stored for BTC should be counted separately as
+    ///     balance of BTC in BTC-ETH
+    ///     balance of BTC in BTC-USDT
+    /// The current representation use `LPToken` as another key
+    struct GenericTokenBalance<phantom T, phantom LPToken> has key {
         coin: Coin::Coin<T>
     }
 
@@ -69,21 +77,6 @@ module HippoSwap::CPSwap {
     }
 
     // ================= Init functions ========================
-    public fun register_token<T: key>(sender: &signer) {
-        let sender_addr = Signer::address_of(sender);
-        assert!(sender_addr == MODULE_ADMIN, ERROR_NOT_CREATOR);
-
-        assert!(
-            !exists<GenericTokenBalance<T>>(sender_addr),
-            ERROR_ALREADY_INITIALIZED
-        );
-
-        move_to<GenericTokenBalance<T>>(
-            sender,
-            GenericTokenBalance { coin: Coin::zero<T>() }
-        );
-    }
-
     /// Create the specified token pair
     public fun create_token_pair<T0: key, T1: key>(
         sender: &signer,
@@ -96,7 +89,22 @@ module HippoSwap::CPSwap {
 
         let sender_addr = Signer::address_of(sender);
         assert!(sender_addr == MODULE_ADMIN, ERROR_NOT_CREATOR);
+
         assert!(!exists<TokenPairReserve<T0, T1>>(sender_addr), ERROR_ALREADY_INITIALIZED);
+        assert!(
+            !exists<GenericTokenBalance<T0, LPToken<T0, T1>>>(sender_addr)
+            &&
+            !exists<GenericTokenBalance<T1, LPToken<T0, T1>>>(sender_addr),
+            ERROR_ALREADY_INITIALIZED
+        );
+        move_to<GenericTokenBalance<T0, LPToken<T0, T1>>>(
+            sender,
+            GenericTokenBalance { coin: Coin::zero<T0>() }
+        );
+        move_to<GenericTokenBalance<T1, LPToken<T0, T1>>>(
+            sender,
+            GenericTokenBalance { coin: Coin::zero<T1>() }
+        );
 
         // now we init the LP token
         let (mint_cap, burn_cap) = Coin::initialize<LPToken<T0, T1>>(
@@ -139,6 +147,7 @@ module HippoSwap::CPSwap {
     }
 
     // ====================== Getters ===========================
+    /// Get the current reserves of T0 and T1 with the latest updated timestamp
     public fun get_reserves<T0: key, T1: key>(): (u64, u64, u64) acquires TokenPairReserve {
         assert!(Utils::is_tokens_sorted<T0, T1>(), ERROR_TOKENS_NOT_SORTED);
         let reserve = borrow_global<TokenPairReserve<T0, T1>>(MODULE_ADMIN);
@@ -147,6 +156,11 @@ module HippoSwap::CPSwap {
             reserve.reserve1,
             reserve.block_timestamp_last
         )
+    }
+
+    /// Obtain the LP token balance of `addr`
+    public fun lp_balance<T0: key, T1: key>(addr: address): u64 {
+        Coin::balance<LPToken<T0, T1>>(addr)
     }
 
     // ===================== Update functions ======================
@@ -173,8 +187,8 @@ module HippoSwap::CPSwap {
             }
         };
 
-        deposit_token<T0>(Coin::withdraw<T0>(sender, a0));
-        deposit_token<T1>(Coin::withdraw<T1>(sender, a1));
+        deposit_token<T0, T0, T1>(Coin::withdraw<T0>(sender, a0));
+        deposit_token<T1, T0, T1>(Coin::withdraw<T1>(sender, a1));
         (a0, a1, mint<T0, T1>(sender))
     }
 
@@ -201,15 +215,16 @@ module HippoSwap::CPSwap {
         to: address,
     ): u64 acquires TokenPairReserve, GenericTokenBalance {
         let coins = Coin::withdraw<In>(sender, amount_in);
-        deposit_token<In>(coins);
 
         let amount_out;
         // TODO: check again, ensure logic conversion correct
         if (Utils::is_tokens_sorted<In, Out>()) {
+            deposit_token<In, In, Out>(coins);
             let (rin, rout, _) = get_reserves<In, Out>();
             amount_out = CPSwapUtils::get_amount_out(amount_in, rin, rout);
             swap<In, Out>(0, amount_out, to);
         } else {
+            deposit_token<In, Out, In>(coins);
             let (rout, rin, _) = get_reserves<Out, In>();
             amount_out = CPSwapUtils::get_amount_out(amount_in, rin, rout);
             swap<Out, In>(amount_out, 0, to);
@@ -231,10 +246,10 @@ module HippoSwap::CPSwap {
         assert!(amount0_out < reserves.reserve0 && amount1_out < reserves.reserve1, ERROR_INSUFFICIENT_LIQUIDITY);
 
         // TODO: this required? `require(to != _token0 && to != _token1, 'UniswapV2: INVALID_TO')`
-        if (amount0_out > 0) transfer_token<T0>(amount0_out, to);
-        if (amount1_out > 0) transfer_token<T1>(amount1_out, to);
-        let balance0 = Coin::balance<T0>(@HippoSwap);
-        let balance1 = Coin::balance<T1>(@HippoSwap);
+        if (amount0_out > 0) transfer_token<T0, T0, T1>(amount0_out, to);
+        if (amount1_out > 0) transfer_token<T1, T0, T1>(amount1_out, to);
+        let balance0 = balance_token<T0, T0, T1>();
+        let balance1 = balance_token<T1, T0, T1>();
 
         let amount0_in = if (balance0 > reserves.reserve0 - amount0_out) {
             balance0 - (reserves.reserve0 - amount0_out)
@@ -265,7 +280,7 @@ module HippoSwap::CPSwap {
 
     /// Mint LP Token.
     /// This low-level function should be called from a contract which performs important safety checks
-    fun mint<T0: key, T1: key>(sender: &signer): u64 acquires TokenPairReserve, TokenPairMetadata {
+    fun mint<T0: key, T1: key>(sender: &signer): u64 acquires TokenPairReserve, TokenPairMetadata, GenericTokenBalance {
         let metadata = borrow_global_mut<TokenPairMetadata<T0, T1>>(MODULE_ADMIN);
 
         // Lock it, reentrancy protection
@@ -273,8 +288,8 @@ module HippoSwap::CPSwap {
         metadata.locked = true;
 
         let reserves = borrow_global_mut<TokenPairReserve<T0, T1>>(MODULE_ADMIN);
-        let balance0 = Coin::balance<T0>(@HippoSwap);
-        let balance1 = Coin::balance<T1>(@HippoSwap);
+        let balance0 = balance_token<T0, T0, T1>();
+        let balance1 = balance_token<T1, T0, T1>();
         let amount0 = SafeMath::sub((balance0 as u128), (reserves.reserve0 as u128));
         let amount1 = SafeMath::sub((balance1 as u128), (reserves.reserve1 as u128));
 
@@ -331,9 +346,9 @@ module HippoSwap::CPSwap {
         metadata.locked = true;
 
         let reserves = borrow_global_mut<TokenPairReserve<T0, T1>>(MODULE_ADMIN);
-        let balance0 = Coin::balance<T0>(@HippoSwap);
-        let balance1 = Coin::balance<T1>(@HippoSwap);
-        let liquidity = Coin::balance<LPToken<T0, T1>>(@HippoSwap) + Coin::value(&to_burn);
+        let balance0 = balance_token<T0, T0, T1>();
+        let balance1 = balance_token<T0, T0, T1>();
+        let liquidity = lp_balance<T0, T1>(@HippoSwap) + Coin::value(&to_burn);
 
         mint_fee(reserves.reserve0, reserves.reserve1, metadata);
 
@@ -355,8 +370,8 @@ module HippoSwap::CPSwap {
         assert!(amount0 > 0 && amount1 > 0, ERROR_INSUFFICIENT_LIQUIDITY_BURNED);
 
         Coin::burn(to_burn, &metadata.burn_cap);
-        transfer_token<T0>(amount0, to);
-        transfer_token<T1>(amount1, to);
+        transfer_token<T0, T0, T1>(amount0, to);
+        transfer_token<T1, T0, T1>(amount1, to);
 
         update(
             Coin::balance<T0>(@HippoSwap),
@@ -398,17 +413,29 @@ module HippoSwap::CPSwap {
         Coin::deposit(to, coins);
     }
 
-    /// Deposit `amount` to this contract
-    fun deposit_token<T: key>(amount: Coin::Coin<T>) acquires GenericTokenBalance {
-        let balance = borrow_global_mut<GenericTokenBalance<T>>(MODULE_ADMIN);
+    /// Deposit `amount` to this contract.
+    /// WARN: Caller must ensure T is either T0 or T1, T0 and T1 are sorted!
+    fun deposit_token<T: key, T0: key, T1: key>(amount: Coin::Coin<T>) acquires GenericTokenBalance {
+        let balance =
+            borrow_global_mut<GenericTokenBalance<T, LPToken<T0, T1>>>(MODULE_ADMIN);
         Coin::merge(&mut balance.coin, amount);
     }
 
     /// Transfer `amount` from this contract to `recipient`
-    fun transfer_token<T: key>(amount: u64, recipient: address) acquires GenericTokenBalance {
-        let balance = borrow_global_mut<GenericTokenBalance<T>>(MODULE_ADMIN);
+    /// WARN: Caller must ensure T is either T0 or T1, T0 and T1 are sorted!
+    fun transfer_token<T: key, T0: key, T1: key>(amount: u64, recipient: address) acquires GenericTokenBalance {
+        let balance =
+            borrow_global_mut<GenericTokenBalance<T, LPToken<T0, T1>>>(MODULE_ADMIN);
         assert!(Coin::value<T>(&balance.coin) > amount, ERROR_INSUFFICIENT_AMOUNT);
         Coin::deposit(recipient, Coin::extract(&mut balance.coin, amount));
+    }
+
+    /// Get the balance of current contract of Token T for LP pair T0 and T1
+    /// WARN: Caller must ensure T is either T0 or T1, T0 and T1 are sorted!
+    fun balance_token<T: key, T0: key, T1: key>(): u64 acquires GenericTokenBalance {
+        let balance =
+            borrow_global<GenericTokenBalance<T, LPToken<T0, T1>>>(MODULE_ADMIN);
+        Coin::value(&balance.coin)
     }
 
     fun mint_fee<T0, T1>(reserve0: u64, reserve1: u64, metadata: &mut TokenPairMetadata<T0, T1>) {
@@ -477,6 +504,11 @@ module HippoSwap::CPSwap {
     }
 
     #[test_only]
+    fun expand_to_decimals(num: u64, decimals: u8): u64 {
+        num * (Math::pow(10, decimals) as u64)
+    }
+
+    #[test_only]
     fun issue_token<T: key>(admin: &signer, to: &signer, name: vector<u8>, total_supply: u64) {
         let (mc, bc) = Coin::initialize<T>(
             admin,
@@ -505,16 +537,17 @@ module HippoSwap::CPSwap {
             b"symbol"
         );
     }
-    
-     #[test(admin = @HippoSwap, lp_provider = @0x02, lock = @0x01, core = @0xa550c18)]
-     public fun mint_works(admin: signer, lp_provider: signer, lock: signer, core: signer)
+
+     #[test(admin = @HippoSwap, token_owner = @0x02, lp_provider = @0x03, lock = @0x01, core = @0xa550c18)]
+     public fun mint_works(admin: signer, token_owner: signer, lp_provider: signer, lock: signer, core: signer)
         acquires TokenPairReserve, TokenPairMetadata, GenericTokenBalance
      {
-         let decimals: u64 = 8;
-         let total_supply: u64 = 1000000 * 10 ^ decimals;
+         // initial setup work
+         let decimals: u8 = 8;
+         let total_supply: u64 = (expand_to_decimals(1000000, 8) as u64);
 
-         issue_token<Token0>(&admin, &lp_provider, b"t0", total_supply);
-         issue_token<Token1>(&admin, &lp_provider, b"t1", total_supply);
+         issue_token<Token0>(&admin, &token_owner, b"t0", total_supply);
+         issue_token<Token1>(&admin, &token_owner, b"t1", total_supply);
 
          let fee_to = Signer::address_of(&admin);
          create_token_pair<Token0, Token1>(
@@ -529,33 +562,40 @@ module HippoSwap::CPSwap {
          register_account<Token0, Token1>(&lp_provider);
          register_account<Token0, Token1>(&lock);
 
-         add_liquidity<Token0, Token1>(
-             &lp_provider,
-             10000u64,
-             10000u64
+         // now perform the test
+         let amount0 = expand_to_decimals(1u64, decimals);
+         let amount1 = expand_to_decimals(4u64, decimals);
+         deposit_token<Token0, Token0, Token1>(Coin::withdraw<Token0>(&token_owner, amount0));
+         deposit_token<Token1, Token0, Token1>(Coin::withdraw<Token1>(&token_owner, amount1));
+
+         mint<Token0, Token1>(&lp_provider);
+
+         // now performing checks
+         let expected_liquidity = expand_to_decimals(2u64, decimals);
+
+         // check contract balance of Token0 and Token1
+         assert!(
+             balance_token<Token0, Token0, Token1>() == amount0,
+             0
+         );
+         assert!(
+             balance_token<Token1, Token0, Token1>() == amount1,
+             0
          );
 
+         // check liquidities
          assert!(
-             Coin::balance<Token0>(Signer::address_of(&admin)) > 0,
+             total_lp_supply<Token0, Token1>() == expected_liquidity,
              0
          );
          assert!(
-             Coin::balance<Token1>(Signer::address_of(&admin)) > 0,
+             lp_balance<Token0, Token1>(Signer::address_of(&lp_provider)) == expected_liquidity - (MINIMUM_LIQUIDITY as u64),
              0
          );
 
-         // check balance of lp provider
-         assert!(
-             Coin::balance<LPToken<Token0, Token1>>(Signer::address_of(&lp_provider)) > 0,
-             0
-         );
-         assert!(
-             Coin::balance<Token0>(Signer::address_of(&lp_provider)) < total_supply,
-             0
-         );
-         assert!(
-             Coin::balance<Token1>(Signer::address_of(&lp_provider)) < total_supply,
-             0
-         );
+         // check reserves
+         let (r0, r1, _) = get_reserves<Token0, Token1>();
+         assert!(r0 == amount0, 0);
+         assert!(r1 == amount1, 0);
      }
 }

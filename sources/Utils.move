@@ -35,6 +35,8 @@ module HippoSwap::Utils {
                 if (i == n1) { return COMPARE_EQUAL };
                 let r = compare_u8(*Vector::borrow(v1, i), *Vector::borrow(v2, i));
                 if (r != COMPARE_EQUAL) { return r };
+
+                i = i + 1;
             }
         }
     }
@@ -62,5 +64,30 @@ module HippoSwap::Utils {
             is_tokens_sorted<T0, T1>(),
             0
         );
+
+        assert!(
+            !is_tokens_sorted<T0, T0>(),
+            0
+        );
+    }
+
+    #[test]
+    fun compare_vector_works() {
+        let v1 = Vector::empty<u8>();
+        let v2 = Vector::empty<u8>();
+        assert!(compare_vec(&v1, &v2) == COMPARE_EQUAL, 0);
+
+        Vector::push_back(&mut v1, 5);
+        Vector::push_back(&mut v2, 5);
+        assert!(compare_vec(&v1, &v2) == COMPARE_EQUAL, 0);
+
+        Vector::push_back(&mut v1, 6);
+        Vector::push_back(&mut v2, 7);
+        assert!(compare_vec(&v1, &v2) == COMPARE_LESS, 0);
+        assert!(compare_vec(&v2, &v1) == COMPARE_GREATER, 0);
+
+        Vector::push_back(&mut v1, 6);
+        assert!(compare_vec(&v1, &v2) == COMPARE_GREATER, 0);
+        assert!(compare_vec(&v2, &v1) == COMPARE_LESS, 0);
     }
 }

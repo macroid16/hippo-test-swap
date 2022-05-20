@@ -27,9 +27,28 @@ module HippoSwap::Math {
         if (a < b) b else a
     }
 
+    public fun pow(base: u128, exp: u8): u128 {
+        let result = 1u128;
+        loop {
+            if (exp & 1 == 1) { result = result * base; };
+            exp = exp >> 1;
+            base = base * base;
+            if (exp == 0u8) { break };
+        };
+        result
+    }
+
     // ================ Tests ================
     #[test]
     public fun sqrt_works() {
         assert!(sqrt(4) == 2, 0);
+    }
+
+    #[test]
+    public fun pow_works() {
+        assert!(pow(10, 8) == 100000000, 0);
+        assert!(pow(9, 2) == 81, 0);
+        assert!(pow(9, 0) == 1, 0);
+        assert!(pow(1, 100) == 1, 0);
     }
 }
