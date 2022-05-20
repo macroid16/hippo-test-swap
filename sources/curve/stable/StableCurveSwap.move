@@ -5,7 +5,7 @@ module HippoSwap::StableCurveSwap {
     use AptosFramework::Timestamp;
 
     use HippoSwap::HippoConfig;
-    use SmoothAptos::Math;
+    use HippoSwap::StableCurveNumeral;
 
     // Token
 
@@ -29,14 +29,14 @@ module HippoSwap::StableCurveSwap {
 
 
     const DECIMALS: u64 = 18;
-    const PRECISION: u128 = 1000000000000000000;   // 10 ** 18
+    // const PRECISION: u128 = 1000000000000000000;   // 10 ** 18
     const A_PRECISION: u128 = 100;
 
     const ERROR_SWAP_INVALID_TOKEN_PAIR: u64 = 2000;
     const ERROR_SWAP_BURN_CALC_INVALID: u64 = 2004;
     const ERROR_SWAP_ADDLIQUIDITY_INVALID: u64 = 2007;
     const ERROR_SWAP_TOKEN_NOT_EXISTS: u64 = 2008;
-    const ERROR_SWAP_INVALID_DIRIVIATION: u64 = 2020;
+    const ERROR_SWAP_INVALID_DERIVIATION: u64 = 2020;
 
     // Token utilities
 
@@ -134,84 +134,24 @@ module HippoSwap::StableCurveSwap {
         let t1 = get_future_A_time<X, Y>();
         let a1 = get_future_A<X, Y>();
         let block_timestamp = (Timestamp::now_seconds() as u128);
-        if ( block_timestamp < t1 ) {
-            let a0 = get_initial_A<X, Y>();
-            let t0 = get_initial_A_time<X, Y>();
-            if ( a1 < a0 ) {
-                a0 - (a0 - a1) * (block_timestamp - t0) / (t1 - t0)
-            } else {
-                a0 + (a1 - a0) * (block_timestamp - t0) / (t1 - t0)
-            }
-        } else { a1 }
-    }
-
-    fun precision_multiplier(decimal: u64): u128 {
-        Math::pow(10, 18) / Math::pow(10, decimal)
+        let a0 = get_initial_A<X, Y>();
+        let t0 = get_initial_A_time<X, Y>();
+        StableCurveNumeral::raw_A(t1, a1, t0, a0, block_timestamp)
     }
 
     fun rates<X, Y>(): (u128, u128) {
-        (
-            precision_multiplier(Coin::decimals<X>()) * Math::pow(10, 18),
-            precision_multiplier(Coin::decimals<Y>()) * Math::pow(10, 18)
-        )
+        StableCurveNumeral::rates(Coin::decimals<X>(), Coin::decimals<Y>())
     }
 
     fun xp_mem<X, Y>(x_reserve: u64, y_reserve: u64): (u128, u128) {
         let (rate_x, rate_y) = rates<X, Y>();
-        (rate_x * (x_reserve as u128) / PRECISION, rate_y * (y_reserve as u128) / PRECISION)
+        StableCurveNumeral::xp_mem(x_reserve, y_reserve, rate_x, rate_y)
     }
 
-    /// D invariant calculation in non-overflowing integer operations iteratively
-    ///
-    /// A * sum(x_i) * n**n + D = A * D * n**n + D**(n+1) / (n**n * prod(x_i))
-    ///
-    /// Converging solution:
-    ///
-    ///  D[j+1] = (A * n**n * sum(x_i) - D[j]**(n+1) / (n**n prod(x_i))) / (A * n**n - 1)
-    ///
-    fun get_D<X, Y>(x: u128, y: u128, amp: u128): u128 {
-        let s = x + y;
-        if ( s == 0 ) {
-            s
-        } else {
-            let (d, d_prev, ann, iter, end) = (s, 0,  amp * 2, 0, 255);
-            let result: u128 = 0;
-            while ( iter < end ) {
-                iter = iter + 1;
-                let d_p = d;
-                d_p = d_p * d / (x * 2);
-                d_p = d_p * d / (y * 2);
-                d_prev = d;
-
-                // D = (Ann * S / A_PRECISION + D_P * N_COINS) * D / ((Ann - A_PRECISION) * D / A_PRECISION + (N_COINS + 1) * D_P)
-                d = ( ann * s / A_PRECISION + d_p * 2) * d / ((ann - A_PRECISION) * d / A_PRECISION + 3 * d_p);
-                if ( d > d_prev ) {
-                    if ( d - d_prev <= 1 ) {
-                        result = d;
-                        break
-                    }
-                } else {
-                    if ( d_prev -d <= 1) {
-                        result = d;
-                        break
-                    }
-                };
-            };
-
-            // convergence typically occurs in 4 rounds or less, this should be unreachable!
-            // if it does happen the pool is borked and LPs can withdraw via `remove_liquidity`
-
-            // It's weird that the compile raise warning[W09003]: unused assignment without the clause below.
-            // d_prev refered in while scope seems to be ignored.
-            assert!(d_prev != 0, ERROR_SWAP_INVALID_DIRIVIATION);
-            assert!(result != 0, ERROR_SWAP_INVALID_DIRIVIATION);
-            result
-        }
-    }
 
     fun get_D_mem<X, Y>(x: u64, y: u64, amp: u128): u128 {
         let (new_x, new_y) = xp_mem<X, Y>(x, y);
-        get_D<X, Y>(new_x, new_y, amp)
+        StableCurveNumeral::get_D(new_x, new_y, amp)
     }
 
     public fun deposit_liquidity<X: copy + store, Y: copy + store>(x: Coin::Coin<X>, y: Coin::Coin<Y>,
@@ -370,12 +310,6 @@ module HippoSwap::StableCurveSwap {
         swap_pair.initial_A = 20;
         let k = get_raw_A<MockCoin::WETH, MockCoin::WDAI>();
         Std::Debug::print(&k);
-        let d0 = get_D_mem<MockCoin::WETH, MockCoin::WDAI>(100, 200, 1000);
-        Std::Debug::print(&1000009);
-        Std::Debug::print(&d0);
-        let d1 = get_D_mem<MockCoin::WETH, MockCoin::WDAI>(101010, 200, 50);
-        Std::Debug::print(&9000001);
-        Std::Debug::print(&d1);
     }
 
 }

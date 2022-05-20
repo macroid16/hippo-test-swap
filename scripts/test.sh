@@ -34,7 +34,7 @@ function check_coverage {
       if [[ ${COVERAGE[$i]} =~ ^"$MATCH".*  ]]; then
         NUMBER=$( echo ${COVERAGE[$i]} | sed "s/[^0-9.]*//g" )
         INT=${NUMBER%.*}
-        if [[ $INT -lt 98 ]]; then
+        if [[ $INT -lt 100 ]]; then
           ERRORMODULE=$(( ERRORMODULE + 1 ))
         fi
       fi
