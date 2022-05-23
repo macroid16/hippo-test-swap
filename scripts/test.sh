@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 function run_test {
     printf "🚀🚀🚀Running Tests NOW\n"
@@ -32,9 +32,7 @@ function check_coverage {
     for (( i=0; i<${#COVERAGE[@]}; i++ ))
     do
       if [[ ${COVERAGE[$i]} =~ ^"$MATCH".*  ]]; then
-        NUMBER=$( echo ${COVERAGE[$i]} | sed "s/[^0-9.]*//g" )
-        INT=${NUMBER%.*}
-        if [[ $INT -lt 100 ]]; then
+        if ! [[ ${COVERAGE[$i]} =~ ^"$PASS".* ]]; then
           ERRORMODULE=$(( ERRORMODULE + 1 ))
         fi
       fi

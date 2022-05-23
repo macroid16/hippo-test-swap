@@ -10,3 +10,4 @@ MoveNursery = { git = "https://github.com/aptos-labs/aptos-core.git", subdir = "
 [addresses]
 HippoSwap = "0xCAFE"
 HippoSwapFee = "0xCAFF"
+HippoSwapAdmin = "0xCAFD"
