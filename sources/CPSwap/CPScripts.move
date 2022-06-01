@@ -2,7 +2,9 @@ address HippoSwap {
 module CPScripts {
     use HippoSwap::CPSwap;
     use Std::Signer;
-    use RegistryAddress::TokenRegistry3;
+    use TokenRegistry::TokenRegistry4;
+    use HippoSwap::MockCoin;
+    use AptosFramework::Coin;
 
 
     const E_SWAP_ONLY_ONE_IN_ALLOWED: u64 = 0;
@@ -24,15 +26,15 @@ module CPScripts {
         lp_project_url: vector<u8>,
     ) {
         let admin_addr = Signer::address_of(sender);
-        assert!(TokenRegistry3::is_registry_initialized(admin_addr), E_TOKEN_REGISTRY_NOT_INITIALIZED);
-        assert!(TokenRegistry3::has_token<X>(admin_addr), E_TOKEN_X_NOT_REGISTERED);
-        assert!(TokenRegistry3::has_token<Y>(admin_addr), E_TOKEN_Y_NOT_REGISTERED);
-        assert!(!TokenRegistry3::has_token<CPSwap::LPToken<X,Y>>(admin_addr), E_LP_TOKEN_ALREADY_REGISTERED);
-        assert!(!TokenRegistry3::has_token<CPSwap::LPToken<Y,X>>(admin_addr), E_LP_TOKEN_ALREADY_REGISTERED);
+        assert!(TokenRegistry4::is_registry_initialized(admin_addr), E_TOKEN_REGISTRY_NOT_INITIALIZED);
+        assert!(TokenRegistry4::has_token<X>(admin_addr), E_TOKEN_X_NOT_REGISTERED);
+        assert!(TokenRegistry4::has_token<Y>(admin_addr), E_TOKEN_Y_NOT_REGISTERED);
+        assert!(!TokenRegistry4::has_token<CPSwap::LPToken<X,Y>>(admin_addr), E_LP_TOKEN_ALREADY_REGISTERED);
+        assert!(!TokenRegistry4::has_token<CPSwap::LPToken<Y,X>>(admin_addr), E_LP_TOKEN_ALREADY_REGISTERED);
         CPSwap::create_token_pair<X, Y>(sender, fee_to, fee_on, lp_name, lp_symbol);
 
         // register LP token to registry
-        TokenRegistry3::add_token<CPSwap::LPToken<X,Y>>(
+        TokenRegistry4::add_token<CPSwap::LPToken<X,Y>>(
             sender,
             lp_name,
             lp_symbol,
@@ -100,10 +102,7 @@ module CPScripts {
             assert!(false, E_SWAP_NONZERO_INPUT_REQUIRED);
         }
     }
-    #[test_only]
-    use HippoSwap::MockCoin;
-    #[test_only]
-    use AptosFramework::Coin;
+
     #[test_only]
     use AptosFramework::Timestamp;
     #[test_only]
@@ -119,7 +118,7 @@ module CPScripts {
         MockCoin::initialize<CoinType>(admin, 8);
 
         // add coin to registry
-        TokenRegistry3::add_token<CoinType>(
+        TokenRegistry4::add_token<CoinType>(
             admin,
             name,
             symbol,
@@ -172,8 +171,8 @@ module CPScripts {
         */
         let admin_addr = Signer::address_of(admin);
         // 1
-        if(!TokenRegistry3::is_registry_initialized(admin_addr)) {
-            TokenRegistry3::initialize(admin);
+        if(!TokenRegistry4::is_registry_initialized(admin_addr)) {
+            TokenRegistry4::initialize(admin);
         };
         // 2
         init_coin_and_create_store<MockCoin::WBTC>(admin, b"Bitcoin", b"BTC");
@@ -212,7 +211,7 @@ module CPScripts {
         let admin_addr = Signer::address_of(admin);
         // 1
         mock_deploy(admin);
-        assert!(TokenRegistry3::is_registry_initialized(admin_addr), 5);
+        assert!(TokenRegistry4::is_registry_initialized(admin_addr), 5);
         // 2
         Coin::register_internal<MockCoin::WBTC>(user);
         Coin::register_internal<MockCoin::WUSDC>(user);
