@@ -5,9 +5,9 @@ version = "0.0.1"
 [dependencies]
 AptosFramework = { git = "https://github.com/aptos-labs/aptos-core.git", subdir = "aptos-move/framework/aptos-framework/", rev = "bb3a847c6ae8967661826775cd026f6fdb2abf0c" }
 MoveNursery = { git = "https://github.com/aptos-labs/aptos-core.git", subdir = "aptos-move/framework/move-stdlib/nursery/", rev = "main" }
-TokenRegistry = { git = "https://github.com/hippospace/aptos-registry.git", subdir = "move", rev = "6e740fce43722cc7615295eef808eb523924af45" }
+TokenRegistry = { git = "https://github.com/hippospace/aptos-registry.git", subdir = "move", rev = "bd30c8c1220ff565eb77e377e85f88adec9bda4f" }
 
 [addresses]
 Std = "0x1"
 AptosFramework = "0x1"
-HippoSwap = "0x498d8926f16eb9ca90cab1b3a26aa6f97a080b3fcbe6e83ae150b7243a00fb68"
+HippoSwap = "f70ac33c984f8b7bead655ad239d246f1c0e3ca55fe0b8bfc119aa529c4630e8"
