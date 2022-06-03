@@ -3,11 +3,11 @@ name = "HippoSwap"
 version = "0.0.1"
 
 [dependencies]
-AptosFramework = { git = "https://github.com/aptos-labs/aptos-core.git", subdir = "aptos-move/framework/aptos-framework/", rev = "bb3a847c6ae8967661826775cd026f6fdb2abf0c" }
+AptosFramework = { git = "https://github.com/aptos-labs/aptos-core.git", subdir = "aptos-move/framework/aptos-framework/", rev = "367608ab5cf726039ff44bfdac1f2177210b1440" }
 MoveNursery = { git = "https://github.com/aptos-labs/aptos-core.git", subdir = "aptos-move/framework/move-stdlib/nursery/", rev = "main" }
-TokenRegistry = { git = "https://github.com/hippospace/aptos-registry.git", subdir = "move", rev = "bd30c8c1220ff565eb77e377e85f88adec9bda4f" }
+TokenRegistry = { git = "https://github.com/hippospace/aptos-registry.git", subdir = "move", rev = "37577e33f3bb3c3ecc85f6c11e2e2ea756b8e93f" }
 
 [addresses]
 Std = "0x1"
 AptosFramework = "0x1"
-HippoSwap = "f70ac33c984f8b7bead655ad239d246f1c0e3ca55fe0b8bfc119aa529c4630e8"
+HippoSwap = "0x49c5e3ec5041062f02a352e4a2d03ce2bb820d94e8ca736b08a324f8dc634790"
