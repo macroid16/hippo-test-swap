@@ -77,7 +77,8 @@ module HippoSwap::CPSwap {
         fee_to: address,
         fee_on: bool,
         lp_name: vector<u8>,
-        lp_symbol: vector<u8>
+        lp_symbol: vector<u8>,
+        decimals: u64,
     ) {
         let sender_addr = Signer::address_of(admin);
         assert!(sender_addr == MODULE_ADMIN, ERROR_NOT_CREATOR);
@@ -90,7 +91,7 @@ module HippoSwap::CPSwap {
             admin,
             ASCII::string(lp_name),
             ASCII::string(lp_symbol),
-            8,
+            decimals,
             true
         );
 
@@ -664,7 +665,8 @@ module HippoSwap::CPSwap {
             fee_to,
             true,
             b"name",
-            b"symbol"
+            b"symbol",
+            8,
         );
     }
 
@@ -685,7 +687,8 @@ module HippoSwap::CPSwap {
             fee_to,
             true,
             b"name",
-            b"symbol"
+            b"symbol",
+            8
         );
 
         Timestamp::set_time_has_started_for_testing(&core);
@@ -743,7 +746,8 @@ module HippoSwap::CPSwap {
             fee_to,
             true,
             b"name",
-            b"symbol"
+            b"symbol",
+            8
         );
 
         Timestamp::set_time_has_started_for_testing(&core);
@@ -802,7 +806,8 @@ module HippoSwap::CPSwap {
             fee_to,
             true,
             b"name",
-            b"symbol"
+            b"symbol",
+            8
         );
 
         Timestamp::set_time_has_started_for_testing(&core);

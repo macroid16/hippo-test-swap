@@ -7,10 +7,11 @@ module HippoSwap::MockDeploy {
         admin: &signer,
         name: vector<u8>,
         symbol: vector<u8>,
+        decimals: u64,
     ) {
         // create CoinInfo
         if (!Coin::is_coin_initialized<CoinType>()) {
-            MockCoin::initialize<CoinType>(admin, 8);
+            MockCoin::initialize<CoinType>(admin, decimals);
         };
 
         // add coin to registry
@@ -20,10 +21,16 @@ module HippoSwap::MockDeploy {
                 name,
                 symbol,
                 name,
-                8,
+                (decimals as u8),
                 b"",
                 b"",
             );
+        }
+    }
+
+    public fun init_registry(admin: &signer) {
+        if (!TokenRegistry::is_registry_initialized(Std::Signer::address_of(admin))) {
+            TokenRegistry::initialize(admin);
         }
     }
 
@@ -31,6 +38,6 @@ module HippoSwap::MockDeploy {
     fun test_init_coin(admin: &signer) {
         use HippoSwap::MockCoin;
         TokenRegistry::initialize(admin);
-        init_coin_and_create_store<MockCoin::WBTC>(admin, b"Bitcoin", b"BTC");
+        init_coin_and_create_store<MockCoin::WBTC>(admin, b"Bitcoin", b"BTC", 8);
     }
 }

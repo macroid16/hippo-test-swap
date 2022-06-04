@@ -151,17 +151,16 @@ module HippoSwap::StableCurveSwap {
     }
 
     public fun initialize<X, Y>(
-        signer: &signer, name: ASCII::String, symbol: ASCII::String,
+        signer: &signer, lp_name: ASCII::String, lp_symbol: ASCII::String, lp_decimal: u64,
         initial_A: u64, future_A: u64, initial_A_time: u64, future_A_time: u64,
         fee: u64, admin_fee: u64
     ) {
         assert_admin(signer);
         let (x_decimal, y_decimal) = (Coin::decimals<X>(), Coin::decimals<Y>());
-        let lp_decimal = Math::max_u64(x_decimal, y_decimal);
         let lp_precision = (Math::pow(10, (lp_decimal as u8)) as u64);
         let x_rate = (Math::pow(10, ((lp_decimal - x_decimal) as u8)) as u64);
         let y_rate = (Math::pow(10, ((lp_decimal - y_decimal) as u8)) as u64);
-        initialize_coin<X, Y>(signer, name, symbol, (lp_precision as u64));
+        initialize_coin<X, Y>(signer, lp_name, lp_symbol, (lp_precision as u64));
         let token_pair = create_pool_info<X, Y>(
             lp_precision, x_rate, y_rate, initial_A, future_A, initial_A_time, future_A_time, fee, admin_fee
         );
@@ -479,6 +478,7 @@ module HippoSwap::StableCurveSwap {
             admin,
             ASCII::string(b"Curve:WETH-WDAI"),
             ASCII::string(b"WEWD"),
+            6,
             ia, fa, iat, fat, fee, admin_fee
         );
     }

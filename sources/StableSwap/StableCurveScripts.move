@@ -18,14 +18,53 @@ module HippoSwap::StableCurveScripts {
     const E_TOKEN_REGISTRY_NOT_INITIALIZED: u64 = 4;
     const E_TOKEN_X_NOT_REGISTERED: u64 = 5;
     const E_TOKEN_Y_NOT_REGISTERED: u64 = 6;
+    const E_LP_TOKEN_ALREADY_REGISTERED:u64 = 7;
 
-    public(script) fun initialize<X, Y>(
-        sender: &signer, name: vector<u8>, symbol: vector<u8>, fee: u64, admin_fee: u64
+    public(script) fun create_new_pool<X, Y>(
+        sender: &signer,
+        lp_name: vector<u8>,
+        lp_symbol: vector<u8>,
+        lp_description: vector<u8>,
+        lp_logo_url: vector<u8>,
+        lp_project_url: vector<u8>,
+        fee: u64,
+        admin_fee: u64
     ) {
+
+        let admin_addr = Signer::address_of(sender);
+        assert!(TokenRegistry::is_registry_initialized(admin_addr), E_TOKEN_REGISTRY_NOT_INITIALIZED);
+        assert!(TokenRegistry::has_token<X>(admin_addr), E_TOKEN_X_NOT_REGISTERED);
+        assert!(TokenRegistry::has_token<Y>(admin_addr), E_TOKEN_Y_NOT_REGISTERED);
+        assert!(!TokenRegistry::has_token<StableCurveSwap::LPToken<X,Y>>(admin_addr), E_LP_TOKEN_ALREADY_REGISTERED);
+        assert!(!TokenRegistry::has_token<StableCurveSwap::LPToken<Y,X>>(admin_addr), E_LP_TOKEN_ALREADY_REGISTERED);
+
         let block_timestamp = Timestamp::now_microseconds();
         let future_time = block_timestamp + 24 * 3600 * MICRO_CONVERSION_FACTOR;
+
+        let decimals = Math::max((Coin::decimals<X>() as u128), (Coin::decimals<Y>() as u128));
+        let decimals = (decimals as u64);
+
         StableCurveSwap::initialize<X, Y>(
-            sender, ASCII::string(name), ASCII::string(symbol), 60, 80, block_timestamp, future_time, fee, admin_fee
+            sender,
+            ASCII::string(lp_name),
+            ASCII::string(lp_symbol),
+            decimals,
+            60,
+            80,
+            block_timestamp,
+            future_time,
+            fee, admin_fee
+        );
+
+        // register LP token to registry
+        TokenRegistry::add_token<StableCurveSwap::LPToken<X,Y>>(
+            sender,
+            lp_name,
+            lp_symbol,
+            lp_description,
+            8,
+            lp_logo_url,
+            lp_project_url,
         );
     }
 
@@ -76,19 +115,10 @@ module HippoSwap::StableCurveScripts {
         // Std::Debug::print(&199928828);
         // It's weird that the coverage does not mark the if branch.
         // Find the reason later from the compiler part of the aptos-core repo.
+        let decimals = Math::max((Coin::decimals<X>() as u128), (Coin::decimals<Y>() as u128));
+        let decimals = (decimals as u64);
         StableCurveSwap::initialize<X, Y>(
-            admin, name, name, initial_A, future_A, initial_A_time, future_A_time, fee, admin_fee
-        );
-        let (x_decimal, y_decimal) = (Coin::decimals<X>(), Coin::decimals<Y>());
-        let lp_decimal = Math::max_u64(x_decimal, y_decimal);
-        TokenRegistry::add_token<StableCurveSwap::LPToken<X,Y>>(
-            admin,
-            symbol,
-            symbol,
-            symbol,
-            (lp_decimal as u8),
-            b"",
-            b"",
+            admin, name, name, decimals, initial_A, future_A, initial_A_time, future_A_time, fee, admin_fee
         );
         let some_x = MockCoin::mint<X>(left_amt);
         let some_y = MockCoin::mint<Y>(right_amt);
@@ -120,9 +150,9 @@ module HippoSwap::StableCurveScripts {
         };
         // 2
 
-        MockDeploy::init_coin_and_create_store<MockCoin::WUSDC>(admin, b"USDC", b"USDC");
-        MockDeploy::init_coin_and_create_store<MockCoin::WUSDT>(admin, b"USDT", b"USDT");
-        MockDeploy::init_coin_and_create_store<MockCoin::WDAI>(admin, b"DAI", b"DAI");
+        MockDeploy::init_coin_and_create_store<MockCoin::WUSDC>(admin, b"USDC", b"USDC", 8);
+        MockDeploy::init_coin_and_create_store<MockCoin::WUSDT>(admin, b"USDT", b"USDT", 8);
+        MockDeploy::init_coin_and_create_store<MockCoin::WDAI>(admin, b"DAI", b"DAI", 8);
         // 3
         let (fee, admin_fee) = (3000, 200000);
         let coin_amt = 1000000000;
@@ -154,12 +184,26 @@ module HippoSwap::StableCurveScripts {
         use AptosFramework::Coin;
         use HippoSwap::MockCoin;
         Timestamp::set_time_has_started_for_testing(core);
-        MockCoin::initialize<MockCoin::WUSDT>(admin, 6);
-        MockCoin::initialize<MockCoin::WDAI>(admin, 6);
-        initialize<MockCoin::WUSDT, MockCoin::WDAI>(
+        MockDeploy::init_registry(admin);
+        MockDeploy::init_coin_and_create_store<MockCoin::WUSDT>(
+            admin,
+            b"USDT",
+            b"USDT",
+            6,
+        );
+        MockDeploy::init_coin_and_create_store<MockCoin::WDAI>(
+            admin,
+            b"DAI",
+            b"DAI",
+            6,
+        );
+        create_new_pool<MockCoin::WUSDT, MockCoin::WDAI>(
             admin,
             b"Curve:WUSDT-WDAI",
             b"WUWD",
+            b"",
+            b"",
+            b"",
             3000, // 0.3 %
             200000, // 20 % from lp_fee -> 0.06 %
         );
@@ -232,7 +276,7 @@ module HippoSwap::StableCurveScripts {
         mock_deploy_script(admin);
         let btc_amt = 1000000000;
         let (fee, admin_fee) = (3000, 200000);
-        MockDeploy::init_coin_and_create_store<MockCoin::WDAI>(admin, b"Dai", b"DAI");
+        MockDeploy::init_coin_and_create_store<MockCoin::WDAI>(admin, b"Dai", b"DAI", 8);
         Std::Debug::print(&110000000);
         mock_create_pair_and_add_liquidity<MockCoin::WUSDT, MockCoin::WDAI>(
             admin,
@@ -252,8 +296,8 @@ module HippoSwap::StableCurveScripts {
         if (!TokenRegistry::is_registry_initialized(admin_addr)) {
             TokenRegistry::initialize(admin);
         };
-        MockDeploy::init_coin_and_create_store<MockCoin::WUSDC>(admin, b"USDC", b"USDC");
-        MockDeploy::init_coin_and_create_store<MockCoin::WUSDT>(admin, b"USDT", b"USDT");
+        MockDeploy::init_coin_and_create_store<MockCoin::WUSDC>(admin, b"USDC", b"USDC", 8);
+        MockDeploy::init_coin_and_create_store<MockCoin::WUSDT>(admin, b"USDT", b"USDT", 8);
         assert!(Coin::decimals<MockCoin::WUSDC>() == 8, 1);
         assert!(Coin::decimals<MockCoin::WUSDT>() == 8, 1);
     }
