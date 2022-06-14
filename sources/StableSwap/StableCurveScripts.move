@@ -33,7 +33,7 @@ module HippoSwap::StableCurveScripts {
         StableCurveSwap::add_liquidity<X, Y>(sender, amount_x, amount_y);
     }
 
-    public fun remove_liquidity<X, Y>(sender: &signer, liquidity: u64, min_amount_x: u64, min_amount_y: u64,
+    public(script) fun remove_liquidity<X, Y>(sender: &signer, liquidity: u64, min_amount_x: u64, min_amount_y: u64,
     ) {
         StableCurveSwap::remove_liquidity<X, Y>(sender, liquidity, min_amount_x, min_amount_y);
     }
