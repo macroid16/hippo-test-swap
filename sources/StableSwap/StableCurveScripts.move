@@ -9,6 +9,8 @@ module HippoSwap::StableCurveScripts {
     use AptosFramework::Coin;
     use HippoSwap::Math;
 
+    friend HippoSwap::Router;
+
     const MICRO_CONVERSION_FACTOR: u64 = 1000000;
 
     const E_SWAP_ONLY_ONE_IN_ALLOWED: u64 = 0;
@@ -103,7 +105,7 @@ module HippoSwap::StableCurveScripts {
     }
 
     // local validator deployment
-    fun mock_deploy(admin: &signer) {
+    public(friend) fun mock_deploy(admin: &signer) {
         /*
         1. initialize registry
         2. initialize coins (and add them to registry)
@@ -130,17 +132,17 @@ module HippoSwap::StableCurveScripts {
             admin,
             b"USDC-USDT-LP",
             fee, admin_fee,
-            coin_amt,
-            coin_amt * 10000,
-            3200135282533
+            coin_amt * 100,
+            coin_amt * 100,
+            200000000000
         );
         mock_create_pair_and_add_liquidity<MockCoin::WUSDC, MockCoin::WDAI>(
             admin,
             b"USDC-DAI-LP",
             fee, admin_fee,
-            coin_amt,
-            coin_amt * 10000,
-            3200135282533,
+            coin_amt * 100,
+            coin_amt * 100,
+            200000000000
         );
     }
 
