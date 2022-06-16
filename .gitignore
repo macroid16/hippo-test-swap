@@ -7,3 +7,4 @@ storage
 target
 .aptos
 .DS_Store
+*.args

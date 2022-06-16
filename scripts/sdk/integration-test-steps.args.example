@@ -1,0 +1,6 @@
+-a /The/path/of/MoveProjects/aptos-core
+-h /The/path/of/IdeaProjects/hippo-swap
+-t /The/path/of/WebstormProjects/aptos-tsgen
+-s /The/path/of/WebstormProjects/hippo-sdk
+-c /The/path/of/.config/aptos/.aptos/config.yaml
+-r

@@ -2,7 +2,7 @@
 
 function run_test {
     printf "🚀🚀🚀Running Tests NOW\n"
-    af-cli package test --coverage
+    af-cli package test --coverage --dev
 
     if [ $? -ne 0 ]; then
         printf "❌❌❌ Oops, not all tests passed ❌❌❌"
@@ -14,7 +14,7 @@ function check_coverage {
     printf "\n🚀🚀🚀Checking Code Coverage\n"
 
 
-    COVERAGE=$(af-cli package coverage summary)
+    COVERAGE=$(af-cli package coverage summary --dev)
 
     echo "${COVERAGE}"
 
