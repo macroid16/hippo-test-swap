@@ -6,8 +6,6 @@ module CPScripts {
     use HippoSwap::MockCoin;
     use AptosFramework::Coin;
 
-    friend HippoSwap::Router;
-
 
     const E_SWAP_ONLY_ONE_IN_ALLOWED: u64 = 0;
     const E_SWAP_ONLY_ONE_OUT_ALLOWED: u64 = 1;
@@ -162,7 +160,7 @@ module CPScripts {
     }
 
     // local validator deployment
-    public(friend) fun mock_deploy(admin: &signer) {
+    fun mock_deploy(admin: &signer) {
         /*
         1. initialize registry
         2. initialize coins (and add them to registry)

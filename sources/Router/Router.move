@@ -4,7 +4,6 @@ module Router {
     use Std::Signer;
     use HippoSwap::CPSwap;
     use HippoSwap::StableCurveSwap;
-    use Std::Debug;
 
     const POOL_TYPE_CONSTANT_PRODUCT:u8 = 1;
     const POOL_TYPE_STABLE_CURVE:u8 = 2;
@@ -61,11 +60,7 @@ module Router {
         let coin_x = Coin::withdraw<X>(sender, x_in);
         let coin_y = get_intermediate_output<X, Y>(first_pool_type, first_is_x_to_y, coin_x);
 
-        Debug::print(&Coin::value(&coin_y));
-
         let coin_z = get_intermediate_output<Y, Z>(second_pool_type, second_is_x_to_y, coin_y);
-
-        Debug::print(&Coin::value(&coin_z));
 
         assert!(Coin::value(&coin_z) >= z_min_out, E_OUTPUT_LESS_THAN_MINIMUM);
         let sender_addr = Signer::address_of(sender);
@@ -157,13 +152,13 @@ module Router {
     use HippoSwap::MockCoin;
 
     #[test(admin=@HippoSwap, user=@0x12345, core=@0xa550c18)]
-    fun test_two_step(admin: &signer, user: &signer, core: &signer) {
+    public(script) fun test_two_step(admin: &signer, user: &signer, core: &signer) {
         Timestamp::set_time_has_started_for_testing(core);
         // 1
         // creates BTC-USDC and BTC-USDT
-        CPScripts::mock_deploy(admin);
+        CPScripts::mock_deploy_script(admin);
         // creates USDC-USDT and USDC-DAI
-        StableCurveScripts::mock_deploy(admin);
+        StableCurveScripts::mock_deploy_script(admin);
 
         // mint some BTC to user first
         let btc_amount = 100;
