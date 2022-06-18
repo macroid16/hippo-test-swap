@@ -4,9 +4,11 @@ module Router {
     use Std::Signer;
     use HippoSwap::CPSwap;
     use HippoSwap::StableCurveSwap;
+    use HippoSwap::PieceSwap;
 
     const POOL_TYPE_CONSTANT_PRODUCT:u8 = 1;
     const POOL_TYPE_STABLE_CURVE:u8 = 2;
+    const POOL_TYPE_PIECEWISE:u8 = 3;
 
     const E_UNKNOWN_POOL_TYPE: u64 = 1;
     const E_OUTPUT_LESS_THAN_MINIMUM: u64 = 2;
@@ -38,6 +40,16 @@ module Router {
                 y_out
             }
         }
+        else if (pool_type == POOL_TYPE_PIECEWISE) {
+            if (is_x_to_y) {
+                let y_out = PieceSwap::swap_x_to_y_direct<X, Y>(x_in);
+                y_out
+            }
+            else {
+                let y_out = PieceSwap::swap_y_to_x_direct<Y, X>(x_in);
+                y_out
+            }
+        }
         else {
             abort E_UNKNOWN_POOL_TYPE
         }
@@ -56,18 +68,21 @@ module Router {
         second_is_x_to_y: bool, // whether second trade uses normal order
         x_in: u64,
         z_min_out: u64,
-    ) {
+    ): u64 {
         let coin_x = Coin::withdraw<X>(sender, x_in);
         let coin_y = get_intermediate_output<X, Y>(first_pool_type, first_is_x_to_y, coin_x);
 
         let coin_z = get_intermediate_output<Y, Z>(second_pool_type, second_is_x_to_y, coin_y);
 
-        assert!(Coin::value(&coin_z) >= z_min_out, E_OUTPUT_LESS_THAN_MINIMUM);
+        let coin_z_amt = Coin::value(&coin_z);
+
+        assert!(coin_z_amt >= z_min_out, E_OUTPUT_LESS_THAN_MINIMUM);
         let sender_addr = Signer::address_of(sender);
         if (!Coin::is_account_registered<Z>(sender_addr)) {
             Coin::register_internal<Z>(sender);
         };
         Coin::deposit(sender_addr, coin_z);
+        coin_z_amt
     }
 
     public(script) fun two_step_route_script<X, Y, Z>(
@@ -87,7 +102,7 @@ module Router {
             second_is_x_to_y,
             x_in,
             z_min_out,
-        )
+        );
     }
 
     /*
@@ -145,7 +160,7 @@ module Router {
     #[test_only]
     use AptosFramework::Timestamp;
     #[test_only]
-    use HippoSwap::StableCurveScripts;
+    use HippoSwap::PieceSwapScript;
     #[test_only]
     use HippoSwap::CPScripts;
     #[test_only]
@@ -157,24 +172,64 @@ module Router {
         // 1
         // creates BTC-USDC and BTC-USDT
         CPScripts::mock_deploy_script(admin);
-        // creates USDC-USDT and USDC-DAI
-        StableCurveScripts::mock_deploy_script(admin);
+        // creates USDT-USDC and DAI-USDC
+        PieceSwapScript::mock_deploy_script(admin);
 
         // mint some BTC to user first
         let btc_amount = 100;
         MockCoin::faucet_mint_to<MockCoin::WBTC>(user, btc_amount);
 
-        two_step_route<MockCoin::WBTC, MockCoin::WUSDC, MockCoin::WUSDT>(
+        two_step_route_script<MockCoin::WBTC, MockCoin::WUSDC, MockCoin::WUSDT>(
             user,
             POOL_TYPE_CONSTANT_PRODUCT,
             true,
-            POOL_TYPE_STABLE_CURVE,
-            true,
+            POOL_TYPE_PIECEWISE,
+            false,
             btc_amount,
             0
         );
 
+        let user_addr = Signer::address_of(user);
 
+        assert!(Coin::balance<MockCoin::WBTC>(user_addr) == 0, 0);
+        assert!(!Coin::is_account_registered<MockCoin::WUSDC>(user_addr), 0);
+        assert!(Coin::balance<MockCoin::WUSDT>(user_addr) >= btc_amount * 10000 * 99 / 100, 0);
+        assert!(Coin::balance<MockCoin::WUSDT>(user_addr) <= btc_amount * 10000, 0);
+    }
+
+    #[test(admin=@HippoSwap, user=@0x12345, core=@0xa550c18)]
+    public(script) fun test_three_step(admin: &signer, user: &signer, core: &signer) {
+        Timestamp::set_time_has_started_for_testing(core);
+        // 1
+        // creates BTC-USDC and BTC-USDT
+        CPScripts::mock_deploy_script(admin);
+        // creates USDT-USDC and DAI-USDC
+        PieceSwapScript::mock_deploy_script(admin);
+
+        // DAI -> USDC -> USDT -> BTC
+        // mint some BTC to user first
+        let dai_amount = 10000000;
+        MockCoin::faucet_mint_to<MockCoin::WDAI>(user, dai_amount);
+
+        three_step_route_script<MockCoin::WDAI, MockCoin::WUSDC, MockCoin::WUSDT, MockCoin::WBTC>(
+            user,
+            POOL_TYPE_PIECEWISE, // dai to usdc
+            true,
+            POOL_TYPE_PIECEWISE, // usdc to usdt
+            false,
+            POOL_TYPE_CONSTANT_PRODUCT, // usdt to btc
+            false,
+            dai_amount,
+            0
+        );
+
+        let user_addr = Signer::address_of(user);
+
+        assert!(Coin::balance<MockCoin::WDAI>(user_addr) == 0, 0);
+        assert!(!Coin::is_account_registered<MockCoin::WUSDC>(user_addr), 0);
+        assert!(!Coin::is_account_registered<MockCoin::WUSDT>(user_addr), 0);
+        assert!(Coin::balance<MockCoin::WBTC>(user_addr) >= dai_amount / 10000 * 99 / 100, 0);
+        assert!(Coin::balance<MockCoin::WBTC>(user_addr) <= dai_amount / 10000, 0);
     }
 }
 }
