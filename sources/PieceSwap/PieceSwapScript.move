@@ -33,6 +33,8 @@ module PieceSwapScript {
         w1_denominator: u128,
         w2_numerator: u128,
         w2_denominator: u128,
+        swap_fee_per_million: u64,
+        protocol_fee_share_per_thousand: u64,
     ) {
         use HippoSwap::Math;
 
@@ -56,6 +58,8 @@ module PieceSwapScript {
             w1_denominator,
             w2_numerator,
             w2_denominator,
+            swap_fee_per_million,
+            protocol_fee_share_per_thousand,
         );
 
         // register LP token to registry
@@ -79,6 +83,8 @@ module PieceSwapScript {
         w1_denominator: u128,
         w2_numerator: u128,
         w2_denominator: u128,
+        swap_fee_per_million: u64,
+        protocol_fee_share_per_thousand: u64,
     ) {
         create_new_pool<X, Y>(
             admin,
@@ -92,6 +98,8 @@ module PieceSwapScript {
             w1_denominator,
             w2_numerator,
             w2_denominator,
+            swap_fee_per_million,
+            protocol_fee_share_per_thousand,
         )
     }
 
@@ -167,6 +175,8 @@ module PieceSwapScript {
             100,
             105,
             100,
+            100,
+            100,
         );
 
         create_new_pool_script<WDAI, WUSDC>(
@@ -177,6 +187,8 @@ module PieceSwapScript {
             110,
             100,
             105,
+            100,
+            100,
             100,
         );
 

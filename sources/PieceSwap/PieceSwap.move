@@ -36,6 +36,12 @@ module PieceSwap {
         n: u128,
         x_deci_mult: u64,
         y_deci_mult: u64,
+        // how much of the swap output is taken as swap fees
+        swap_fee_per_million: u64,
+        // how much of the swap fees are given to protocol instead of LPs
+        protocol_fee_share_per_thousand: u64,
+        protocol_fee_x: Coin::Coin<X>,
+        protocol_fee_y: Coin::Coin<Y>,
     }
 
     public fun create_new_pool<X, Y>(
@@ -48,6 +54,8 @@ module PieceSwap {
         w1_denominator: u128,
         w2_numerator: u128,
         w2_denominator: u128,
+        swap_fee_per_million: u64,
+        protocol_fee_share_per_thousand: u64,
     ) {
         /*
         1. make sure admin is right
@@ -111,6 +119,10 @@ module PieceSwap {
                 n,
                 x_deci_mult: (x_deci_mult as u64),
                 y_deci_mult: (y_deci_mult as u64),
+                swap_fee_per_million,
+                protocol_fee_share_per_thousand,
+                protocol_fee_x: Coin::zero<X>(),
+                protocol_fee_y: Coin::zero<Y>(),
             }
         );
 
@@ -297,7 +309,14 @@ module PieceSwap {
         );
 
         let actual_out_y = ((opt_output_y / (pool.y_deci_mult as u128)) as u64);
-        let coin_y = Coin::extract(&mut pool.reserve_y, actual_out_y);
+
+        // handle fees
+        let total_fees = actual_out_y * pool.swap_fee_per_million / 1000000;
+        let protocol_fees = total_fees * pool.protocol_fee_share_per_thousand / 1000;
+        let out_y_after_fees = actual_out_y - total_fees;
+        let coin_y = Coin::extract(&mut pool.reserve_y, out_y_after_fees);
+        let protocol_fee_y = Coin::extract<Y>(&mut pool.reserve_y, protocol_fees);
+        Coin::merge(&mut pool.protocol_fee_y, protocol_fee_y);
         coin_y
     }
 
@@ -334,7 +353,14 @@ module PieceSwap {
         );
 
         let actual_out_x = ((opt_output_x / (pool.x_deci_mult as u128)) as u64);
-        let coin_x = Coin::extract(&mut pool.reserve_x, actual_out_x);
+
+        // handle fees
+        let total_fees = actual_out_x * pool.swap_fee_per_million / 1000000;
+        let protocol_fees = total_fees * pool.protocol_fee_share_per_thousand / 1000;
+        let out_x_after_fees = actual_out_x - total_fees;
+        let protocol_fee_x = Coin::extract<X>(&mut pool.reserve_x, protocol_fees);
+        Coin::merge(&mut pool.protocol_fee_x, protocol_fee_x);
+        let coin_x = Coin::extract(&mut pool.reserve_x, out_x_after_fees);
         coin_x
     }
 
@@ -359,6 +385,8 @@ module PieceSwap {
             110, // W1 = 1.10
             100,
             105, // W2 = 1.05
+            100,
+            100,
             100,
         );
     }
@@ -482,10 +510,15 @@ module PieceSwap {
         check_and_deposit(user, lp);
     }
 
-    #[test(admin=@HippoSwap, user=@0x12345)]
-    fun test_swap_x_to_y(admin: &signer, user: &signer) acquires PieceSwapPoolInfo {
-        let multiplier = 1000000;
-        let amt = 1000000000 * multiplier;
+    #[test_only]
+    fun test_swap_x_to_y_parameterized(
+        admin: &signer,
+        user: &signer,
+        multiplier: u64,
+        swap_amt: u64,
+        liquidity_amt: u64,
+    ) acquires PieceSwapPoolInfo {
+        let amt = liquidity_amt * multiplier;
         mock_init_pool_and_add_liquidity<MockCoin::WUSDT, MockCoin::WUSDC>(
             admin,
             user,
@@ -493,33 +526,82 @@ module PieceSwap {
             b"USDT-USDC LP(PieceSwap)",
             amt
         );
-        let swap_amt = 1 * multiplier;
         let user_addr = Signer::address_of(user);
+        swap_amt = swap_amt * multiplier;
         MockCoin::faucet_mint_to<MockCoin::WUSDT>(user, swap_amt);
         swap_x_to_y<MockCoin::WUSDT, MockCoin::WUSDC>(user, swap_amt);
         assert!(Coin::balance<MockCoin::WUSDT>(user_addr) == 0, 0);
-        assert!(Coin::balance<MockCoin::WUSDC>(user_addr) > swap_amt * 999 / 1000, 0);
-        assert!(Coin::balance<MockCoin::WUSDC>(user_addr) < swap_amt * 1001 / 1000, 0);
+        assert!(Coin::balance<MockCoin::WUSDC>(user_addr) != 0, 0);
+        // check fees
+        let pool = borrow_global<PieceSwapPoolInfo<MockCoin::WUSDT, MockCoin::WUSDC>>(Signer::address_of(admin));
+        assert!(Coin::value(&pool.protocol_fee_x) == 0, 0);
+        assert!(Coin::value(&pool.protocol_fee_y) > 0, 0);
+    }
+
+    #[test(admin=@HippoSwap, user=@0x12345)]
+    fun test_swap_x_to_y(admin: &signer, user: &signer) acquires PieceSwapPoolInfo {
+        let multiplier = 1000000;
+        let swap_amt = 1;
+        let liquidity_amt = 100000000;
+        test_swap_x_to_y_parameterized(admin, user, multiplier, swap_amt, liquidity_amt);
+        let user_addr = Signer::address_of(user);
+        assert!(Coin::balance<MockCoin::WUSDC>(user_addr) > swap_amt * multiplier * 999 / 1000, 0);
+        assert!(Coin::balance<MockCoin::WUSDC>(user_addr) < swap_amt * multiplier * 1001 / 1000, 0);
+
+        let pool = borrow_global<PieceSwapPoolInfo<MockCoin::WUSDT, MockCoin::WUSDC>>(Signer::address_of(admin));
+        assert!(
+            Coin::balance<MockCoin::WUSDC>(user_addr) +
+            Coin::value(&pool.reserve_y) +
+            Coin::value(&pool.protocol_fee_y) == liquidity_amt * multiplier,
+            0
+        );
+    }
+
+    #[test_only]
+    fun test_swap_y_to_x_parameterized(
+        admin: &signer,
+        user: &signer,
+        multiplier: u64,
+        swap_amt: u64,
+        liquidity_amt: u64,
+    ) acquires PieceSwapPoolInfo {
+        let amt = liquidity_amt * multiplier;
+        mock_init_pool_and_add_liquidity<MockCoin::WUSDT, MockCoin::WUSDC>(
+            admin,
+            user,
+            b"USDT-USDC LP for PieceSwap",
+            b"USDT-USDC LP(PieceSwap)",
+            amt
+        );
+        let user_addr = Signer::address_of(user);
+        swap_amt = swap_amt * multiplier;
+        MockCoin::faucet_mint_to<MockCoin::WUSDC>(user, swap_amt);
+        swap_y_to_x<MockCoin::WUSDT, MockCoin::WUSDC>(user, swap_amt);
+        assert!(Coin::balance<MockCoin::WUSDC>(user_addr) == 0, 0);
+        assert!(Coin::balance<MockCoin::WUSDT>(user_addr) > 0, 0);
+        // check fees
+        let pool = borrow_global<PieceSwapPoolInfo<MockCoin::WUSDT, MockCoin::WUSDC>>(Signer::address_of(admin));
+        assert!(Coin::value(&pool.protocol_fee_x) > 0, 0);
+        assert!(Coin::value(&pool.protocol_fee_y) == 0, 0);
     }
 
     #[test(admin=@HippoSwap, user=@0x12345)]
     fun test_swap_y_to_x(admin: &signer, user: &signer) acquires PieceSwapPoolInfo {
         let multiplier = 1000000;
-        let amt = 1000000000 * multiplier;
-        mock_init_pool_and_add_liquidity<MockCoin::WUSDT, MockCoin::WUSDC>(
-            admin,
-            user,
-            b"USDT-USDC LP for PieceSwap",
-            b"USDT-USDC LP(PieceSwap)",
-            amt
-        );
-        let swap_amt = 1 * multiplier;
+        let swap_amt = 1;
+        let liquidity_amt = 100000000;
+        test_swap_y_to_x_parameterized(admin, user, multiplier, swap_amt, liquidity_amt);
         let user_addr = Signer::address_of(user);
-        MockCoin::faucet_mint_to<MockCoin::WUSDC>(user, swap_amt);
-        swap_y_to_x<MockCoin::WUSDT, MockCoin::WUSDC>(user, swap_amt);
-        assert!(Coin::balance<MockCoin::WUSDC>(user_addr) == 0, 0);
-        assert!(Coin::balance<MockCoin::WUSDT>(user_addr) > swap_amt * 999 / 1000, 0);
-        assert!(Coin::balance<MockCoin::WUSDT>(user_addr) < swap_amt * 1001 / 1000, 0);
+        assert!(Coin::balance<MockCoin::WUSDT>(user_addr) > swap_amt * multiplier * 999 / 1000, 0);
+        assert!(Coin::balance<MockCoin::WUSDT>(user_addr) < swap_amt * multiplier* 1001 / 1000, 0);
+
+        let pool = borrow_global<PieceSwapPoolInfo<MockCoin::WUSDT, MockCoin::WUSDC>>(Signer::address_of(admin));
+        assert!(
+            Coin::balance<MockCoin::WUSDT>(user_addr) +
+            Coin::value(&pool.reserve_x) +
+            Coin::value(&pool.protocol_fee_x) == liquidity_amt * multiplier,
+            0
+        );
     }
 }
 }
