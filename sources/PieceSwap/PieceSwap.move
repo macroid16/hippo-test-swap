@@ -521,5 +521,12 @@ module PieceSwap {
         assert!(Coin::balance<MockCoin::WUSDT>(user_addr) > swap_amt * 999 / 1000, 0);
         assert!(Coin::balance<MockCoin::WUSDT>(user_addr) < swap_amt * 1001 / 1000, 0);
     }
+
+
+    #[test_only]
+    public fun get_reserve_amounts<X, Y>(): (u64, u64) acquires PieceSwapPoolInfo {
+        let i = borrow_global<PieceSwapPoolInfo<X, Y>>(MODULE_ADMIN);
+        return (Coin::value(&i.reserve_x), Coin::value(&i.reserve_y))
+    }
 }
 }

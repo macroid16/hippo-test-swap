@@ -20,7 +20,7 @@ module HippoSwap::StableCurveScripts {
     const E_TOKEN_Y_NOT_REGISTERED: u64 = 6;
     const E_LP_TOKEN_ALREADY_REGISTERED:u64 = 7;
 
-    public(script) fun create_new_pool<X, Y>(
+    public fun create_new_pool<X, Y>(
         sender: &signer,
         lp_name: vector<u8>,
         lp_symbol: vector<u8>,

@@ -231,5 +231,20 @@ module Router {
         assert!(Coin::balance<MockCoin::WBTC>(user_addr) >= dai_amount / 10000 * 99 / 100, 0);
         assert!(Coin::balance<MockCoin::WBTC>(user_addr) <= dai_amount / 10000, 0);
     }
+
+    // Extra utilities.
+
+    public fun add_liquidity_route<X, Y>(signer: &signer, pool_type: u8, amount_x: u64, amount_y: u64):(u64, u64, u64) {
+        if (pool_type == POOL_TYPE_CONSTANT_PRODUCT) {
+            CPSwap::add_liquidity<X, Y>(signer, amount_x, amount_y)
+        } else if (pool_type == POOL_TYPE_STABLE_CURVE) {
+            StableCurveSwap::add_liquidity<X, Y>(signer, amount_x, amount_y)
+        } else if ( pool_type == POOL_TYPE_PIECEWISE) {
+            PieceSwap::add_liquidity<X, Y>(signer, amount_x, amount_y)
+        } else {
+            abort E_UNKNOWN_POOL_TYPE
+        }
+    }
+
 }
 }
