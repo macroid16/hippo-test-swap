@@ -217,7 +217,8 @@ module PieceSwapMath {
             // (xF) (yF - n) = k2
             // xyF^2 - (xn)F - k2 = 0
             // F = [ (xn) + sqrt((xn)^2 + 4xy*k2)] / 2xy
-            let (f_numerator, f_denominator) = solve_F_upper_left(current_x, current_y, n, k2);
+            let (f_numerator, f_denominator, dydx_numerator, dydx_denominator) =
+                solve_F_upper_left(current_x, current_y, n, k2);
             // [(x+dx)F] [(y-dy)F - n] = (xF)(yF - n)
             // dy = y - [(xF)(yF - n) / [(x+dx)F] + n] / F    // also = y - [k2 / (new_x)F + n] / F
             //    = y - ( (xyF - xn) / (x+dx) + n] / F        // also = y - k2/(new_x)FF - n/F
@@ -231,6 +232,11 @@ module PieceSwapMath {
 
             if (p_new_xF > p_xa) {
                 // crossed into the middle stage
+                let p_output_y_max = mul_w(
+                    input_x * PRECISION_FACTOR * preprocessing_numerator / preprocessing_denominator,
+                    dydx_numerator,
+                    dydx_denominator
+                );
                 let p_delta_yF_this_stage = p_current_yF - p_xb; // xb = ya
                 let input_xF_next_stage = (p_new_xF - p_xa) / PRECISION_FACTOR;
                 let p_output_yF_next_stage = get_swap_x_to_y_out_preprocessed(
@@ -244,7 +250,8 @@ module PieceSwapMath {
                     m,
                     n
                 );
-                (p_delta_yF_this_stage + p_output_yF_next_stage) * f_denominator / f_numerator
+                let p_output_y = (p_delta_yF_this_stage + p_output_yF_next_stage) * f_denominator / f_numerator;
+                Math::min(p_output_y, p_output_y_max)
             }
             else {
                 let p_new_yF = p_k2 / p_new_xF + p_n;
@@ -258,13 +265,19 @@ module PieceSwapMath {
             // (xF + m) (yF + m) = k
             // xyF^2 + (x + y)mF + (mm -k) = 0
             // F = [-(x+y)m + sqrt( ((x+y)m)^2 - 4xy(mm-k) ) ] / 2xy
-            let (f_numerator, f_denominator) = solve_F_middle(current_x, current_y, m, k);
+            let (f_numerator, f_denominator, dydx_numerator, dydx_denominator) =
+                solve_F_middle(current_x, current_y, m, k);
             let p_current_xF = current_x * f_numerator * PRECISION_FACTOR / f_denominator;
             let p_current_yF = current_y * f_numerator * PRECISION_FACTOR / f_denominator;
             let p_input_xF = input_x * f_numerator * PRECISION_FACTOR / f_denominator * preprocessing_numerator / preprocessing_denominator;
             let p_new_xF = p_current_xF + p_input_xF;
             if (p_new_xF > p_xb) {
                 // crossed into the bottom-right stage
+                let p_output_y_max = mul_w(
+                    input_x * PRECISION_FACTOR * preprocessing_numerator / preprocessing_denominator,
+                    dydx_numerator,
+                    dydx_denominator
+                );
                 let p_delta_yF_this_stage = p_current_yF - p_xa; // xa = yb
                 let input_xF_next_stage = (p_new_xF - p_xb) / PRECISION_FACTOR;
                 let p_output_yF_next_stage = get_swap_x_to_y_out_preprocessed(
@@ -278,8 +291,8 @@ module PieceSwapMath {
                     m,
                     n
                 );
-                let p_y_out = (p_delta_yF_this_stage + p_output_yF_next_stage) * f_denominator / f_numerator;
-                p_y_out
+                let p_output_y = (p_delta_yF_this_stage + p_output_yF_next_stage) * f_denominator / f_numerator;
+                Math::min(p_output_y, p_output_y_max)
             }
             else {
                 /*
@@ -298,7 +311,8 @@ module PieceSwapMath {
             // (xF - n) (yF) = k2
             // xyF^2 -nyF -k2 = 0
             // [ny + sqrt( (ny)^2 +4xyk2) ] / 2xy
-            let (f_numerator, f_denominator) = solve_F_bottom_right(current_x, current_y, n, k2);
+            let (f_numerator, f_denominator, _dydx_numerator, _dydx_denominator) =
+                solve_F_bottom_right(current_x, current_y, n, k2);
             let p_current_xF = current_x * f_numerator * PRECISION_FACTOR / f_denominator;
             let p_current_yF = current_y * f_numerator * PRECISION_FACTOR / f_denominator;
             let p_input_xF = input_x * f_numerator * PRECISION_FACTOR / f_denominator * preprocessing_numerator / preprocessing_denominator;
@@ -339,14 +353,21 @@ module PieceSwapMath {
         y: u128,
         n: u128,
         k2: u128,
-    ): (u128, u128) { // (F_numerator, F_denominator)
+    ): (u128, u128, u128, u128) { // (F_numerator, F_denominator, -dyF, dxF)
         // (xF)(yF - n) = k2
         // xy*FF -nx*F - k2 = 0
         // F = [ (xn) + sqrt((xn)^2 + 4xy*k2)] / 2xy
         let xn = x * n;
         let xy = x * y;
         let numerator = xn + Math::sqrt(xn * xn + 4 * xy * k2);
-        (numerator, 2 * xy)
+        let denominator = 2 * xy;
+
+        // compute dydx
+        // yF - n = k2 /(xF)
+        // yF = k2 /(xF) + n
+        // dyF/dxF = -k2/(xF)^2
+        let xF = mul_w(x, numerator, denominator);
+        (numerator, denominator, k2, xF*xF)
     }
 
     fun solve_F_middle(
@@ -354,7 +375,7 @@ module PieceSwapMath {
         y: u128, // max u64
         m: u128,
         k: u128,
-    ): (u128, u128) { // (F_numerator, F_denominator)
+    ): (u128, u128, u128, u128) { // (F_numerator, F_denominator, -dyF, dxF)
         // (xF + m)(yF + m) = k
         // xy*FF + (x + y)m*F + (mm - k) = 0
         // F = [-(x+y)m + sqrt( ((x+y)m)^2 - 4xy(mm-k) ) ] / 2xy
@@ -363,15 +384,24 @@ module PieceSwapMath {
         let x_plus_y = x + y;
         let b = x_plus_y * m;
         let numerator = Math::sqrt(b*b + 4 * xy * (k - m*m)) - b; // k > mm is guaranteed
-        (numerator, 2 * xy)
+        let denominator = 2 * xy;
+
+        // compute dydx
+        // (yF + m) = k /(xF + m)
+        // yF = k / (xF + m) - m
+        // dyF/dxF = -k / (xF+m)^2
+        let xF = mul_w(x, numerator, denominator);
+        let xf_plus_m = xF + m;
+        (numerator, denominator, k, xf_plus_m* xf_plus_m)
     }
+
 
     fun solve_F_bottom_right(
         x: u128,
         y: u128,
         n: u128,
         k2: u128,
-    ): (u128, u128) { // (F_numerator, F_denominator)
+    ): (u128, u128, u128, u128) { // (F_numerator, F_denominator, dy, dx)
         // (xF-n)(yF) = k2
         solve_F_upper_left(y, x, n, k2)
     }
@@ -625,7 +655,6 @@ module PieceSwapMath {
     }
 
     #[test]
-    #[expected_failure]
     fun test_swap_smaller_amount_precision_at_joint() {
         /*
         Our current implementation lacks precision at the point where the pieces join.
@@ -647,6 +676,29 @@ module PieceSwapMath {
         Debug::print(&output_y);
         assert!(output_y * 105 / 100 > input_x * 99 / 100, 0);
         assert!(output_y * 105 / 100 < input_x * 101 / 100, 0);
+    }
+
+    #[test]
+    fun test_swap_large_amount_precision_at_joint() {
+        /*
+        Our current implementation lacks precision at the point where the pieces join.
+        */
+        let k = BILLION * BILLION;
+        let (xa, xb, m, n, k2) = compute_initialization_constants(
+            k,
+            110,
+            100,
+            105,
+            100,
+        );
+        let multiplier = 1000000;
+        // place curve at bottom-right joint
+        let current_x = (xb-1) * multiplier;
+        let current_y = xa * multiplier;
+        let input_x = 1000000 * multiplier;
+        let output_y = get_swap_x_to_y_out(current_x, current_y, input_x, k, k2, xa, xb, m, n);
+        Debug::print(&output_y);
+        assert!(output_y * 105 / 100 < input_x, 0);
     }
 
     #[test]
