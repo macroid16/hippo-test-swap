@@ -347,8 +347,8 @@ module HippoSwap::StableCurveSwap {
         let reserve_x = Coin::value(&swap_pair.reserve_x);
         let reserve_y = Coin::value(&swap_pair.reserve_y);
         let total_supply = Option::extract(&mut Coin::supply<LPToken<X, Y>>());
-        let x = to_burn_value * reserve_x / total_supply;
-        let y = to_burn_value * reserve_y / total_supply;
+        let x = ((to_burn_value * reserve_x as u128) / total_supply as u64);
+        let y = ((to_burn_value * reserve_y as u128) / total_supply as u64);
         burn<X, Y>(to_burn);
         let coin_x = Coin::extract(&mut swap_pair.reserve_x, x);
         let coin_y = Coin::extract(&mut swap_pair.reserve_y, y);
