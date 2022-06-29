@@ -65,6 +65,7 @@ module HippoSwap::StableCurveSwap {
     const ERROR_SWAP_A_VALUE: u64 = 2010;
     const ERROR_SWAP_INVALID_DERIVIATION: u64 = 2020;
 
+
     // Token utilities
 
     fun assert_admin(signer: &signer) {
@@ -211,6 +212,7 @@ module HippoSwap::StableCurveSwap {
 
         let d1 = get_D_flat(new_reserve_x, new_reserve_y, amp, p.multiplier_x, p.multiplier_y);
         assert!(d1 > d0, ERROR_SWAP_INVALID_DERIVIATION);
+
         let mint_amount;
         if (token_supply > 0) {
             let fee = p.fee * 2 / 4;

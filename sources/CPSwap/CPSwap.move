@@ -389,7 +389,7 @@ module HippoSwap::CPSwap {
 
         mint_fee(reserves.reserve_x, reserves.reserve_y, metadata);
 
-        let total_supply = (total_lp_supply<X, Y>() as u128);
+        let total_supply = total_lp_supply<X, Y>();
         let liquidity = if (total_supply == 0u128) {
             let l = SafeMath::sub(
                 Math::sqrt(
@@ -505,10 +505,10 @@ module HippoSwap::CPSwap {
     }
 
     /// Get the total supply of LP Tokens
-    fun total_lp_supply<X, Y>(): u64 {
+    fun total_lp_supply<X, Y>(): u128 {
         Option::get_with_default(
             &Coin::supply<LPToken<X, Y>>(),
-            0u64
+            0u128
         )
     }
 

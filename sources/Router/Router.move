@@ -13,6 +13,7 @@ module Router {
     const E_UNKNOWN_POOL_TYPE: u64 = 1;
     const E_OUTPUT_LESS_THAN_MINIMUM: u64 = 2;
 
+    #[noke]
     public fun get_intermediate_output<X, Y>(pool_type: u8, is_x_to_y: bool, x_in: Coin::Coin<X>): Coin::Coin<Y> {
         if (pool_type == POOL_TYPE_CONSTANT_PRODUCT) {
             if (is_x_to_y) {
