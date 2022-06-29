@@ -8,7 +8,6 @@ module HippoSwap::CPSwap {
     use AptosFramework::Timestamp;
 
     use HippoSwap::SafeMath;
-    use HippoSwap::Utils;
     use HippoSwap::Math;
     use HippoSwap::CPSwapUtils;
 
@@ -324,7 +323,6 @@ module HippoSwap::CPSwap {
         amount_x_out: u64,
         amount_y_out: u64
     ): (Coin::Coin<X>, Coin::Coin<Y>) acquires TokenPairReserve, TokenPairMetadata {
-        assert!(Utils::is_tokens_sorted<X, Y>(), ERROR_TOKENS_NOT_SORTED);
         assert!(amount_x_out > 0 || amount_y_out > 0, ERROR_INSUFFICIENT_OUTPUT_AMOUNT);
 
         let reserves = borrow_global_mut<TokenPairReserve<X, Y>>(MODULE_ADMIN);
@@ -715,7 +713,7 @@ module HippoSwap::CPSwap {
 
         // check liquidities
         assert!(
-            total_lp_supply<Token0, Token1>() == expected_liquidity,
+            (total_lp_supply<Token0, Token1>() as u64) == expected_liquidity,
             0
         );
         assert!(
@@ -774,7 +772,7 @@ module HippoSwap::CPSwap {
 
         // now performing checks
         assert!(
-            total_lp_supply<Token0, Token1>() == (MINIMUM_LIQUIDITY as u64),
+            (total_lp_supply<Token0, Token1>() as u64) == (MINIMUM_LIQUIDITY as u64),
             0
         );
         assert!(

@@ -222,11 +222,11 @@ module HippoSwap::TestShared {
     #[test_only]
     public fun get_pool_lp_supply_route<X, Y>(pool_type: u8): u64 {
         if (pool_type == POOL_TYPE_CONSTANT_PRODUCT) {
-            Option::get_with_default(&Coin::supply<CPSwap::LPToken<X, Y>>(), 0u64)
+            (Option::get_with_default(&Coin::supply<CPSwap::LPToken<X, Y>>(), 0u128) as u64)
         } else if (pool_type == POOL_TYPE_STABLE_CURVE) {
-            Option::get_with_default(&Coin::supply<StableCurveSwap::LPToken<X, Y>>(), 0u64)
+            (Option::get_with_default(&Coin::supply<StableCurveSwap::LPToken<X, Y>>(), 0u128) as u64)
         } else if (pool_type == POOL_TYPE_PIECEWISE) {
-            Option::get_with_default(&Coin::supply<PieceSwap::LPToken<X, Y>>(), 0u64)
+            (Option::get_with_default(&Coin::supply<PieceSwap::LPToken<X, Y>>(), 0u128) as u64)
         } else {
             abort E_UNKNOWN_POOL_TYPE
         }

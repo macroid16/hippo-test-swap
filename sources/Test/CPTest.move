@@ -1,7 +1,7 @@
 #[test_only]
 module HippoSwap::CPTest {
 
-    use HippoSwap::MockCoin::{WUSDT, WBTC};
+    use HippoSwap::MockCoin::{WUSDT, WBTC, WDAI, WDOT, WETH};
     use HippoSwap::TestShared;
     use HippoSwap::Router;
     use HippoSwap::CPScripts;
@@ -259,9 +259,86 @@ module HippoSwap::CPTest {
         let add_2 = add_param(P15, P13, P15, P13, P14, 0, P14);
         let swap = swap_param(P8, 0, P8, P6 - 3001, 0, 0, P6 - 3001);
         let remove_1 = remove_param(2 * P10, 2*P11 + 9997, 2 * P9 - 100, 2*P10-2500, 2500);
-        test_pool_case<WBTC, WUSDT>(admin, investor, swapper, core,
+        test_pool_case<WUSDT, WBTC>(admin, investor, swapper, core,
             print_debug, false, pool_type, decimal_x, decimal_y, fee, protocal_fee, add_1, add_2, swap, remove_1
         );
     }
 
+    #[test(admin = @HippoSwap, investor = @0x2FFF, swapper = @0x2FFE, core = @0xa550c18)]
+    #[expected_failure]
+    public fun test_pool_constant_product_2(admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
+        // tiny swap amount
+        let (pool_type, print_debug) = (POOL_TYPE_CONSTANT_PRODUCT, true);
+        let (decimal_x, decimal_y, fee, protocal_fee) = (8, 6, 100, 100000);
+        let add_1 = add_param(P17, P15, P17, P15, P16, 1000, P16 - 1000);
+        let add_2 = add_param(P17, P15, P17, P15, P16, 0, P16);
+        let swap = swap_param(P8, 0, P8, P6 - 3001, 0, 0, P6 - 3001);
+        let remove_1 = remove_param(2 * P10, 2*P11 + 9997, 2 * P9 - 100, 2*P10-2500, 2500);
+        test_pool_case<WUSDT, WBTC>(admin, investor, swapper, core,
+            print_debug, false, pool_type, decimal_x, decimal_y, fee, protocal_fee, add_1, add_2, swap, remove_1
+        );
+    }
+
+
+    #[test(admin = @HippoSwap, investor = @0x2FFF, swapper = @0x2FFE, core = @0xa550c18)]
+    public fun test_pool_constant_product_3(admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
+        // tiny swap amount
+        let (pool_type, print_debug) = (POOL_TYPE_CONSTANT_PRODUCT, true);
+        let (decimal_x, decimal_y, fee, protocal_fee) = (8, 6, 100, 100000);
+        let add_1 = add_param(P15, P13, P15, P13, P14, 1000, P14 - 1000);
+        let add_2 = add_param(P15, P13, P15, P13, P14, 0, P14);
+        let swap = swap_param(P8, 0, P8, P6 - 3001, 0, 0, P6 - 3001);
+        let remove_1 = remove_param(2 * P10, 2*P11 + 9997, 2 * P9 - 100, 2*P10-2500, 2500);
+        test_pool_case<WDAI, WBTC>(admin, investor, swapper, core,
+            print_debug, false, pool_type, decimal_x, decimal_y, fee, protocal_fee, add_1, add_2, swap, remove_1
+        );
+
+        TestShared::fund_for_participants<WDAI, WBTC>(swapper, P9, P7);
+        TestShared::sync_wallet_save_point<WDAI, WBTC>(swapper, pool_type);
+        let swap = swap_param(P8, 0, P8, P6 - 3001, 0, 0, P6 - 3001);
+        perform_transaction<WDAI, WBTC>(swapper, pool_type, SWAP, print_debug, swap);
+        let remove_2 = remove_param(2 * P10 , 2*P11 + 19995, 2 * P9 - 200, 2*P10-2500, 2500);
+        perform_transaction<WDAI, WBTC>(investor, pool_type, REMOVE_LIQUIDITY, true, remove_2);
+    }
+
+    #[test(admin = @HippoSwap, investor = @0x2FFF, swapper = @0x2FFE, core = @0xa550c18)]
+    public fun test_pool_constant_product_accumulative_giant_amt(admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
+        // tiny swap amount
+        let (pool_type, print_debug) = (POOL_TYPE_CONSTANT_PRODUCT, true);
+        let (decimal_x, decimal_y, fee, protocal_fee) = (8, 6, 100, 100000);
+
+        TestShared::prepare_for_test<WETH, WDOT>(admin, investor, swapper, core, pool_type, decimal_x, decimal_y,
+            0, 0, 0, 0, 0, fee, protocal_fee
+        );
+
+        let add_1 = add_param(P15, P13, P15, P13, P14, 1000, P14 - 1000);
+        let add_2 = add_param(P15, P13, P15, P13, P14, 0, P14);
+
+        TestShared::fund_for_participants<WETH, WDOT>(investor, P15*3+5*P14, P13*3);
+        TestShared::sync_wallet_save_point<WETH, WDOT>(investor, pool_type);
+
+        perform_transaction<WETH, WDOT>(investor, pool_type, ADD_LIQUIDITY, print_debug, add_1);
+        perform_transaction<WETH, WDOT>(investor, pool_type, ADD_LIQUIDITY, print_debug, add_2);
+
+        TestShared::fund_for_participants<WETH, WDOT>(swapper, P10, P8);
+        TestShared::sync_wallet_save_point<WETH, WDOT>(swapper, pool_type);
+        let swap = swap_param(5*P8, 0, 5*P8, 5*P6 - 15002, 0, 0, 5*P6-15002);
+        let swap_1 = swap_param(5*P8, 0, 5*P8, 5*P6 - 15004, 0, 0, 5*P6-15004);
+        let swap_2 = swap_param(5*P8, 0, 5*P8, 5*P6 - 15006, 0, 0, 5*P6-15006);
+        let swap_3 = swap_param(5*P8, 0, 5*P8, 5*P6 - 15008, 0, 0, 5*P6-15008);
+        let swap_4= swap_param(5*P8, 0, 5*P8, 5*P6 - 15012, 0, 0, 5*P6-15012);
+        let swap_5= swap_param(5*P8, 0, 5*P8, 5*P6 - 15014, 0, 0, 5*P6-15014);
+        let swap_6= swap_param(5*P8, 0, 5*P8, 5*P6 - 15016, 0, 0, 5*P6-15016);
+        let swap_7 = swap_param(5*P8, 0, 5*P8, 5*P6 - 15018, 0, 0, 5*P6-15018);
+        let swap_8= swap_param(5*P8, 0, 5*P8, 5*P6 - 15021, 0, 0, 5*P6-15021);
+        perform_transaction<WETH, WDOT>(swapper, pool_type, SWAP, print_debug, swap);
+        perform_transaction<WETH, WDOT>(swapper, pool_type, SWAP, print_debug, swap_1);
+        perform_transaction<WETH, WDOT>(swapper, pool_type, SWAP, print_debug, swap_2);
+        perform_transaction<WETH, WDOT>(swapper, pool_type, SWAP, print_debug, swap_3);
+        perform_transaction<WETH, WDOT>(swapper, pool_type, SWAP, print_debug, swap_4);
+        perform_transaction<WETH, WDOT>(swapper, pool_type, SWAP, print_debug, swap_5);
+        perform_transaction<WETH, WDOT>(swapper, pool_type, SWAP, print_debug, swap_6);
+        perform_transaction<WETH, WDOT>(swapper, pool_type, SWAP, print_debug, swap_7);
+        perform_transaction<WETH, WDOT>(swapper, pool_type, SWAP, print_debug, swap_8);
+    }
 }

@@ -313,7 +313,6 @@ module HippoSwap::CurveTest {
 
     #[test(admin = @HippoSwap, investor = @0x2FFF, swapper = @0x2FFE, core = @0xa550c18)]
     public fun test_pool_stable_curve_add_remove(admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
-        // test_pool_debug<WUSDC, WDAI>(admin, investor, swapper, core);
         let (decimal_x, decimal_y, fee, protocal_fee) = (8, 7, 100, 100000);
         let add_1 = new_transaction_param(
             P8, P7, 0,
@@ -360,6 +359,12 @@ module HippoSwap::CurveTest {
 
     #[test(admin = @HippoSwap, investor = @0x2FFF, swapper = @0x2FFE, core = @0xa550c18)]
     public fun test_pool_stable_curve_standard(admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
+
+        // This test case demonstrates that the pool works fine when it has
+        // reserve x of 2 units and y of 2 units
+        // exchanging 1 unit of x, outcoming 0.989 unit of y affording 0.011 unit slipage.
+        // the pool received fee for 1 / 10000 (1000), and the actual admin fee is 98 (offset 2 which should be ideally 100)
+
         let (decimal_x, decimal_y, fee, protocal_fee) = (8, 7, 100, 100000);
         let add_1 = new_transaction_param(
             P8, P7, 0, INC, INC, INC, INC, INC, INC, P8, P7, 2 * P8, 0, 0, 0, DEC, DEC, INC, P8, P7, 2 * P8
@@ -381,7 +386,10 @@ module HippoSwap::CurveTest {
 
     #[test(admin = @HippoSwap, investor = @0x2FFF, swapper = @0x2FFE, core = @0xa550c18)]
     public fun test_pool_stable_curve_2(admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
-        // swap small amount
+        // This test case demonstrates a small pool in different decimals of x & y which only has
+        // reserve x of 2 units and y of 2 units works good when
+        // exchanging 0.01 unit (1/200 of reserve) of x, outcoming 0.0099982 unit of y, The margin of error was 0.012 %.
+        // And the fee was lost x in fraction of a tiny amount
         let (decimal_x, decimal_y, fee, protocal_fee) = (8, 7, 100, 100000);
         let add_1 = new_transaction_param(
             P8, P7, 0, INC, INC, INC, INC, INC, INC, P8, P7, 2 * P8, 0, 0, 0, DEC, DEC, INC, P8, P7, 2 * P8
@@ -406,7 +414,12 @@ module HippoSwap::CurveTest {
 
     #[test(admin = @HippoSwap, investor = @0x2FFF, swapper = @0x2FFE, core = @0xa550c18)]
     public fun test_pool_stable_curve_3(admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
-        // decimal differ
+
+        // This case demonstrates the stability of exchange rate when decimal varies.
+        // the case test_pool_stable_curve_standard results decimal 7 of y 9892678
+        // which is equivalent 989267 of decimal 6 below.
+        // And the fee was 98 of decimal 7 : 9 of decimal 6.
+
         let (decimal_x, decimal_y, fee, protocal_fee) = (8, 6, 100, 100000);
         let add_1 = add_param(P8, P6, P8, P6, 2 * P8, 0, 0);
         let add_2 = add_param(P8, P6, P8, P6, 2 * P8, 0, 0);
@@ -420,7 +433,8 @@ module HippoSwap::CurveTest {
 
     #[test(admin = @HippoSwap, investor = @0x2FFF, swapper = @0x2FFE, core = @0xa550c18)]
     public fun test_pool_stable_curve_tiny_amt(admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
-        // decimal differ
+        // When exchange a very small amount like 1e-5 unit, the outcoming accuracy is good.
+        // And the fees are lost.
         let (decimal_x, decimal_y, fee, protocal_fee) = (8, 6, 100, 100000);
         let add_1 = add_param(P8, P6, P8, P6, 2 * P8, 0, 0);
         let add_2 = add_param(P8, P6, P8, P6, 2 * P8, 0, 0);
@@ -434,7 +448,8 @@ module HippoSwap::CurveTest {
 
     #[test(admin = @HippoSwap, investor = @0x2FFF, swapper = @0x2FFE, core = @0xa550c18)]
     public fun test_pool_stable_curve_4(admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
-        // decimal differ
+        // Demonstrates the stability of exchange rate accuracy in large difference of decimals.
+        // The change rate was exactly the same when the decimal changes.
         let (decimal_x, decimal_y, fee, protocal_fee) = (10, 6, 100, 100000);
         let add_1 = add_param(P10, P6, P10, P6, 2 * P10, 0, 0);
         let add_2 = add_param(P10, P6, P10, P6, 2 * P10, 0, 0);
@@ -447,7 +462,8 @@ module HippoSwap::CurveTest {
 
     #[test(admin = @HippoSwap, investor = @0x2FFF, swapper = @0x2FFE, core = @0xa550c18)]
     public fun test_pool_stable_curve_5(admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
-        // tiny swap amount
+        // Accuracy and precisions pretty good when the reserve amount much bigger than swap amount.
+        // Only 0.01% pool fee charged.
         let (pool_type, print_debug) = (POOL_TYPE_STABLE_CURVE, true);
         let (decimal_x, decimal_y, fee, protocal_fee) = (10, 10, 100, 100000);
         let add_1 = add_param(P10, P10, P10, P10, 2 * P10, 0, 0);
@@ -467,7 +483,7 @@ module HippoSwap::CurveTest {
 
     #[test(admin = @HippoSwap, investor = @0x2FFF, swapper = @0x2FFE, core = @0xa550c18)]
     public fun test_pool_stable_curve_6(admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
-        // tiny swap amount
+        // The capacity of the stable curve pool size, nealy 10^17.
         let (pool_type, print_debug) = (POOL_TYPE_STABLE_CURVE, true);
         let (decimal_x, decimal_y, fee, protocal_fee) = (10, 10, 100, 100000);
         let add_1 = add_param(P17, P17, P17, P17, 2 * P17, 0, 0);
@@ -482,7 +498,7 @@ module HippoSwap::CurveTest {
     #[test(admin = @HippoSwap, investor = @0x2FFF, swapper = @0x2FFE, core = @0xa550c18)]
     #[expected_failure]         // ARITHMETIC_ERROR
     public fun test_pool_stable_curve_7(admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
-        // tiny swap amount
+        // Overflow
         let (pool_type, print_debug) = (POOL_TYPE_STABLE_CURVE, true);
         let (decimal_x, decimal_y, fee, protocal_fee) = (10, 10, 100, 100000);
         let add_1 = add_param(P18, P18, P18, P18, 2 * P18, 0, 0);               // overflow
@@ -496,7 +512,13 @@ module HippoSwap::CurveTest {
 
     #[test(admin = @HippoSwap, investor = @0x2FFF, swapper = @0x2FFE, core = @0xa550c18)]
     public fun test_pool_stable_curve_8(admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
-        // tiny swap amount
+
+        // Usually the pool reserves are much bigger than the swap amount. And proportion of x and y is in between 1 : 5.
+        // This case reveals a typical fee charges of a swap proc.
+        // The pool reserve of target coin increase 9/100000 (91 here bias 1)
+        // Protocal fee increased 9 (which should be ideally 10), 1/1000000 in acceptance of design.
+        // And the swapper received a 1/10000 loss.
+
         let (pool_type, print_debug) = (POOL_TYPE_STABLE_CURVE, true);
         let (decimal_x, decimal_y, fee, protocal_fee) = (8, 6, 100, 100000);
         let add_1 = add_param(P17, P15, P17, P15, 2 * P17, 0, 0);
@@ -510,7 +532,14 @@ module HippoSwap::CurveTest {
 
     #[test(admin = @HippoSwap, investor = @0x2FFF, swapper = @0x2FFE, core = @0xa550c18)]
     public fun test_pool_stable_curve_accumulative_giant(admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
-        // tiny swap amount
+
+        // We perform trading actions continiously in this case.
+        // The fee charged in add_liquidity comes from the inequality between the proportion of incoming x y and reserve x y.
+        // The pool charged the swap fee implicitly in the process of add liquidity.
+        // And the other way is the direct charge during the swap process.
+        // It shows that as the base of reserve increases, traders afford less for the slippage of the same amount of imbalanced reserve.
+        // And the remove liquidity actions reverse the process which took away all the reserve by steps.
+
         let (pool_type, print_debug) = (POOL_TYPE_STABLE_CURVE, true);
         let (decimal_x, decimal_y, fee, protocal_fee) = (8, 6, 100, 100000);
         let add_1 = add_param(P17, P15, P17, P15, 2 * P17, 0, 0);
@@ -562,7 +591,8 @@ module HippoSwap::CurveTest {
 
     #[test(admin = @HippoSwap, investor = @0x2FFF, swapper = @0x2FFE, core = @0xa550c18)]
     public fun test_pool_stable_curve_accumulative_loop_swap(admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
-        // tiny swap amount
+        // Demonstrates the stability in large number of transactions
+        // Slippage happens when swapping accumulatively.
         let (pool_type, print_debug) = (POOL_TYPE_STABLE_CURVE, true);
         let (decimal_x, decimal_y, fee, protocal_fee) = (8, 6, 100, 100000);
 
@@ -597,7 +627,7 @@ module HippoSwap::CurveTest {
 
     #[test(admin = @HippoSwap, investor = @0x2FFF, swapper = @0x2FFE, core = @0xa550c18)]
     public fun test_pool_stable_curve_deviant(admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
-        // tiny swap amount
+        // If we change the proportion evidently in the add liquidity process, we'll get much more fee lost.
         let (pool_type, print_debug) = (POOL_TYPE_STABLE_CURVE, true);
         let (decimal_x, decimal_y, fee, protocal_fee) = (8, 6, 100, 100000);
         let add_1 = add_param(P17, P15, P17, P15, 2 * P17, 0, 0);
@@ -608,7 +638,9 @@ module HippoSwap::CurveTest {
         test_pool_case<WUSDC, WDAI>(admin, investor, swapper, core,
             print_debug, false, pool_type, decimal_x, decimal_y, fee, protocal_fee, add_1, add_2, swap, remove_1
         );
-        let remove_2 = remove_param(  499824386454391189,    199999742523678828,   2999997374686117);
+        let swap_2 = swap_param(0, P6,  99283755, P6, 992, 0, 99282763);  // swap 1 doller
+        perform_transaction<WUSDC, WDAI>(swapper, pool_type, SWAP, print_debug, swap_2);
+        let remove_2 = remove_param(  499824386454391189,     199999742424395073,   2999997375686117);
         perform_transaction<WUSDC, WDAI>(investor, pool_type, REMOVE_LIQUIDITY, true, remove_2);
     }
 }

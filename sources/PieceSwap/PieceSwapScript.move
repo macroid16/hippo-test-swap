@@ -254,5 +254,30 @@ module PieceSwapScript {
         assert!(Coin::balance<WDAI>(Signer::address_of(user)) >= usdc_balance * 999 / 1000, 0);
 
     }
+
+    #[test_only]
+     public fun swap<X, Y>(
+        sender: &signer,
+        x_in: u64,
+        y_in: u64,
+        x_min_out: u64,
+        y_min_out: u64,
+    ) {
+        assert!(!(x_in > 0 && y_in > 0), E_SWAP_ONLY_ONE_IN_ALLOWED);
+        assert!(!(x_min_out > 0 && y_min_out > 0), E_SWAP_ONLY_ONE_OUT_ALLOWED);
+        // X to Y
+        if (x_in > 0) {
+            let y_out = PieceSwap::swap_x_to_y<X, Y>(sender, x_in);
+            assert!(y_out >= y_min_out, E_OUTPUT_LESS_THAN_MIN);
+        }
+        else if (y_in > 0) {
+            let x_out = PieceSwap::swap_y_to_x<X, Y>(sender, y_in);
+            assert!(x_out >= x_min_out, E_OUTPUT_LESS_THAN_MIN);
+        }
+        else {
+            assert!(false, E_SWAP_NONZERO_INPUT_REQUIRED);
+        }
+    }
+
 }
 }
