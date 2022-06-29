@@ -715,7 +715,7 @@ module HippoSwap::CPSwap {
 
         // check liquidities
         assert!(
-            total_lp_supply<Token0, Token1>() == expected_liquidity,
+            total_lp_supply<Token0, Token1>() == (expected_liquidity as u128),
             0
         );
         assert!(
@@ -774,7 +774,7 @@ module HippoSwap::CPSwap {
 
         // now performing checks
         assert!(
-            total_lp_supply<Token0, Token1>() == (MINIMUM_LIQUIDITY as u64),
+            total_lp_supply<Token0, Token1>() == MINIMUM_LIQUIDITY,
             0
         );
         assert!(
