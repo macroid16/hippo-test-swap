@@ -202,7 +202,7 @@ module HippoSwap::StableCurveSwap {
         let amp = get_current_A(p.initial_A, p.future_A, p.initial_A_time, p.future_A_time);
         let d0 = get_D_flat(reserve_amt_x, reserve_amt_y, amp, p.multiplier_x, p.multiplier_y);
 
-        let token_supply = (Option::extract(&mut Coin::supply<LPToken<X, Y>>()) as u128);
+        let token_supply = (*Option::borrow(&mut Coin::supply<LPToken<X, Y>>()) as u128);
 
         if (token_supply == 0) {
             assert!(x_value_prev > 0, ERROR_SWAP_ADDLIQUIDITY_INVALID);
@@ -358,7 +358,7 @@ module HippoSwap::StableCurveSwap {
         let swap_pair = borrow_global_mut<StableCurvePoolInfo<X, Y>>(HippoConfig::admin_address());
         let reserve_x = (Coin::value(&swap_pair.reserve_x) as u128);
         let reserve_y =  (Coin::value(&swap_pair.reserve_y) as u128);
-        let total_supply = (Option::extract(&mut Coin::supply<LPToken<X, Y>>()) as u128);
+        let total_supply = (*Option::borrow(&mut Coin::supply<LPToken<X, Y>>()) as u128);
         let x = ((to_burn_value * reserve_x / total_supply) as u64);
         let y = ((to_burn_value * reserve_y / total_supply) as u64);
         burn<X, Y>(to_burn);
