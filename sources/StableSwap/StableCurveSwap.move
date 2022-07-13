@@ -51,6 +51,7 @@ module HippoSwap::StableCurveSwap {
     const MAX_A: u64 = 1000000;
     const MAX_A_CHANGE: u64 = 10;
 
+    const ERROR_ALREADY_INITIALIZED: u64 = 1;
     const ERROR_ITERATE_END: u64 = 1000;
     const ERROR_EXCEEDED: u64 = 1001;
     // 10 ** 10
@@ -72,7 +73,9 @@ module HippoSwap::StableCurveSwap {
     }
 
     fun initialize_coin<X, Y>(signer: &signer, name: ASCII::String, symbol: ASCII::String, decimals: u64) {
-
+        let addr = Signer::address_of(signer);
+        assert!(!exists<StableCurvePoolInfo<X, Y>>(addr), ERROR_ALREADY_INITIALIZED);
+        assert!(!exists<StableCurvePoolInfo<Y, X>>(addr), ERROR_ALREADY_INITIALIZED);
         assert!(Coin::is_coin_initialized<X>(), ERROR_SWAP_INVALID_TOKEN_PAIR);
         assert!(Coin::is_coin_initialized<Y>(), ERROR_SWAP_INVALID_TOKEN_PAIR);
         let (mint_capability, burn_capability) = Coin::initialize<LPToken<X, Y>>(
@@ -96,6 +99,13 @@ module HippoSwap::StableCurveSwap {
 
     public fun balance<X, Y>(addr: address): u64 {
         Coin::balance<LPToken<X, Y>>(addr)
+    }
+
+    fun check_and_deposit<TokenType>(to: &signer, coin: Coin::Coin<TokenType>) {
+        if(!Coin::is_account_registered<TokenType>(Signer::address_of(to))) {
+            Coin::register_internal<TokenType>(to);
+        };
+        Coin::deposit(Signer::address_of(to), coin);
     }
 
     #[test_only]
@@ -198,7 +208,7 @@ module HippoSwap::StableCurveSwap {
             assert!(x_value_prev > 0, ERROR_SWAP_ADDLIQUIDITY_INVALID);
             assert!(y_value_prev > 0, ERROR_SWAP_ADDLIQUIDITY_INVALID);
         };
-        let (new_reserve_x, new_reserve_y) = (reserve_amt_y + x_value_prev, reserve_amt_y + y_value_prev);
+        let (new_reserve_x, new_reserve_y) = (reserve_amt_x + x_value_prev, reserve_amt_y + y_value_prev);
 
         let d1 = get_D_flat(new_reserve_x, new_reserve_y, amp, p.multiplier_x, p.multiplier_y);
         assert!(d1 > d0, ERROR_SWAP_INVALID_DERIVIATION);
@@ -247,14 +257,16 @@ module HippoSwap::StableCurveSwap {
         (name_balance, real_balance, admin_fee_amount)
     }
 
-    public fun add_liquidity<X, Y>(sender: &signer, amount_x: u64, amount_y: u64) acquires StableCurvePoolInfo, LPCapability {
+    public fun add_liquidity<X, Y>(sender: &signer, amount_x: u64, amount_y: u64): (u64, u64, u64) acquires StableCurvePoolInfo, LPCapability {
         let x_coin = Coin::withdraw<X>(sender, amount_x);
         let y_coin = Coin::withdraw<Y>(sender, amount_y);
         let (x, y, minted_lp_token) = add_liquidity_direct(x_coin, y_coin);
         let addr = Signer::address_of(sender);
+        let lp_amt = Coin::value<LPToken<X, Y>>(&minted_lp_token);
         Coin::deposit(addr, x);
         Coin::deposit(addr, y);
-        Coin::deposit(addr, minted_lp_token);
+        check_and_deposit(sender, minted_lp_token);
+        (amount_x, amount_y, lp_amt)
     }
 
     fun get_y(i: u64, dx: u64, xp: u64, yp: u64, initial_A: u64, initial_A_time: u64, future_A: u64, future_A_time: u64): u64 {
@@ -275,7 +287,7 @@ module HippoSwap::StableCurveSwap {
         let dx_rated = dx * p.multiplier_x;
         let y = get_y(i, dx_rated, xp, yp, p.initial_A, p.initial_A_time, p.future_A, p.future_A_time);
 
-        let amount_dy = yp - y - 1;
+        let amount_dy = ( yp - y - 1) / p.multiplier_y;
         let amount_dy_fee = amount_dy * p.fee / (FEE_DENOMINATOR as u64);
         let charged_amt_dy = (amount_dy - amount_dy_fee);
 
@@ -285,7 +297,7 @@ module HippoSwap::StableCurveSwap {
 
         Coin::merge(&mut swap_pair.reserve_x, coins_in);
         let coin_dy = Coin::extract<Y>(&mut swap_pair.reserve_y, charged_amt_dy);
-        let coin_fee = Coin::extract<Y>(&mut coin_dy, dy_admin_fee);
+        let coin_fee = Coin::extract<Y>(&mut swap_pair.reserve_y, dy_admin_fee);
         Coin::merge(&mut swap_pair.fee_y, coin_fee);
         (Coin::zero<X>(), Coin::zero<X>(), coin_dy)
     }
@@ -303,7 +315,7 @@ module HippoSwap::StableCurveSwap {
         let dy_rated = dy * p.multiplier_y;
         let x = get_y(i, dy_rated, xp, yp, p.initial_A, p.initial_A_time, p.future_A, p.future_A_time);
 
-        let amount_dx = xp - x - 1;
+        let amount_dx = (xp - x - 1 )  / p.multiplier_x;
         let amount_dx_fee = amount_dx * p.fee / (FEE_DENOMINATOR as u64);
         let charged_amt_dx = (amount_dx - amount_dx_fee);
 
@@ -313,7 +325,7 @@ module HippoSwap::StableCurveSwap {
 
         Coin::merge(&mut swap_pair.reserve_y, coins_in);
         let coin_dx = Coin::extract<X>(&mut swap_pair.reserve_x, charged_amt_dx);
-        let coin_fee = Coin::extract<X>(&mut coin_dx, dx_admin_fee);
+        let coin_fee = Coin::extract<X>(&mut swap_pair.reserve_x, dx_admin_fee);
         Coin::merge(&mut swap_pair.fee_x, coin_fee);
         (Coin::zero<Y>(), coin_dx, Coin::zero<Y>(),)
     }
@@ -342,13 +354,13 @@ module HippoSwap::StableCurveSwap {
     }
 
     public fun withdraw_liquidity<X, Y>(to_burn: Coin::Coin<LPToken<X, Y>>): (Coin::Coin<X>, Coin::Coin<Y>) acquires StableCurvePoolInfo, LPCapability {
-        let to_burn_value = Coin::value(&to_burn);
+        let to_burn_value = (Coin::value(&to_burn) as u128);
         let swap_pair = borrow_global_mut<StableCurvePoolInfo<X, Y>>(HippoConfig::admin_address());
-        let reserve_x = Coin::value(&swap_pair.reserve_x);
-        let reserve_y = Coin::value(&swap_pair.reserve_y);
-        let total_supply = Option::extract(&mut Coin::supply<LPToken<X, Y>>());
-        let x = ((to_burn_value * reserve_x as u128) / total_supply as u64);
-        let y = ((to_burn_value * reserve_y as u128) / total_supply as u64);
+        let reserve_x = (Coin::value(&swap_pair.reserve_x) as u128);
+        let reserve_y =  (Coin::value(&swap_pair.reserve_y) as u128);
+        let total_supply = (Option::extract(&mut Coin::supply<LPToken<X, Y>>()) as u128);
+        let x = ((to_burn_value * reserve_x / total_supply) as u64);
+        let y = ((to_burn_value * reserve_y / total_supply) as u64);
         burn<X, Y>(to_burn);
         let coin_x = Coin::extract(&mut swap_pair.reserve_x, x);
         let coin_y = Coin::extract(&mut swap_pair.reserve_y, y);
@@ -435,6 +447,18 @@ module HippoSwap::StableCurveSwap {
         // example:
         // let (disabled, reserve_amt_x, reserve_amt_y, fee_amt_x, fee_amt_y, lp_precision, multiplier_x, multiplier_y, fee_param, admin_fee_param,
         //      initial_A, future_A, initial_A_time, future_A_time) = get_pool_info<X, Y>();
+    }
+
+    #[test_only]
+    public fun get_reserve_amounts<X, Y>(): (u64, u64) acquires StableCurvePoolInfo {
+        let i = borrow_global<StableCurvePoolInfo<X, Y>>(HippoConfig::admin_address());
+        return (Coin::value(&i.reserve_x), Coin::value(&i.reserve_y))
+    }
+
+    #[test_only]
+    public fun get_fee_amounts<X, Y>(): (u64, u64) acquires StableCurvePoolInfo {
+        let i = borrow_global<StableCurvePoolInfo<X, Y>>(HippoConfig::admin_address());
+        return (Coin::value(&i.fee_x), Coin::value(&i.fee_y))
     }
 
     #[test_only]

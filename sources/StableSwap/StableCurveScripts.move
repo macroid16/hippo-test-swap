@@ -20,7 +20,7 @@ module HippoSwap::StableCurveScripts {
     const E_TOKEN_Y_NOT_REGISTERED: u64 = 6;
     const E_LP_TOKEN_ALREADY_REGISTERED:u64 = 7;
 
-    public(script) fun create_new_pool<X, Y>(
+    public fun create_new_pool<X, Y>(
         sender: &signer,
         lp_name: vector<u8>,
         lp_symbol: vector<u8>,
@@ -77,7 +77,8 @@ module HippoSwap::StableCurveScripts {
         StableCurveSwap::remove_liquidity<X, Y>(sender, liquidity, min_amount_x, min_amount_y);
     }
 
-    public(script) fun swap_script<X, Y>(
+
+    public fun swap<X, Y>(
         sender: &signer,
         x_in: u64,
         y_in: u64,
@@ -97,6 +98,16 @@ module HippoSwap::StableCurveScripts {
             let (_, out_amount, _) = StableCurveSwap::swap_y_to_exact_x<X, Y>(sender, y_in, addr);
             assert!(out_amount > x_min_out, E_OUTPUT_LESS_THAN_MIN);
         }
+    }
+
+    public(script) fun swap_script<X, Y>(
+        sender: &signer,
+        x_in: u64,
+        y_in: u64,
+        x_min_out: u64,
+        y_min_out: u64,
+    ) {
+        swap<X, Y>(sender, x_in, y_in, x_min_out, y_min_out)
     }
 
     fun mock_create_pair_and_add_liquidity<X, Y>(
@@ -119,6 +130,16 @@ module HippoSwap::StableCurveScripts {
         let decimals = (decimals as u64);
         StableCurveSwap::initialize<X, Y>(
             admin, name, name, decimals, initial_A, future_A, initial_A_time, future_A_time, fee, admin_fee
+        );
+
+        TokenRegistry::add_token<StableCurveSwap::LPToken<X,Y>>(
+            admin,
+            symbol,
+            symbol,
+            symbol,
+            (decimals as u8),
+            b"",
+            b"",
         );
         let some_x = MockCoin::mint<X>(left_amt);
         let some_y = MockCoin::mint<Y>(right_amt);
@@ -158,7 +179,7 @@ module HippoSwap::StableCurveScripts {
         let coin_amt = 1000000000;
         mock_create_pair_and_add_liquidity<MockCoin::WUSDC, MockCoin::WUSDT>(
             admin,
-            b"USDC-USDT-LP",
+            b"USDC-USDT-CURVE-LP",
             fee, admin_fee,
             coin_amt * 100,
             coin_amt * 100,
@@ -166,7 +187,7 @@ module HippoSwap::StableCurveScripts {
         );
         mock_create_pair_and_add_liquidity<MockCoin::WUSDC, MockCoin::WDAI>(
             admin,
-            b"USDC-DAI-LP",
+            b"USDC-DAI-CURVE-LP",
             fee, admin_fee,
             coin_amt * 100,
             coin_amt * 100,
@@ -435,8 +456,10 @@ module HippoSwap::StableCurveScripts {
         StableCurveSwap::swap_x_to_exact_y<MockCoin::WUSDC, MockCoin::WUSDT>(admin, 200000, admin_addr);
 
         let balance = Coin::balance<MockCoin::WUSDT>(admin_addr);
-        assert!(balance == 200097, 1);
+
+        assert!(balance == 200217, 1);
         let (_, _, _, fee_amt_x, fee_amt_y, _, _, _, _, _, _, _, _, _) = StableCurveSwap::get_pool_info<MockCoin::WUSDC, MockCoin::WUSDT>();
+
         assert!(fee_amt_x == 74, 1);
         assert!(fee_amt_y == 195, 1); // increased 120 = 200000 * 0.003 * 0.2
 
@@ -444,7 +467,8 @@ module HippoSwap::StableCurveScripts {
         StableCurveSwap::swap_y_to_exact_x<MockCoin::WUSDC, MockCoin::WUSDT>(admin, 200000, admin_addr);
 
         let balance = Coin::balance<MockCoin::WUSDC>(admin_addr);
-        assert!(balance == 198467, 1);      // nearly 2 % loss
+
+        assert!(balance == 198587, 1);      // nearly 2 % loss
         let (_, _, _, fee_x, fee_y, _, _, _, _, _, _, _, _, _) = StableCurveSwap::get_pool_info<MockCoin::WUSDC, MockCoin::WUSDT>();
         assert!(fee_x == 193, 1);
         assert!(fee_y == 195, 1);
@@ -454,7 +478,8 @@ module HippoSwap::StableCurveScripts {
         StableCurveSwap::swap_x_to_exact_y<MockCoin::WUSDC, MockCoin::WUSDT>(admin, 20000000, admin_addr);
 
         let balance = Coin::balance<MockCoin::WUSDT>(admin_addr);
-        assert!(balance == 1494324, 1); // Seems that the pool was exhausted, and the lp earn a lot.
+
+        assert!(balance == 1495223, 1); // Seems that the pool was exhausted, and the lp earn a lot.
         let (_, _, _, fee_x, fee_y, _, _, _, _, _, _, _, _, _) = StableCurveSwap::get_pool_info<MockCoin::WUSDC, MockCoin::WUSDT>();
         assert!(fee_x == 193, 1);
         assert!(fee_y == 1094, 1);
@@ -464,9 +489,10 @@ module HippoSwap::StableCurveScripts {
         StableCurveSwap::add_liquidity<MockCoin::WUSDC, MockCoin::WUSDT>(admin, 50000000, 10000000);
 
         let balance = StableCurveSwap::balance<MockCoin::WUSDC, MockCoin::WUSDT>(admin_addr);
-        assert!(balance == 17744674, 1);
+
+        assert!(balance == 25338477, 1);
         let (_, _, _, fee_x, fee_y, _, _, _, _, _, _, _, _, _) = StableCurveSwap::get_pool_info<MockCoin::WUSDC, MockCoin::WUSDT>();
-        assert!(fee_x == 30061, 1);
-        assert!(fee_y == 4085, 1);
+        assert!(fee_x == 42969, 1);
+        assert!(fee_y == 4083, 1);
     }
 }

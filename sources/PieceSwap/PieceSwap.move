@@ -603,5 +603,18 @@ module PieceSwap {
             0
         );
     }
+
+
+    #[test_only]
+    public fun get_reserve_amounts<X, Y>(): (u64, u64) acquires PieceSwapPoolInfo {
+        let i = borrow_global<PieceSwapPoolInfo<X, Y>>(MODULE_ADMIN);
+        return (Coin::value(&i.reserve_x), Coin::value(&i.reserve_y))
+    }
+
+    #[test_only]
+    public fun get_fee_amounts<X, Y>(): (u64, u64) acquires PieceSwapPoolInfo {
+        let i = borrow_global<PieceSwapPoolInfo<X, Y>>(MODULE_ADMIN);
+        return (Coin::value(&i.protocol_fee_x), Coin::value(&i.protocol_fee_y))
+    }
 }
 }
