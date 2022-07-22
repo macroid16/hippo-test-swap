@@ -8,7 +8,4 @@ MoveNursery = { git = "https://github.com/aptos-labs/aptos-core.git", subdir = "
 TokenRegistry = { git = "https://github.com/hippospace/aptos-registry.git", subdir = "move", rev = "fb1c1079624d0c2741e4e9d2ca8bdd5e5efa0cc8" }
 
 [addresses]
-std = "0x1"
-aptos_framework = "0x1"
 hippo_swap = "0xf70ac33c984f8b7bead655ad239d246f1c0e3ca55fe0b8bfc119aa529c4630e8"
-core_resources = "0xA550C18"
