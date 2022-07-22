@@ -1,10 +1,10 @@
 #[test_only]
-module HippoSwap::CPTest {
+module HippoSwap::cp_test {
 
-    use HippoSwap::MockCoin::{WUSDT, WBTC, WDAI, WDOT, WETH};
+    use HippoSwap::mock_coin::{WUSDT, WBTC, WDAI, WDOT, WETH};
     use HippoSwap::TestShared;
-    use HippoSwap::Router;
-    use HippoSwap::CPScripts;
+    use HippoSwap::router;
+    use HippoSwap::cp_scripts;
 
     // Keep the consts the same with TestShared.move.
 
@@ -179,11 +179,11 @@ module HippoSwap::CPTest {
     #[test_only]
     fun perform_transaction<X, Y>(trader: &signer, pool_type: u8, action: u8, print_debug: bool, param: TransactionParams) {
         if (action == ADD_LIQUIDITY) {
-            Router::add_liquidity_route<X, Y>(trader, pool_type, param.amt_x, param.amt_y);
+            router::add_liquidity_route<X, Y>(trader, pool_type, param.amt_x, param.amt_y);
         } else if (action == SWAP) {
-            CPScripts::swap<X, Y>(trader, param.amt_x, param.amt_y, 0, 0);
+            cp_scripts::swap<X, Y>(trader, param.amt_x, param.amt_y, 0, 0);
         } else if (action == REMOVE_LIQUIDITY) {
-            Router::remove_liquidity_route<X, Y>(trader, pool_type, param.amt_lp, param.amt_x, param.amt_y);
+            router::remove_liquidity_route<X, Y>(trader, pool_type, param.amt_lp, param.amt_x, param.amt_y);
         };
         if (print_debug) {
             TestShared::debug_print_comparision<X, Y>(pool_type);

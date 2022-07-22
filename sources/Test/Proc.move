@@ -1,5 +1,5 @@
 #[test_only]
-module HippoSwap::Proc {
+module HippoSwap::proc {
 
     // A use case which including 3 characters, the admin, the investor, and the swap guest.
     // We could observe the functionality by tracking the activity and the changes of the user account.
@@ -70,8 +70,8 @@ module HippoSwap::Proc {
 
 
     use HippoSwap::TestShared;
-    use HippoSwap::MockCoin::{WUSDC, WETH};
-    use HippoSwap::Router;
+    use HippoSwap::mock_coin::{WUSDC, WETH};
+    use HippoSwap::router;
 
     const ADMIN: address = @HippoSwap;
     const INVESTOR: address = @0x2FFF;
@@ -109,7 +109,7 @@ module HippoSwap::Proc {
         TestShared::create_pool<WUSDC, WETH>(admin, pool_type, 0,0,0,0,0,100, 100000);
         TestShared::fund_for_participants<WUSDC, WETH>(investor, P8, P9);
         TestShared::fund_for_participants<WUSDC, WETH>(swapper, P8, P9);
-        Router::add_liquidity_route<WUSDC, WETH>(investor, pool_type, P8, P9);
+        router::add_liquidity_route<WUSDC, WETH>(investor, pool_type, P8, P9);
         TestShared::debug_print_pool_reserve_xy<WUSDC, WETH>(pool_type);
         TestShared::debug_print_pool_lp_supply<WUSDC, WETH>(pool_type);
         TestShared::debug_print_pool_fee<WUSDC, WETH>(pool_type);

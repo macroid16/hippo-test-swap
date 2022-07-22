@@ -1,9 +1,9 @@
 address HippoSwap {
-module PieceSwapMath {
-    use HippoSwap::Math;
+module piece_swap_math {
+    use HippoSwap::math;
 
     #[test_only]
-    use Std::Debug;
+    use Std::debug;
 
     const FRACTION_MULT:u128 = 1000000000;
     const BILLION:u128 = 1000000000;
@@ -28,8 +28,8 @@ module PieceSwapMath {
         w2_denominator: u128,
     ): (u128, u128, u128, u128, u128) { // returns (Xa, Xb, m, n, k2)
 
-        let m = Math::sqrt(div_w(k, w1_numerator, w1_denominator));
-        let xa = Math::sqrt(div_w(k, w2_numerator, w2_denominator)) - m;
+        let m = math::sqrt(div_w(k, w1_numerator, w1_denominator));
+        let xa = math::sqrt(div_w(k, w2_numerator, w2_denominator)) - m;
         let xb = k / (xa + m) - m;
         let k2 = mul_w(xa * xa, w2_numerator, w2_denominator);
         let n = xb - k2 / xa;
@@ -105,7 +105,7 @@ module PieceSwapMath {
 
         Given that our maximum is u128::MAX, we need to keep max_x_y under u32::MAX, which is about 4 billion
         */
-        let max_x_y = Math::max(current_x, current_y);
+        let max_x_y = math::max(current_x, current_y);
         let numerator = 1;
         let denominator = 1;
         while (max_x_y > BILLION  ) {
@@ -251,7 +251,7 @@ module PieceSwapMath {
                     n
                 );
                 let p_output_y = (p_delta_yF_this_stage + p_output_yF_next_stage) * f_denominator / f_numerator;
-                Math::min(p_output_y, p_output_y_max)
+                math::min(p_output_y, p_output_y_max)
             }
             else {
                 let p_new_yF = p_k2 / p_new_xF + p_n;
@@ -292,7 +292,7 @@ module PieceSwapMath {
                     n
                 );
                 let p_output_y = (p_delta_yF_this_stage + p_output_yF_next_stage) * f_denominator / f_numerator;
-                Math::min(p_output_y, p_output_y_max)
+                math::min(p_output_y, p_output_y_max)
             }
             else {
                 /*
@@ -359,7 +359,7 @@ module PieceSwapMath {
         // F = [ (xn) + sqrt((xn)^2 + 4xy*k2)] / 2xy
         let xn = x * n;
         let xy = x * y;
-        let numerator = xn + Math::sqrt(xn * xn + 4 * xy * k2);
+        let numerator = xn + math::sqrt(xn * xn + 4 * xy * k2);
         let denominator = 2 * xy;
 
         // compute dydx
@@ -383,7 +383,7 @@ module PieceSwapMath {
         let xy = x * y;
         let x_plus_y = x + y;
         let b = x_plus_y * m;
-        let numerator = Math::sqrt(b*b + 4 * xy * (k - m*m)) - b; // k > mm is guaranteed
+        let numerator = math::sqrt(b*b + 4 * xy * (k - m*m)) - b; // k > mm is guaranteed
         let denominator = 2 * xy;
 
         // compute dydx
@@ -424,11 +424,11 @@ module PieceSwapMath {
             105,
             100,
         );
-        Debug::print(&xa);
-        Debug::print(&xb);
-        Debug::print(&m);
-        Debug::print(&n);
-        Debug::print(&k2);
+        debug::print(&xa);
+        debug::print(&xb);
+        debug::print(&m);
+        debug::print(&n);
+        debug::print(&k2);
     }
 
     #[test]
@@ -540,8 +540,8 @@ module PieceSwapMath {
             let new_x = current_x - x_out;
             let new_y = current_y + input_y;
             if (ENABLE_PLOT) {
-                Debug::print(&new_x);
-                Debug::print(&new_y);
+                debug::print(&new_x);
+                debug::print(&new_y);
             };
             i = i + 1;
         };
@@ -553,8 +553,8 @@ module PieceSwapMath {
             let new_x = current_x + input_x;
             let new_y = current_y - y_out;
             if (ENABLE_PLOT) {
-                Debug::print(&new_x);
-                Debug::print(&new_y);
+                debug::print(&new_x);
+                debug::print(&new_y);
             };
             i = i + 1;
         };
@@ -586,8 +586,8 @@ module PieceSwapMath {
             let new_x = current_x + input_x;
             let new_y = current_y - y_out;
             if (ENABLE_PLOT) {
-                Debug::print(&new_x);
-                Debug::print(&new_y);
+                debug::print(&new_x);
+                debug::print(&new_y);
             };
             i = i + 1;
         };
@@ -608,7 +608,7 @@ module PieceSwapMath {
         let current_y = BILLION * multiplier;
         let input_x = 1 * multiplier / 100;
         let output_y = get_swap_x_to_y_out(current_x, current_y, input_x, k, k2, xa, xb, m, n);
-        Debug::print(&output_y);
+        debug::print(&output_y);
         assert!(output_y > input_x * 999 / 1000, 0);
         assert!(output_y < input_x * 1001 / 1000, 0);
     }
@@ -628,7 +628,7 @@ module PieceSwapMath {
         let current_y = 1000 * multiplier;
         let input_x = 1 * multiplier;
         let output_y = get_swap_x_to_y_out(current_x, current_y, input_x, k, k2, xa, xb, m, n);
-        Debug::print(&output_y);
+        debug::print(&output_y);
         assert!(output_y > input_x * 999 / 1000, 0);
         assert!(output_y < input_x * 1001 / 1000, 0);
     }
@@ -649,7 +649,7 @@ module PieceSwapMath {
         let current_y = xa * multiplier;
         let input_x = 100 * multiplier;
         let output_y = get_swap_x_to_y_out(current_x, current_y, input_x, k, k2, xa, xb, m, n);
-        Debug::print(&output_y);
+        debug::print(&output_y);
         assert!(output_y * 105 / 100 > input_x * 99 / 100, 0);
         assert!(output_y * 105 / 100 < input_x * 101 / 100, 0);
     }
@@ -673,7 +673,7 @@ module PieceSwapMath {
         let current_y = xa * multiplier;
         let input_x = 10 * multiplier;
         let output_y = get_swap_x_to_y_out(current_x, current_y, input_x, k, k2, xa, xb, m, n);
-        Debug::print(&output_y);
+        debug::print(&output_y);
         assert!(output_y * 105 / 100 > input_x * 99 / 100, 0);
         assert!(output_y * 105 / 100 < input_x * 101 / 100, 0);
     }
@@ -697,7 +697,7 @@ module PieceSwapMath {
         let current_y = xa * multiplier;
         let input_x = 1000000 * multiplier;
         let output_y = get_swap_x_to_y_out(current_x, current_y, input_x, k, k2, xa, xb, m, n);
-        Debug::print(&output_y);
+        debug::print(&output_y);
         assert!(output_y * 105 / 100 < input_x, 0);
     }
 
@@ -717,7 +717,7 @@ module PieceSwapMath {
         let current_y = xa * multiplier;
         let input_x = 1 * multiplier;
         let output_y = get_swap_x_to_y_out(current_x, current_y, input_x, k, k2, xa, xb, m, n);
-        Debug::print(&output_y);
+        debug::print(&output_y);
         assert!(output_y * 105 / 100 > input_x * 999 / 1000, 0);
         assert!(output_y * 105 / 100 < input_x * 1001 / 1000, 0);
     }
@@ -738,7 +738,7 @@ module PieceSwapMath {
         let current_y = (xb+10) * multiplier;
         let input_x = 1 * multiplier;
         let output_y = get_swap_x_to_y_out(current_x, current_y, input_x, k, k2, xa, xb, m, n);
-        Debug::print(&output_y);
+        debug::print(&output_y);
         assert!(output_y * 100 / 105 > input_x * 990 / 1000, 0);
         assert!(output_y * 100 / 105 < input_x * 1001 / 1000, 0);
     }

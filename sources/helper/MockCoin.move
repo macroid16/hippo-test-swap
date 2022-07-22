@@ -1,18 +1,18 @@
 // token holder address, not admin address
 address HippoSwap {
-module MockCoin {
-    use AptosFramework::Coin;
-    use AptosFramework::TypeInfo;
-    use Std::ASCII;
-    use Std::Signer;
+module mock_coin {
+    use AptosFramework::coin;
+    use AptosFramework::type_info;
+    use Std::string;
+    use Std::signer;
 
     spec module {
         pragma verify = false;
     }
 
     struct TokenSharedCapability<phantom TokenType> has key, store {
-        mint: Coin::MintCapability<TokenType>,
-        burn: Coin::BurnCapability<TokenType>,
+        mint: coin::MintCapability<TokenType>,
+        burn: coin::BurnCapability<TokenType>,
     }
 
     // mock BTC token
@@ -38,49 +38,49 @@ module MockCoin {
 
 
     public fun initialize<TokenType>(account: &signer, decimals: u64){
-        let name = ASCII::string(TypeInfo::struct_name(&TypeInfo::type_of<TokenType>()));
-        let (mint_capability, burn_capability) = Coin::initialize<TokenType>(
+        let name = string::utf8(type_info::struct_name(&type_info::type_of<TokenType>()));
+        let (mint_capability, burn_capability) = coin::initialize<TokenType>(
             account,
             name,
             name,
             decimals,
             true
         );
-        Coin::register_internal<TokenType>(account);
+        coin::register_internal<TokenType>(account);
 
         move_to(account, TokenSharedCapability { mint: mint_capability, burn: burn_capability });
     }
 
-    public fun mint<TokenType>(amount: u64): Coin::Coin<TokenType> acquires TokenSharedCapability{
+    public fun mint<TokenType>(amount: u64): coin::Coin<TokenType> acquires TokenSharedCapability{
         //token holder address
-        let addr = TypeInfo::account_address(&TypeInfo::type_of<TokenType>());
+        let addr = type_info::account_address(&type_info::type_of<TokenType>());
         let cap = borrow_global<TokenSharedCapability<TokenType>>(addr);
-        Coin::mint<TokenType>( amount, &cap.mint,)
+        coin::mint<TokenType>( amount, &cap.mint,)
     }
 
-    public fun burn<TokenType>(tokens: Coin::Coin<TokenType>) acquires TokenSharedCapability{
+    public fun burn<TokenType>(tokens: coin::Coin<TokenType>) acquires TokenSharedCapability{
         //token holder address
-        let addr = TypeInfo::account_address(&TypeInfo::type_of<TokenType>());
+        let addr = type_info::account_address(&type_info::type_of<TokenType>());
         let cap = borrow_global<TokenSharedCapability<TokenType>>(addr);
-        Coin::burn<TokenType>(tokens, &cap.burn);
+        coin::burn<TokenType>(tokens, &cap.burn);
     }
 
     public fun faucet_mint_to<TokenType>(to: &signer, amount: u64) acquires TokenSharedCapability {
-        let to_addr = Signer::address_of(to);
-        if (!Coin::is_account_registered<TokenType>(to_addr)) {
-            Coin::register_internal<TokenType>(to);
+        let to_addr = signer::address_of(to);
+        if (!coin::is_account_registered<TokenType>(to_addr)) {
+            coin::register_internal<TokenType>(to);
         };
         let coin = mint<TokenType>(amount);
-        Coin::deposit(to_addr, coin);
+        coin::deposit(to_addr, coin);
     }
 
-    public(script) fun faucet_mint_to_script<TokenType>(to: &signer, amount: u64) acquires  TokenSharedCapability {
+    public entry fun faucet_mint_to_script<TokenType>(to: &signer, amount: u64) acquires  TokenSharedCapability {
         faucet_mint_to<TokenType>(to, amount);
     }
 
 
     #[test(admin=@HippoSwap, user=@0x1234567, core=@0xa550c18)]
-    public(script) fun test_mint_script(admin: &signer, user: &signer) acquires TokenSharedCapability {
+    public entry fun test_mint_script(admin: &signer, user: &signer) acquires TokenSharedCapability {
         initialize<WETH>(admin, 6);
         faucet_mint_to_script<WETH>(user, 1000000);
     }

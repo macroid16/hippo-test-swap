@@ -1,10 +1,10 @@
 #[test_only]
-module HippoSwap::CurveTest {
+module HippoSwap::curve_test {
 
-    use HippoSwap::MockCoin::{WUSDC, WDAI};
+    use HippoSwap::mock_coin::{WUSDC, WDAI};
     use HippoSwap::TestShared;
-    use HippoSwap::Router;
-    use HippoSwap::StableCurveScripts;
+    use HippoSwap::router;
+    use HippoSwap::stable_curve_scripts;
 
     // Keep the consts the same with TestShared.move.
 
@@ -191,18 +191,18 @@ module HippoSwap::CurveTest {
             0, 0, 0, 0, 0, 0
         );
         TestShared::debug_print_wallet_comparision<X, Y>(swapper, pool_type);
-        Router::add_liquidity_route<X, Y>(investor, pool_type, P8, P7);
+        router::add_liquidity_route<X, Y>(investor, pool_type, P8, P7);
         TestShared::debug_print_comparision<X, Y>(pool_type);
         TestShared::assert_pool_delta<X, Y>(pool_type, true,
             INC, INC, INC, INC, INC, INC,
             P8, P7, 2 * P8, 0, 0, 0
         );
-        StableCurveScripts::swap<X, Y>(swapper, P6, 0, 0, 20);
+        stable_curve_scripts::swap<X, Y>(swapper, P6, 0, 0, 20);
         TestShared::debug_print_comparision<X, Y>(pool_type);
         TestShared::debug_print_wallet_comparision<X, Y>(swapper, pool_type);
-        StableCurveScripts::swap<X, Y>(swapper, 0, P5, 0, 20);
+        stable_curve_scripts::swap<X, Y>(swapper, 0, P5, 0, 20);
         TestShared::debug_print_comparision<X, Y>(pool_type);
-        StableCurveScripts::swap<X, Y>(swapper, P7, 0, 0, 20);
+        stable_curve_scripts::swap<X, Y>(swapper, P7, 0, 0, 20);
         TestShared::debug_print_comparision<X, Y>(pool_type);
     }
 
@@ -223,16 +223,16 @@ module HippoSwap::CurveTest {
             0, 0, 0, 0, 0, 0
         );
 
-        Router::add_liquidity_route<X, Y>(investor, pool_type, P8, P7);
+        router::add_liquidity_route<X, Y>(investor, pool_type, P8, P7);
         TestShared::assert_pool_delta<X, Y>(pool_type, true,
             INC, INC, INC, INC, INC, INC,
             P8, P7, 2 * P8, 0, 0, 0
         );
-        StableCurveScripts::swap<X, Y>(swapper, P6, 0, 0, 20);
+        stable_curve_scripts::swap<X, Y>(swapper, P6, 0, 0, 20);
         TestShared::debug_print_comparision<X, Y>(pool_type);
-        StableCurveScripts::swap<X, Y>(swapper, 0, P5, 0, 20);
+        stable_curve_scripts::swap<X, Y>(swapper, 0, P5, 0, 20);
         TestShared::debug_print_comparision<X, Y>(pool_type);
-        StableCurveScripts::swap<X, Y>(swapper, P7, 0, 0, 20);
+        stable_curve_scripts::swap<X, Y>(swapper, P7, 0, 0, 20);
         TestShared::debug_print_comparision<X, Y>(pool_type);
     }
 
@@ -240,11 +240,11 @@ module HippoSwap::CurveTest {
     #[test_only]
     fun perform_transaction<X, Y>(trader: &signer, pool_type: u8, action: u8, print_debug: bool, param: TransactionParams) {
         if (action == ADD_LIQUIDITY) {
-            Router::add_liquidity_route<X, Y>(trader, pool_type, param.amt_x, param.amt_y);
+            router::add_liquidity_route<X, Y>(trader, pool_type, param.amt_x, param.amt_y);
         } else if (action == SWAP) {
-            StableCurveScripts::swap<X, Y>(trader, param.amt_x, param.amt_y, 0, 0);
+            stable_curve_scripts::swap<X, Y>(trader, param.amt_x, param.amt_y, 0, 0);
         } else if (action == REMOVE_LIQUIDITY) {
-            Router::remove_liquidity_route<X, Y>(trader, pool_type, param.amt_lp, param.amt_x, param.amt_y);
+            router::remove_liquidity_route<X, Y>(trader, pool_type, param.amt_lp, param.amt_x, param.amt_y);
         };
         if (print_debug) {
             TestShared::debug_print_comparision<X, Y>(pool_type);
@@ -617,7 +617,7 @@ module HippoSwap::CurveTest {
         let i = 0;
         while (i < 1000) {
             i = i + 1;
-            Std::Debug::print(&i);
+            Std::debug::print(&i);
             let ddx = i / 256;          // Slippage
             let rev_swap_1 = swap_param(0, P6, P8 - 8997 - ddx , P6, 1000, 0, P8 - 10000 + 3 - ddx);  // swap 1 doller
             perform_transaction<WUSDC, WDAI>(swapper, pool_type, SWAP, false, rev_swap_1);

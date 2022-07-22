@@ -1,4 +1,4 @@
-module HippoSwap::HippoConfig {
+module HippoSwap::hippo_config {
 
     public fun admin_address(): address {
         @HippoSwap

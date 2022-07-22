@@ -4,20 +4,20 @@ module HippoSwap::TestShared {
     // The preconditions required by the test suite below:
     // Init Token registry for admin
 
-    use HippoSwap::MockDeploy;
-    use HippoSwap::MockCoin::{WUSDT, WUSDC, WDAI, WETH, WBTC, WDOT, WSOL};
-    use TokenRegistry::TokenRegistry;
-    use AptosFramework::Timestamp;
-    use HippoSwap::MockCoin;
-    use Std::Signer;
-    use HippoSwap::CPScripts;
-    use HippoSwap::StableCurveScripts;
-    use HippoSwap::PieceSwapScript;
-    use HippoSwap::CPSwap;
-    use HippoSwap::StableCurveSwap;
-    use HippoSwap::PieceSwap;
-    use AptosFramework::Coin;
-    use Std::Option;
+    use HippoSwap::mock_deploy;
+    use HippoSwap::mock_coin::{WUSDT, WUSDC, WDAI, WETH, WBTC, WDOT, WSOL};
+    use token_registry::token_registry;
+    use AptosFramework::timestamp;
+    use HippoSwap::mock_coin;
+    use Std::signer;
+    use HippoSwap::cp_scripts;
+    use HippoSwap::stable_curve_scripts;
+    use HippoSwap::piece_swap_script;
+    use HippoSwap::cp_swap;
+    use HippoSwap::stable_curve_swap;
+    use HippoSwap::piece_swap;
+    use AptosFramework::coin;
+    use Std::option;
 
     const ADMIN: address = @HippoSwap;
     const INVESTOR: address = @0x2FFF;
@@ -103,32 +103,32 @@ module HippoSwap::TestShared {
 
     #[test_only]
     public fun time_start(core: &signer) {
-        Timestamp::set_time_has_started_for_testing(core);
+        timestamp::set_time_has_started_for_testing(core);
     }
 
     #[test_only]
     public fun init_registry_and_mock_coins(admin: &signer) {
-        TokenRegistry::initialize(admin);
-        MockDeploy::init_coin_and_create_store<WUSDT>(admin, b"USDT", b"USDT", 8);
-        MockDeploy::init_coin_and_create_store<WUSDC>(admin, b"USDC", b"USDC", 8);
-        MockDeploy::init_coin_and_create_store<WDAI>(admin, b"DAI", b"DAI", 7);
-        MockDeploy::init_coin_and_create_store<WETH>(admin, b"ETH", b"ETH", 9);
-        MockDeploy::init_coin_and_create_store<WBTC>(admin, b"BTC", b"BTC", 10);
-        MockDeploy::init_coin_and_create_store<WDOT>(admin, b"DOT", b"DOT", 6);
-        MockDeploy::init_coin_and_create_store<WSOL>(admin, b"SOL", b"SOL", 8);
+        token_registry::initialize(admin);
+        mock_deploy::init_coin_and_create_store<WUSDT>(admin, b"USDT", b"USDT", 8);
+        mock_deploy::init_coin_and_create_store<WUSDC>(admin, b"USDC", b"USDC", 8);
+        mock_deploy::init_coin_and_create_store<WDAI>(admin, b"DAI", b"DAI", 7);
+        mock_deploy::init_coin_and_create_store<WETH>(admin, b"ETH", b"ETH", 9);
+        mock_deploy::init_coin_and_create_store<WBTC>(admin, b"BTC", b"BTC", 10);
+        mock_deploy::init_coin_and_create_store<WDOT>(admin, b"DOT", b"DOT", 6);
+        mock_deploy::init_coin_and_create_store<WSOL>(admin, b"SOL", b"SOL", 8);
     }
 
     #[test_only]
     public fun init_mock_coin_pair<X, Y>(admin: &signer, decimal_x: u64, decimal_y: u64) {
-        TokenRegistry::initialize(admin);
-        MockDeploy::init_coin_and_create_store<X>(admin, b"COIN-X", b"COIN-X", decimal_x);
-        MockDeploy::init_coin_and_create_store<Y>(admin, b"COIN-Y", b"COIN-Y", decimal_y);
+        token_registry::initialize(admin);
+        mock_deploy::init_coin_and_create_store<X>(admin, b"COIN-X", b"COIN-X", decimal_x);
+        mock_deploy::init_coin_and_create_store<Y>(admin, b"COIN-Y", b"COIN-Y", decimal_y);
     }
 
     #[test_only]
     public fun fund_for_participants<X, Y>(signer: &signer, amount_x: u64, amount_y: u64) {
-        MockCoin::faucet_mint_to<X>(signer, amount_x);
-        MockCoin::faucet_mint_to<Y>(signer, amount_y);
+        mock_coin::faucet_mint_to<X>(signer, amount_x);
+        mock_coin::faucet_mint_to<Y>(signer, amount_y);
     }
 
     #[test_only]
@@ -146,16 +146,16 @@ module HippoSwap::TestShared {
         let lp_name = b"TEST-POOL";
         let (logo_url, project_url) = (b"", b"");
         if ( pool_type == POOL_TYPE_CONSTANT_PRODUCT ) {
-            let addr = Signer::address_of(signer);
+            let addr = signer::address_of(signer);
             let fee_on = true;
-            CPScripts::create_new_pool<X, Y>(signer, addr, fee_on, lp_name, lp_name, lp_name, logo_url, project_url);
-            create_save_point<CPSwap::LPToken<X, Y>>(signer);
+            cp_scripts::create_new_pool<X, Y>(signer, addr, fee_on, lp_name, lp_name, lp_name, logo_url, project_url);
+            create_save_point<cp_swap::LPToken<X, Y>>(signer);
         } else if ( pool_type == POOL_TYPE_STABLE_CURVE ) {
-            StableCurveScripts::create_new_pool<X, Y>(signer, lp_name, lp_name, lp_name, logo_url, project_url, fee, protocal_fee);
-            create_save_point<StableCurveSwap::LPToken<X, Y>>(signer);
+            stable_curve_scripts::create_new_pool<X, Y>(signer, lp_name, lp_name, lp_name, logo_url, project_url, fee, protocal_fee);
+            create_save_point<stable_curve_swap::LPToken<X, Y>>(signer);
         } else if ( pool_type == POOL_TYPE_PIECEWISE ) {
-            PieceSwapScript::create_new_pool<X, Y>(signer, lp_name, lp_name, lp_name, logo_url, project_url, k, n1, d1, n2, d2, fee, protocal_fee);
-            create_save_point<PieceSwap::LPToken<X, Y>>(signer);
+            piece_swap_script::create_new_pool<X, Y>(signer, lp_name, lp_name, lp_name, logo_url, project_url, k, n1, d1, n2, d2, fee, protocal_fee);
+            create_save_point<piece_swap::LPToken<X, Y>>(signer);
         }
     }
 
@@ -163,14 +163,14 @@ module HippoSwap::TestShared {
 
     #[test_only]
     public fun init_debug_utils_for_user<X, Y>(signer: &signer, pool_type: u8) {
-        Coin::register_internal<X>(signer);
-        Coin::register_internal<Y>(signer);
+        coin::register_internal<X>(signer);
+        coin::register_internal<Y>(signer);
         if ( pool_type == POOL_TYPE_CONSTANT_PRODUCT ) {
-            Coin::register_internal<CPSwap::LPToken<X, Y>>(signer);
+            coin::register_internal<cp_swap::LPToken<X, Y>>(signer);
         } else if ( pool_type == POOL_TYPE_STABLE_CURVE ) {
-            Coin::register_internal<StableCurveSwap::LPToken<X, Y>>(signer);
+            coin::register_internal<stable_curve_swap::LPToken<X, Y>>(signer);
         } else if ( pool_type == POOL_TYPE_PIECEWISE ) {
-            Coin::register_internal<PieceSwap::LPToken<X, Y>>(signer);
+            coin::register_internal<piece_swap::LPToken<X, Y>>(signer);
         };
         move_to<WalletBalanceSavePoint>(signer, WalletBalanceSavePoint{ coin_x: 0, coin_y: 0, coin_lp: 0, });
     }
@@ -194,11 +194,11 @@ module HippoSwap::TestShared {
     #[test_only]
     public fun get_pool_reserve_route<X, Y>(pool_type: u8): (u64, u64) {
         if (pool_type == POOL_TYPE_CONSTANT_PRODUCT) {
-            CPSwap::token_balances<X, Y>()
+            cp_swap::token_balances<X, Y>()
         } else if (pool_type == POOL_TYPE_STABLE_CURVE) {
-            StableCurveSwap::get_reserve_amounts<X, Y>()
+            stable_curve_swap::get_reserve_amounts<X, Y>()
         } else if (pool_type == POOL_TYPE_PIECEWISE) {
-            PieceSwap::get_reserve_amounts<X, Y>()
+            piece_swap::get_reserve_amounts<X, Y>()
         } else {
             abort E_UNKNOWN_POOL_TYPE
         }
@@ -214,19 +214,19 @@ module HippoSwap::TestShared {
     #[test_only]
     public fun debug_print_pool_reserve_xy<X, Y>(pool_type: u8) {
         let (reserve_x, reserve_y) = get_pool_reserve_route<X, Y>(pool_type);
-        Std::Debug::print(&LABEL_RESERVE_XY);
-        Std::Debug::print(&reserve_x);
-        Std::Debug::print(&reserve_y);
+        Std::debug::print(&LABEL_RESERVE_XY);
+        Std::debug::print(&reserve_x);
+        Std::debug::print(&reserve_y);
     }
 
     #[test_only]
     public fun get_pool_lp_supply_route<X, Y>(pool_type: u8): u64 {
         if (pool_type == POOL_TYPE_CONSTANT_PRODUCT) {
-            (*Option::borrow(&Coin::supply<CPSwap::LPToken<X, Y>>()) as u64)
+            (*option::borrow(&coin::supply<cp_swap::LPToken<X, Y>>()) as u64)
         } else if (pool_type == POOL_TYPE_STABLE_CURVE) {
-            (*Option::borrow(&Coin::supply<StableCurveSwap::LPToken<X, Y>>()) as u64)
+            (*option::borrow(&coin::supply<stable_curve_swap::LPToken<X, Y>>()) as u64)
         } else if (pool_type == POOL_TYPE_PIECEWISE) {
-            (*Option::borrow(&Coin::supply<PieceSwap::LPToken<X, Y>>()) as u64)
+            (*option::borrow(&coin::supply<piece_swap::LPToken<X, Y>>()) as u64)
         } else {
             abort E_UNKNOWN_POOL_TYPE
         }
@@ -241,8 +241,8 @@ module HippoSwap::TestShared {
     #[test_only]
     public fun debug_print_pool_lp_supply<X, Y>(pool_type: u8) {
         let supply = get_pool_lp_supply_route<X, Y>(pool_type);
-        Std::Debug::print(&LABEL_LPTOKEN_SUPPLY);
-        Std::Debug::print(&supply);
+        Std::debug::print(&LABEL_LPTOKEN_SUPPLY);
+        Std::debug::print(&supply);
     }
 
     #[test_only]
@@ -250,13 +250,13 @@ module HippoSwap::TestShared {
         if (pool_type == POOL_TYPE_CONSTANT_PRODUCT) {
             // The fee of CP Pool is LPToken minted to the address stored in the metadata.
             // For test purpose we simply keep it as the LPToken balance of the admin address.
-            let fee_balance = Coin::balance<CPSwap::LPToken<X, Y>>(ADMIN);
+            let fee_balance = coin::balance<cp_swap::LPToken<X, Y>>(ADMIN);
             (0, 0, fee_balance)
         } else if (pool_type == POOL_TYPE_STABLE_CURVE) {
-            let (fee_x, fee_y) = StableCurveSwap::get_fee_amounts<X, Y>();
+            let (fee_x, fee_y) = stable_curve_swap::get_fee_amounts<X, Y>();
             (fee_x, fee_y, 0)
         } else if (pool_type == POOL_TYPE_PIECEWISE) {
-            let (fee_x, fee_y) = PieceSwap::get_fee_amounts<X, Y>();
+            let (fee_x, fee_y) = piece_swap::get_fee_amounts<X, Y>();
             (fee_x, fee_y, 0)
         } else {
             abort E_UNKNOWN_POOL_TYPE
@@ -274,10 +274,10 @@ module HippoSwap::TestShared {
     #[test_only]
     public fun debug_print_pool_fee<X, Y>(pool_type: u8) {
         let (fee_x, fee_y, fee_lp) = get_pool_fee_route<X, Y>(pool_type);
-        Std::Debug::print(&LABEL_FEE);
-        Std::Debug::print(&fee_x);
-        Std::Debug::print(&fee_y);
-        Std::Debug::print(&fee_lp);
+        Std::debug::print(&LABEL_FEE);
+        Std::debug::print(&fee_x);
+        Std::debug::print(&fee_y);
+        Std::debug::print(&fee_lp);
     }
 
     #[test_only]
@@ -286,12 +286,12 @@ module HippoSwap::TestShared {
         let reserve_lp = get_pool_lp_supply_route<X, Y>(pool_type);
         let (fee_x, fee_y, fee_lp) = get_pool_fee_route<X, Y>(pool_type);
         let s = PoolValue{ reserve_x, reserve_y, reserve_lp, fee_x, fee_y, fee_lp };
-        Std::Debug::print(&s);
+        Std::debug::print(&s);
     }
 
     #[test_only]
     public fun debug_print_comparision<X, Y>(pool_type: u8, ) acquires PoolSavePoint {
-        Std::Debug::print(&LABEL_COMPARE);
+        Std::debug::print(&LABEL_COMPARE);
         debug_print_save_point<X, Y>(pool_type);
         debug_print_pool<X, Y>(pool_type);
     }
@@ -318,13 +318,13 @@ module HippoSwap::TestShared {
         let (reserve_x, reserve_y) = get_pool_reserve_route<X, Y>(pool_type);
         let supply = get_pool_lp_supply_route<X, Y>(pool_type);
         if (pool_type == POOL_TYPE_CONSTANT_PRODUCT) {
-            let save_point = borrow_global_mut<PoolSavePoint<CPSwap::LPToken<X, Y>>>(ADMIN);
+            let save_point = borrow_global_mut<PoolSavePoint<cp_swap::LPToken<X, Y>>>(ADMIN);
             sync_save_point_with_data(save_point, reserve_x, reserve_y, supply, fee_x, fee_y, fee_lp)
         } else if (pool_type == POOL_TYPE_STABLE_CURVE) {
-            let save_point = borrow_global_mut<PoolSavePoint<StableCurveSwap::LPToken<X, Y>>>(ADMIN);
+            let save_point = borrow_global_mut<PoolSavePoint<stable_curve_swap::LPToken<X, Y>>>(ADMIN);
             sync_save_point_with_data(save_point, reserve_x, reserve_y, supply, fee_x, fee_y, fee_lp)
         } else if (pool_type == POOL_TYPE_PIECEWISE) {
-            let save_point = borrow_global_mut<PoolSavePoint<PieceSwap::LPToken<X, Y>>>(ADMIN);
+            let save_point = borrow_global_mut<PoolSavePoint<piece_swap::LPToken<X, Y>>>(ADMIN);
             sync_save_point_with_data(save_point, reserve_x, reserve_y, supply, fee_x, fee_y, fee_lp)
         } else {
             abort E_UNKNOWN_POOL_TYPE
@@ -337,19 +337,19 @@ module HippoSwap::TestShared {
             reserve_x: sp.reserve_x, reserve_y: sp.reserve_y, reserve_lp: sp.reserve_lp,
             fee_x: sp.fee_x, fee_y: sp.fee_y, fee_lp: sp.fee_lp
         };
-        Std::Debug::print(&s);
+        Std::debug::print(&s);
     }
 
     #[test_only]
     public fun debug_print_save_point<X, Y>(pool_type: u8) acquires PoolSavePoint {
         if (pool_type == POOL_TYPE_CONSTANT_PRODUCT) {
-            let save_point = borrow_global_mut<PoolSavePoint<CPSwap::LPToken<X, Y>>>(ADMIN);
+            let save_point = borrow_global_mut<PoolSavePoint<cp_swap::LPToken<X, Y>>>(ADMIN);
             debug_print_save_point_info(save_point)
         } else if (pool_type == POOL_TYPE_STABLE_CURVE) {
-            let save_point = borrow_global_mut<PoolSavePoint<StableCurveSwap::LPToken<X, Y>>>(ADMIN);
+            let save_point = borrow_global_mut<PoolSavePoint<stable_curve_swap::LPToken<X, Y>>>(ADMIN);
             debug_print_save_point_info(save_point)
         } else if (pool_type == POOL_TYPE_PIECEWISE) {
-            let save_point = borrow_global_mut<PoolSavePoint<PieceSwap::LPToken<X, Y>>>(ADMIN);
+            let save_point = borrow_global_mut<PoolSavePoint<piece_swap::LPToken<X, Y>>>(ADMIN);
             debug_print_save_point_info(save_point)
         } else {
             abort E_UNKNOWN_POOL_TYPE
@@ -421,7 +421,7 @@ module HippoSwap::TestShared {
         let (reserve_x, reserve_y) = get_pool_reserve_route<X, Y>(pool_type);
         let supply = get_pool_lp_supply_route<X, Y>(pool_type);
         if (pool_type == POOL_TYPE_CONSTANT_PRODUCT) {
-            let save_point = borrow_global_mut<PoolSavePoint<CPSwap::LPToken<X, Y>>>(ADMIN);
+            let save_point = borrow_global_mut<PoolSavePoint<cp_swap::LPToken<X, Y>>>(ADMIN);
             assert_pool_delta_content(
                 save_point,
                 sign_reserve_x, sign_reserve_y, sign_reserve_lp,
@@ -432,7 +432,7 @@ module HippoSwap::TestShared {
                 fee_x, fee_y, fee_lp,
             );
         } else if (pool_type == POOL_TYPE_STABLE_CURVE) {
-            let save_point = borrow_global_mut<PoolSavePoint<StableCurveSwap::LPToken<X, Y>>>(ADMIN);
+            let save_point = borrow_global_mut<PoolSavePoint<stable_curve_swap::LPToken<X, Y>>>(ADMIN);
             assert_pool_delta_content(
                 save_point,
                 sign_reserve_x, sign_reserve_y, sign_reserve_lp,
@@ -443,7 +443,7 @@ module HippoSwap::TestShared {
                 fee_x, fee_y, fee_lp,
             );
         } else if (pool_type == POOL_TYPE_PIECEWISE) {
-            let save_point = borrow_global_mut<PoolSavePoint<PieceSwap::LPToken<X, Y>>>(ADMIN);
+            let save_point = borrow_global_mut<PoolSavePoint<piece_swap::LPToken<X, Y>>>(ADMIN);
             assert_pool_delta_content(
                 save_point,
                 sign_reserve_x, sign_reserve_y, sign_reserve_lp,
@@ -474,7 +474,7 @@ module HippoSwap::TestShared {
         balance_y: u64,
         balance_lp: u64,
     ) acquires WalletBalanceSavePoint {
-        let addr = Signer::address_of(sender);
+        let addr = signer::address_of(sender);
         let sp = borrow_global_mut<WalletBalanceSavePoint>(addr);
         assert_delta(sign_coin_x, delta_coin_x, balance_x, sp.coin_x, E_WALLET_X);
         assert_delta(sign_coin_y, delta_coin_y, balance_y, sp.coin_y, E_WALLET_Y);
@@ -518,7 +518,7 @@ module HippoSwap::TestShared {
 
     #[test_only]
     public fun sync_wallet_save_point<X, Y>(sender: &signer, pool_type: u8) acquires WalletBalanceSavePoint {
-        let addr = Signer::address_of(sender);
+        let addr = signer::address_of(sender);
         let sp = borrow_global_mut<WalletBalanceSavePoint>(addr);
         let (balance_x, balance_y, balance_lp) = get_balance<X, Y>(sender, pool_type);
         sync_wallet_save_point_with_data(sp, balance_x, balance_y, balance_lp, );
@@ -526,16 +526,16 @@ module HippoSwap::TestShared {
 
     #[test_only]
     public fun get_balance<X, Y>(sender: &signer, pool_type: u8): (u64, u64, u64) {
-        let addr = Signer::address_of(sender);
-        let balance_x = Coin::balance<X>(addr);
-        let balance_y = Coin::balance<Y>(addr);
+        let addr = signer::address_of(sender);
+        let balance_x = coin::balance<X>(addr);
+        let balance_y = coin::balance<Y>(addr);
         let balance_lp: u64;
         if (pool_type == POOL_TYPE_CONSTANT_PRODUCT) {
-            balance_lp = Coin::balance<CPSwap::LPToken<X, Y>>(addr);
+            balance_lp = coin::balance<cp_swap::LPToken<X, Y>>(addr);
         } else if (pool_type == POOL_TYPE_STABLE_CURVE) {
-            balance_lp = Coin::balance<StableCurveSwap::LPToken<X, Y>>(addr);
+            balance_lp = coin::balance<stable_curve_swap::LPToken<X, Y>>(addr);
         } else if (pool_type == POOL_TYPE_PIECEWISE) {
-            balance_lp = Coin::balance<PieceSwap::LPToken<X, Y>>(addr);
+            balance_lp = coin::balance<piece_swap::LPToken<X, Y>>(addr);
         } else {
             abort E_UNKNOWN_POOL_TYPE
         };
@@ -548,17 +548,17 @@ module HippoSwap::TestShared {
         let s = WalletBalanceSavePoint{
             coin_x, coin_y, coin_lp
         };
-        Std::Debug::print(&s);
+        Std::debug::print(&s);
     }
 
     #[test_only]
     public fun debug_print_wallet_sp<X, Y>(sender: &signer) acquires WalletBalanceSavePoint {
-        let addr = Signer::address_of(sender);
+        let addr = signer::address_of(sender);
         let sp = borrow_global_mut<WalletBalanceSavePoint>(addr);
         let s = WalletBalanceSavePoint{
             coin_x: sp.coin_x, coin_y: sp.coin_y, coin_lp: sp.coin_lp
         };
-        Std::Debug::print(&s);
+        Std::debug::print(&s);
     }
 
     #[test_only]

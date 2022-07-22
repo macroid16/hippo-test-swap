@@ -1,7 +1,7 @@
 // Safe math implementation for number manipulation.
 // TODO: make it into more sophosticated math operations. Currently
 // TODO: just some place holder for the interfaces for functionalities.
-module HippoSwap::SafeMath {
+module HippoSwap::safe_math {
     const ERROR_UNDERFLOW: u64 = 0;
 
     public fun add(a: u128, b: u128): u128 {
