@@ -1,10 +1,10 @@
-address HippoSwap {
+address hippo_swap {
 module router {
-    use AptosFramework::coin;
-    use Std::signer;
-    use HippoSwap::cp_swap;
-    use HippoSwap::stable_curve_swap;
-    use HippoSwap::piece_swap;
+    use aptos_framework::coin;
+    use std::signer;
+    use hippo_swap::cp_swap;
+    use hippo_swap::stable_curve_swap;
+    use hippo_swap::piece_swap;
 
     const POOL_TYPE_CONSTANT_PRODUCT:u8 = 1;
     const POOL_TYPE_STABLE_CURVE:u8 = 2;
@@ -159,15 +159,15 @@ module router {
     }
 
     #[test_only]
-    use AptosFramework::timestamp;
+    use aptos_framework::timestamp;
     #[test_only]
-    use HippoSwap::piece_swap_script;
+    use hippo_swap::piece_swap_script;
     #[test_only]
-    use HippoSwap::cp_scripts;
+    use hippo_swap::cp_scripts;
     #[test_only]
-    use HippoSwap::mock_coin;
+    use hippo_swap::mock_coin;
 
-    #[test(admin=@HippoSwap, user=@0x12345, core=@0xa550c18)]
+    #[test(admin=@hippo_swap, user=@0x12345, core=@aptos_framework)]
     public entry fun test_two_step(admin: &signer, user: &signer, core: &signer) {
         timestamp::set_time_has_started_for_testing(core);
         // 1
@@ -198,7 +198,7 @@ module router {
         assert!(coin::balance<mock_coin::WUSDT>(user_addr) <= btc_amount * 10000, 0);
     }
 
-    #[test(admin=@HippoSwap, user=@0x12345, core=@0xa550c18)]
+    #[test(admin=@hippo_swap, user=@0x12345, core=@aptos_framework)]
     public entry fun test_three_step(admin: &signer, user: &signer, core: &signer) {
         timestamp::set_time_has_started_for_testing(core);
         // 1

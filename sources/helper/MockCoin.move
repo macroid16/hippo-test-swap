@@ -1,10 +1,10 @@
 // token holder address, not admin address
-address HippoSwap {
+address hippo_swap {
 module mock_coin {
-    use AptosFramework::coin;
-    use AptosFramework::type_info;
-    use Std::string;
-    use Std::signer;
+    use aptos_framework::coin;
+    use aptos_framework::type_info;
+    use std::string;
+    use std::signer;
 
     spec module {
         pragma verify = false;
@@ -62,7 +62,13 @@ module mock_coin {
         //token holder address
         let addr = type_info::account_address(&type_info::type_of<TokenType>());
         let cap = borrow_global<TokenSharedCapability<TokenType>>(addr);
-        coin::burn<TokenType>(tokens, &cap.burn);
+        let amt = coin::value(&tokens);
+        if (amt == 0) {
+            coin::destroy_zero<TokenType>(tokens);
+        }
+        else {
+            coin::burn<TokenType>(tokens, &cap.burn);
+        }
     }
 
     public fun faucet_mint_to<TokenType>(to: &signer, amount: u64) acquires TokenSharedCapability {
@@ -79,7 +85,7 @@ module mock_coin {
     }
 
 
-    #[test(admin=@HippoSwap, user=@0x1234567, core=@0xa550c18)]
+    #[test(admin=@hippo_swap, user=@0x1234567, core=@0xa550c18)]
     public entry fun test_mint_script(admin: &signer, user: &signer) acquires TokenSharedCapability {
         initialize<WETH>(admin, 6);
         faucet_mint_to_script<WETH>(user, 1000000);

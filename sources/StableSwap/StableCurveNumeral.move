@@ -1,4 +1,4 @@
-module HippoSwap::stable_curve_numeral {
+module hippo_swap::stable_curve_numeral {
 
     // const A_PRECISION: u128 = 100;
 
@@ -147,8 +147,8 @@ module HippoSwap::stable_curve_numeral {
         let (ia, fa, iat, fat) = mock_curve_params();
         let timestamp = time(100);
         let f = get_A(ia, fa, iat, fat, timestamp);
-        Std::debug::print(&1999999);
-        Std::debug::print(&f);
+        std::debug::print(&1999999);
+        std::debug::print(&f);
     }
 
     #[test]
@@ -347,8 +347,8 @@ module HippoSwap::stable_curve_numeral {
         let y = get_D_newton_method(0, 0, 10);
         assert!(y == 0, 1000);
         let y = get_D_newton_method(10, 10, 10);
-        Std::debug::print(&10000002222);
-        Std::debug::print(&y);
+        std::debug::print(&10000002222);
+        std::debug::print(&y);
         assert!(y == 20, 1000);
     }
 
@@ -358,7 +358,7 @@ module HippoSwap::stable_curve_numeral {
         let y = get_D_origin(0, 0, 10);
         assert!(y == 0, 1000);
         let d = get_D_origin(200, 100, 30);
-        Std::debug::print(&d);
+        std::debug::print(&d);
         // assert!(d == 0, 1000);
     }
 
@@ -393,7 +393,7 @@ module HippoSwap::stable_curve_numeral {
     fun test_recur_D_improve_loop_gt() {
 
         let (res, _rnd) = recur_D_improved(22, 12, 11,  23,2,  1, 255);
-        Std::debug::print(&res);
+        std::debug::print(&res);
         // assert!(res == 2319, 10000);
         // assert!(rnd == 7, 10000);
     }

@@ -1,9 +1,9 @@
-address HippoSwap {
+address hippo_swap {
 module piece_swap_math {
-    use HippoSwap::math;
+    use hippo_swap::math;
 
     #[test_only]
-    use Std::debug;
+    use std::debug;
 
     const FRACTION_MULT:u128 = 1000000000;
     const BILLION:u128 = 1000000000;

@@ -1,9 +1,9 @@
-address HippoSwap {
+address hippo_swap {
 module piece_swap_script {
-    use Std::signer;
-    use HippoSwap::piece_swap;
+    use std::signer;
+    use hippo_swap::piece_swap;
     use token_registry::token_registry;
-    use AptosFramework::coin;
+    use aptos_framework::coin;
 
     const E_SWAP_ONLY_ONE_IN_ALLOWED: u64 = 0;
     const E_SWAP_ONLY_ONE_OUT_ALLOWED: u64 = 1;
@@ -36,7 +36,7 @@ module piece_swap_script {
         swap_fee_per_million: u64,
         protocol_fee_share_per_thousand: u64,
     ) {
-        use HippoSwap::math;
+        use hippo_swap::math;
 
         let admin_addr = signer::address_of(admin);
         assert!(token_registry::is_registry_initialized(admin_addr), E_TOKEN_REGISTRY_NOT_INITIALIZED);
@@ -140,9 +140,9 @@ module piece_swap_script {
     }
 
     public entry fun mock_deploy_script(admin: &signer) {
-        use HippoSwap::mock_deploy;
-        use HippoSwap::mock_coin;
-        use HippoSwap::mock_coin::{WUSDC, WUSDT, WDAI};
+        use hippo_swap::mock_deploy;
+        use hippo_swap::mock_coin;
+        use hippo_swap::mock_coin::{WUSDC, WUSDT, WDAI};
         /*
         1. initialize registry
         2. initialize coins (and add them to registry)
@@ -153,7 +153,7 @@ module piece_swap_script {
 
         // 1
         if (!token_registry::is_registry_initialized(admin_addr)) {
-            // Std::debug::print(&299999919999);
+            // std::debug::print(&299999919999);
             // It's weird that the coverage does not mark the if branch.
             // Find the reason later from the compiler part of the aptos-core repo.
             token_registry::initialize(admin);
@@ -203,15 +203,15 @@ module piece_swap_script {
         add_liquidity_script<WDAI, WUSDC>(admin, initial_amount, initial_amount);
     }
 
-    #[test(admin=@HippoSwap)]
+    #[test(admin=@hippo_swap)]
     public entry fun test_mock_deploy(admin: &signer) {
         mock_deploy_script(admin);
     }
 
-    #[test(admin=@HippoSwap)]
+    #[test(admin=@hippo_swap)]
     public entry fun test_remove_liquidity(admin: &signer) {
-        use HippoSwap::mock_coin::{WUSDC, WUSDT, WDAI};
-        use AptosFramework::coin;
+        use hippo_swap::mock_coin::{WUSDC, WUSDT, WDAI};
+        use aptos_framework::coin;
         /*
         1. mock_deploy
         2. remove liquidity
@@ -228,11 +228,11 @@ module piece_swap_script {
         assert!(coin::balance<WUSDC>(admin_addr) == 200, 0);
     }
 
-    #[test(admin=@HippoSwap, user=@0x1234567)]
+    #[test(admin=@hippo_swap, user=@0x1234567)]
     public entry fun test_swap(admin: &signer, user: &signer) {
-        use HippoSwap::mock_coin;
-        use HippoSwap::mock_coin::{WUSDC, WUSDT, WDAI};
-        use AptosFramework::coin;
+        use hippo_swap::mock_coin;
+        use hippo_swap::mock_coin::{WUSDC, WUSDT, WDAI};
+        use aptos_framework::coin;
         /*
         1. create pools
         2. swap x to y

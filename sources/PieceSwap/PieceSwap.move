@@ -1,4 +1,4 @@
-address HippoSwap {
+address hippo_swap {
 module piece_swap {
     /*
     PieceSwap uses 3 distinct constant-product curves, joined together in a piecewise fashion, to create a continuous
@@ -7,13 +7,13 @@ module piece_swap {
     - higher slippage in the ending range
     */
 
-    use AptosFramework::coin;
-    use Std::signer;
-    use Std::string;
-    use HippoSwap::piece_swap_math;
-    use HippoSwap::math;
+    use aptos_framework::coin;
+    use std::signer;
+    use std::string;
+    use hippo_swap::piece_swap_math;
+    use hippo_swap::math;
 
-    const MODULE_ADMIN: address = @HippoSwap;
+    const MODULE_ADMIN: address = @hippo_swap;
     const MINIMUM_LIQUIDITY: u128 = 1000;
     const ERROR_ONLY_ADMIN: u64 = 0;
     const ERROR_ALREADY_INITIALIZED: u64 = 1;
@@ -365,7 +365,7 @@ module piece_swap {
     }
 
     #[test_only]
-    use HippoSwap::mock_coin;
+    use hippo_swap::mock_coin;
 
     #[test_only]
     fun mock_init_pool<X, Y>(admin: &signer, lp_name: vector<u8>, lp_symbol: vector<u8>) {
@@ -433,7 +433,7 @@ module piece_swap {
         add_liquidity<X, Y>(user, initial_amt, initial_amt)
     }
 
-    #[test(admin=@HippoSwap, user=@0x12345)]
+    #[test(admin=@hippo_swap, user=@0x12345)]
     fun test_create_pool_with_liquidity(admin: &signer, user: &signer) acquires PieceSwapPoolInfo {
         let lp = mock_init_pool_and_add_liquidity_direct<mock_coin::WUSDT, mock_coin::WUSDC>(
             admin,
@@ -444,7 +444,7 @@ module piece_swap {
         check_and_deposit(user, lp);
     }
 
-    #[test(admin=@HippoSwap, user=@0x12345)]
+    #[test(admin=@hippo_swap, user=@0x12345)]
     fun test_create_pool_with_liquidity_then_remove(admin: &signer, user: &signer) acquires PieceSwapPoolInfo {
         let amt = 1000000;
         let lp = mock_init_pool_and_add_liquidity_direct<mock_coin::WUSDT, mock_coin::WUSDC>(
@@ -460,7 +460,7 @@ module piece_swap {
         check_and_deposit(user, coin_y);
     }
 
-    #[test(admin=@HippoSwap, user=@0x12345)]
+    #[test(admin=@hippo_swap, user=@0x12345)]
     fun test_remove_liquidity(admin: &signer, user: &signer) acquires PieceSwapPoolInfo {
         let amt = 1000000;
         let lp = mock_init_pool_and_add_liquidity_direct<mock_coin::WUSDT, mock_coin::WUSDC>(
@@ -479,7 +479,7 @@ module piece_swap {
         assert!(coin::balance<LPToken<mock_coin::WUSDT, mock_coin::WUSDC>>(user_addr) == 0, 0);
     }
 
-    #[test(admin=@HippoSwap, user=@0x12345)]
+    #[test(admin=@hippo_swap, user=@0x12345)]
     fun test_add_liquidity(admin: &signer, user: &signer) acquires PieceSwapPoolInfo {
         let amt = 1000000;
         let (added_x, added_y, lp_amt) = mock_init_pool_and_add_liquidity<mock_coin::WUSDT, mock_coin::WUSDC>(
@@ -494,7 +494,7 @@ module piece_swap {
         assert!(lp_amt == amt, 0);
     }
 
-    #[test(admin=@HippoSwap, user=@0x12345)]
+    #[test(admin=@hippo_swap, user=@0x12345)]
     #[expected_failure]
     fun test_add_initial_liquidity_unequal(admin: &signer, user: &signer) acquires PieceSwapPoolInfo {
         mock_init_pool<mock_coin::WUSDT, mock_coin::WUSDC>(
@@ -538,7 +538,7 @@ module piece_swap {
         assert!(coin::value(&pool.protocol_fee_y) > 0, 0);
     }
 
-    #[test(admin=@HippoSwap, user=@0x12345)]
+    #[test(admin=@hippo_swap, user=@0x12345)]
     fun test_swap_x_to_y(admin: &signer, user: &signer) acquires PieceSwapPoolInfo {
         let multiplier = 1000000;
         let swap_amt = 1;
@@ -585,7 +585,7 @@ module piece_swap {
         assert!(coin::value(&pool.protocol_fee_y) == 0, 0);
     }
 
-    #[test(admin=@HippoSwap, user=@0x12345)]
+    #[test(admin=@hippo_swap, user=@0x12345)]
     fun test_swap_y_to_x(admin: &signer, user: &signer) acquires PieceSwapPoolInfo {
         let multiplier = 1000000;
         let swap_amt = 1;

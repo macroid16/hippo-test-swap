@@ -1,13 +1,13 @@
-module HippoSwap::stable_curve_swap {
-    use Std::string;
-    use Std::option;
-    use AptosFramework::coin;
-    use AptosFramework::timestamp;
+module hippo_swap::stable_curve_swap {
+    use std::string;
+    use std::option;
+    use aptos_framework::coin;
+    use aptos_framework::timestamp;
 
-    use HippoSwap::hippo_config;
-    use HippoSwap::stable_curve_numeral;
-    use HippoSwap::math;
-    use Std::signer;
+    use hippo_swap::hippo_config;
+    use hippo_swap::stable_curve_numeral;
+    use hippo_swap::math;
+    use std::signer;
 
     // Token
 
@@ -110,24 +110,24 @@ module HippoSwap::stable_curve_swap {
 
     #[test_only]
     fun init_mock_coin<Money: store>(creator: &signer): coin::Coin<Money> {
-        use HippoSwap::mock_coin;
+        use hippo_swap::mock_coin;
         mock_coin::initialize<Money>(creator, 9);
         mock_coin::mint<Money>(20)
     }
 
-    #[test(admin = @HippoSwap, core_resource_account = @CoreResources)]
+    #[test(admin = @hippo_swap)]
     fun mint_mock_coin(admin: &signer) acquires LPCapability {
-        use HippoSwap::mock_coin;
+        use hippo_swap::mock_coin;
         let decimals = 6;
-        mock_coin::initialize<HippoSwap::mock_coin::WETH>(admin, decimals);
-        mock_coin::initialize<HippoSwap::mock_coin::WDAI>(admin, decimals);
-        initialize_coin<HippoSwap::mock_coin::WETH, HippoSwap::mock_coin::WDAI>(
+        mock_coin::initialize<hippo_swap::mock_coin::WETH>(admin, decimals);
+        mock_coin::initialize<hippo_swap::mock_coin::WDAI>(admin, decimals);
+        initialize_coin<hippo_swap::mock_coin::WETH, hippo_swap::mock_coin::WDAI>(
             admin,
             string::utf8(b"Curve:WETH-WDAI"),
             string::utf8(b"WEWD"),
             decimals
         );
-        let coin = mint<HippoSwap::mock_coin::WETH, HippoSwap::mock_coin::WDAI>(1000000);
+        let coin = mint<hippo_swap::mock_coin::WETH, hippo_swap::mock_coin::WDAI>(1000000);
         burn(coin)
     }
 
@@ -463,14 +463,14 @@ module HippoSwap::stable_curve_swap {
 
     #[test_only]
     fun genesis(core: &signer, vm: &signer) {
-        use AptosFramework::Genesis;
-        Genesis::setup(core);
+        use aptos_framework::genesis;
+        genesis::setup(core);
         update_time(vm, time(0));
     }
 
     #[test_only]
     fun update_time(account: &signer, time: u64) {
-        use AptosFramework::timestamp;
+        use aptos_framework::timestamp;
         timestamp::update_global_time(account, @0x1000010, time);
     }
 
@@ -491,14 +491,14 @@ module HippoSwap::stable_curve_swap {
 
     #[test_only]
     fun init_lp_token(admin: &signer, core: &signer, vm: &signer) {
-        use HippoSwap::mock_coin;
+        use hippo_swap::mock_coin;
         genesis(core, vm);
 
         mock_coin::initialize<mock_coin::WETH>(admin, 6);
         mock_coin::initialize<mock_coin::WDAI>(admin, 6);
         let (ia, fa, iat, fat) = mock_curve_params();
         let (fee, admin_fee) = (3000, 200000);
-        initialize<HippoSwap::mock_coin::WETH, HippoSwap::mock_coin::WDAI>(
+        initialize<hippo_swap::mock_coin::WETH, hippo_swap::mock_coin::WDAI>(
             admin,
             string::utf8(b"Curve:WETH-WDAI"),
             string::utf8(b"WEWD"),
@@ -507,10 +507,10 @@ module HippoSwap::stable_curve_swap {
         );
     }
 
-    #[test(admin = @HippoSwap, core = @CoreResources, vm = @0)]
+    #[test(admin = @hippo_swap, core = @core_resources, vm = @0)]
     fun mint_lptoken_coin(admin: &signer, core: &signer, vm: &signer) acquires StableCurvePoolInfo, LPCapability {
-        use Std::signer;
-        use HippoSwap::mock_coin;
+        use std::signer;
+        use hippo_swap::mock_coin;
         init_lp_token(admin, core, vm);
         update_time(vm, time(200));
         let x = mock_coin::mint<mock_coin::WETH>(10000000);
@@ -525,17 +525,17 @@ module HippoSwap::stable_curve_swap {
     }
 
 
-    #[test(admin = @HippoSwap, core = @CoreResources, vm = @0)]
+    #[test(admin = @hippo_swap, core = @core_resources, vm = @0)]
     #[expected_failure(abort_code = 2003)]
     public fun fail_assert_admin(core: &signer) {
         assert_admin(core);
     }
 
-    #[test(admin = @HippoSwap, core = @CoreResources, vm = @0)]
+    #[test(admin = @hippo_swap, core = @core_resources, vm = @0)]
     #[expected_failure(abort_code = 2007)]
     public fun fail_add_liquidity(admin: &signer, core: &signer, vm: &signer) acquires StableCurvePoolInfo, LPCapability {
-        use Std::signer;
-        use HippoSwap::mock_coin;
+        use std::signer;
+        use hippo_swap::mock_coin;
         init_lp_token(admin, core, vm);
         update_time(vm, time(200));
 
@@ -547,11 +547,11 @@ module HippoSwap::stable_curve_swap {
         coin::deposit(signer::address_of(admin), y_remain)
     }
 
-    #[test(admin = @HippoSwap, core = @CoreResources, vm = @0)]
+    #[test(admin = @hippo_swap, core = @core_resources, vm = @0)]
     #[expected_failure(abort_code = 2007)]
     public fun fail_add_liquidity_y(admin: &signer, core: &signer, vm: &signer) acquires StableCurvePoolInfo, LPCapability {
-        use Std::signer;
-        use HippoSwap::mock_coin;
+        use std::signer;
+        use hippo_swap::mock_coin;
         init_lp_token(admin, core, vm);
         update_time(vm, time(200));
 
@@ -563,11 +563,11 @@ module HippoSwap::stable_curve_swap {
         coin::deposit(signer::address_of(admin), y_remain)
     }
 
-    #[test(admin = @HippoSwap, core = @CoreResources, vm = @0)]
+    #[test(admin = @hippo_swap, core = @core_resources, vm = @0)]
     #[expected_failure(abort_code = 2020)]
     public fun fail_add_liquidity_d1(admin: &signer, core: &signer, vm: &signer) acquires StableCurvePoolInfo, LPCapability {
-        use Std::signer;
-        use HippoSwap::mock_coin;
+        use std::signer;
+        use hippo_swap::mock_coin;
         init_lp_token(admin, core, vm);
         update_time(vm, time(200));
         let trader_addr = signer::address_of(admin);
@@ -584,25 +584,25 @@ module HippoSwap::stable_curve_swap {
         coin::deposit(signer::address_of(admin), y_remain)
     }
 
-    #[test(admin = @HippoSwap)]
+    #[test(admin = @hippo_swap)]
     #[expected_failure(abort_code = 2000)]
     public fun fail_x(admin: &signer) {
-        initialize_coin<HippoSwap::mock_coin::WETH, HippoSwap::mock_coin::WDAI>(
+        initialize_coin<hippo_swap::mock_coin::WETH, hippo_swap::mock_coin::WDAI>(
             admin, string::utf8(b"Curve:WETH-WDAI"), string::utf8(b"WEWD"), 1000000);
     }
 
-    #[test(admin = @HippoSwap)]
+    #[test(admin = @hippo_swap)]
     #[expected_failure(abort_code = 2000)]
     public fun fail_y(admin: &signer) {
-        use HippoSwap::mock_coin;
-        mock_coin::initialize<HippoSwap::mock_coin::WETH>(admin, 6);
-        initialize_coin<HippoSwap::mock_coin::WETH, HippoSwap::mock_coin::WDAI>(
+        use hippo_swap::mock_coin;
+        mock_coin::initialize<hippo_swap::mock_coin::WETH>(admin, 6);
+        initialize_coin<hippo_swap::mock_coin::WETH, hippo_swap::mock_coin::WDAI>(
             admin, string::utf8(b"Curve:WETH-WDAI"), string::utf8(b"WEWD"), 1000000);
     }
 
-    #[test(admin = @HippoSwap, core = @CoreResources, vm = @0)]
+    #[test(admin = @hippo_swap, core = @core_resources, vm = @0)]
     fun test_swap_pair_case_A(admin: &signer, core: &signer, vm: &signer) acquires StableCurvePoolInfo {
-        use HippoSwap::mock_coin;
+        use hippo_swap::mock_coin;
         init_lp_token(admin, core, vm);
         let swap_pair = borrow_global_mut<StableCurvePoolInfo<mock_coin::WETH, mock_coin::WDAI>>(hippo_config::admin_address());
         update_time(vm, time(3500));
@@ -614,12 +614,12 @@ module HippoSwap::stable_curve_swap {
         let p = borrow_global<StableCurvePoolInfo<mock_coin::WETH, mock_coin::WDAI>>(hippo_config::admin_address());
         let k = get_current_A( p.initial_A, p.future_A, p.initial_A_time, p.future_A_time);
 
-        Std::debug::print(&k)
+        std::debug::print(&k)
     }
 
-    #[test(admin = @HippoSwap, core = @CoreResources, vm = @0)]
+    #[test(admin = @hippo_swap, core = @core_resources, vm = @0)]
     fun test_swap_pair_case_B(admin: &signer, core: &signer, vm: &signer) acquires StableCurvePoolInfo {
-        use HippoSwap::mock_coin;
+        use hippo_swap::mock_coin;
         init_lp_token(admin, core, vm);
         let swap_pair = borrow_global_mut<StableCurvePoolInfo<mock_coin::WETH, mock_coin::WDAI>>(hippo_config::admin_address());
         update_time(vm, time(10000));
@@ -631,14 +631,14 @@ module HippoSwap::stable_curve_swap {
         let p = borrow_global<StableCurvePoolInfo<mock_coin::WETH, mock_coin::WDAI>>(hippo_config::admin_address());
         let k = get_current_A( p.initial_A, p.future_A, p.initial_A_time, p.future_A_time);
 
-        Std::debug::print(&k);
+        std::debug::print(&k);
     }
 
 
-    #[test(admin = @HippoSwap, core = @CoreResources, vm = @0, trader = @0xFFFFFF01, )]
+    #[test(admin = @hippo_swap, core = @core_resources, vm = @0, trader = @0xFFFFFF01, )]
     fun mock_add_liquidity(admin: &signer, core: &signer, vm: &signer, trader: &signer) acquires StableCurvePoolInfo, LPCapability {
-        use Std::signer;
-        use HippoSwap::mock_coin;
+        use std::signer;
+        use hippo_swap::mock_coin;
         init_lp_token(admin, core, vm);
         update_time(vm, time(200));
         let trader_addr = signer::address_of(trader);
@@ -651,18 +651,18 @@ module HippoSwap::stable_curve_swap {
         coin::deposit(trader_addr, y);
 
         add_liquidity<mock_coin::WETH, mock_coin::WDAI>(trader, 7000000, 2000000);
-        Std::debug::print(&coin::balance<LPToken<mock_coin::WETH, mock_coin::WDAI>>(trader_addr));
+        std::debug::print(&coin::balance<LPToken<mock_coin::WETH, mock_coin::WDAI>>(trader_addr));
         add_liquidity<mock_coin::WETH, mock_coin::WDAI>(trader, 21000000, 38200000);
-        Std::debug::print(&coin::balance<LPToken<mock_coin::WETH, mock_coin::WDAI>>(trader_addr));
+        std::debug::print(&coin::balance<LPToken<mock_coin::WETH, mock_coin::WDAI>>(trader_addr));
         let (x, y) = remove_liquidity<mock_coin::WETH, mock_coin::WDAI>(trader, 1000000, 2000, 2000);
-        Std::debug::print(&x);
-        Std::debug::print(&y);
+        std::debug::print(&x);
+        std::debug::print(&y);
     }
 
-    #[test(admin = @HippoSwap, core = @CoreResources, vm = @0)]
+    #[test(admin = @hippo_swap, core = @core_resources, vm = @0)]
     fun test_exchange_coin(admin: &signer, core: &signer, vm: &signer) acquires StableCurvePoolInfo, LPCapability {
-        use Std::signer;
-        use HippoSwap::mock_coin;
+        use std::signer;
+        use hippo_swap::mock_coin;
         let addr = signer::address_of(admin);
         init_lp_token(admin, core, vm);
         update_time(vm, time(200));
@@ -680,9 +680,9 @@ module HippoSwap::stable_curve_swap {
     }
 
 
-    #[test(admin = @HippoSwap, core = @CoreResources, vm = @0)]
+    #[test(admin = @hippo_swap, core = @core_resources, vm = @0)]
     fun test_ramp_A_stop_ramp_A(admin: &signer, core: &signer, vm: &signer) acquires StableCurvePoolInfo {
-        use HippoSwap::mock_coin;
+        use hippo_swap::mock_coin;
         init_lp_token(admin, core, vm);
         update_time(vm, time(200));
         ramp_A<mock_coin::WETH, mock_coin::WDAI>(admin, 300, time( 10000));
@@ -690,47 +690,47 @@ module HippoSwap::stable_curve_swap {
         stop_ramp_A<mock_coin::WETH, mock_coin::WDAI>(admin);
     }
 
-    #[test(admin = @HippoSwap, core = @CoreResources, vm = @0)]
+    #[test(admin = @hippo_swap, core = @core_resources, vm = @0)]
     #[expected_failure(abort_code = 2009)]
     fun test_fail_ramp_A_timestamp(admin: &signer, core: &signer, vm: &signer) acquires StableCurvePoolInfo {
-        use HippoSwap::mock_coin;
+        use hippo_swap::mock_coin;
         init_lp_token(admin, core, vm);
         update_time(vm, time(200));
         ramp_A<mock_coin::WETH, mock_coin::WDAI>(admin, 300, time(10000));
         ramp_A<mock_coin::WETH, mock_coin::WDAI>(admin, 400, time(10000));
     }
 
-    #[test(admin = @HippoSwap, core = @CoreResources, vm = @0)]
+    #[test(admin = @hippo_swap, core = @core_resources, vm = @0)]
     #[expected_failure(abort_code = 2009)]
     fun test_fail_ramp_A_future_time(admin: &signer, core: &signer, vm: &signer) acquires StableCurvePoolInfo {
-        use HippoSwap::mock_coin;
+        use hippo_swap::mock_coin;
         init_lp_token(admin, core, vm);
         update_time(vm, time(200));
         ramp_A<mock_coin::WETH, mock_coin::WDAI>(admin, 300, 10000);
     }
 
-    #[test(admin = @HippoSwap, core = @CoreResources, vm = @0)]
+    #[test(admin = @hippo_swap, core = @core_resources, vm = @0)]
     #[expected_failure(abort_code = 2010)]
     fun test_fail_ramp_A_future_A_value(admin: &signer, core: &signer, vm: &signer) acquires StableCurvePoolInfo {
-        use HippoSwap::mock_coin;
+        use hippo_swap::mock_coin;
         init_lp_token(admin, core, vm);
         update_time(vm, time(200));
         ramp_A<mock_coin::WETH, mock_coin::WDAI>(admin, 3000000000, time(10000));
     }
 
-    #[test(admin = @HippoSwap, core = @CoreResources, vm = @0)]
+    #[test(admin = @hippo_swap, core = @core_resources, vm = @0)]
     #[expected_failure(abort_code = 2010)]
     fun test_fail_ramp_A_future_A_value_b(admin: &signer, core: &signer, vm: &signer) acquires StableCurvePoolInfo {
-        use HippoSwap::mock_coin;
+        use hippo_swap::mock_coin;
         init_lp_token(admin, core, vm);
         update_time(vm, time(200));
         ramp_A<mock_coin::WETH, mock_coin::WDAI>(admin, 2, time(10000));
     }
 
-    #[test(admin = @HippoSwap, core = @CoreResources, vm = @0)]
+    #[test(admin = @hippo_swap, core = @core_resources, vm = @0)]
     #[expected_failure(abort_code = 2010)]
     fun test_fail_ramp_A_future_A_value_c(admin: &signer, core: &signer, vm: &signer) acquires StableCurvePoolInfo {
-        use HippoSwap::mock_coin;
+        use hippo_swap::mock_coin;
         init_lp_token(admin, core, vm);
         update_time(vm, time(200));
         ramp_A<mock_coin::WETH, mock_coin::WDAI>(admin, 20000, time(10000));
@@ -739,8 +739,8 @@ module HippoSwap::stable_curve_swap {
 
     #[test_only]
     fun init_with_liquidity(admin: &signer, core: &signer, vm: &signer, trader: &signer) acquires StableCurvePoolInfo, LPCapability {
-        use Std::signer;
-        use HippoSwap::mock_coin;
+        use std::signer;
+        use hippo_swap::mock_coin;
         init_lp_token(admin, core, vm);
         update_time(vm, time(200));
         let trader_addr = signer::address_of(trader);
@@ -756,18 +756,18 @@ module HippoSwap::stable_curve_swap {
         add_liquidity<mock_coin::WETH, mock_coin::WDAI>(trader, 21000000, 38200000);
     }
 
-    #[test(admin = @HippoSwap, core = @CoreResources, vm = @0, trader = @0xFFFFFF01, )]
+    #[test(admin = @hippo_swap, core = @core_resources, vm = @0, trader = @0xFFFFFF01, )]
     #[expected_failure(abort_code = 2001)]
     fun test_fail_remove_liquidity_amount_x(admin: &signer, core: &signer, vm: &signer, trader: &signer) acquires StableCurvePoolInfo, LPCapability {
-        use HippoSwap::mock_coin;
+        use hippo_swap::mock_coin;
         init_with_liquidity(admin, core, vm, trader);
         remove_liquidity<mock_coin::WETH, mock_coin::WDAI>(trader, 1000000, 20000000, 2000);
     }
 
-    #[test(admin = @HippoSwap, core = @CoreResources, vm = @0, trader = @0xFFFFFF01, )]
+    #[test(admin = @hippo_swap, core = @core_resources, vm = @0, trader = @0xFFFFFF01, )]
     #[expected_failure(abort_code = 2001)]
     fun test_fail_remove_liquidity_amount_y(admin: &signer, core: &signer, vm: &signer, trader: &signer) acquires StableCurvePoolInfo, LPCapability {
-        use HippoSwap::mock_coin;
+        use hippo_swap::mock_coin;
         init_with_liquidity(admin, core, vm, trader);
         remove_liquidity<mock_coin::WETH, mock_coin::WDAI>(trader, 1000000, 2000, 200000000);
     }

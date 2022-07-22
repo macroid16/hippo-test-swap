@@ -1,7 +1,7 @@
-module HippoSwap::mock_deploy {
-    use HippoSwap::mock_coin;
+module hippo_swap::mock_deploy {
+    use hippo_swap::mock_coin;
     use token_registry::token_registry;
-    use AptosFramework::coin;
+    use aptos_framework::coin;
 
     public fun init_coin_and_create_store<CoinType>(
         admin: &signer,
@@ -15,7 +15,7 @@ module HippoSwap::mock_deploy {
         };
 
         // add coin to registry
-        if (!token_registry::has_token<CoinType>(@HippoSwap)) {
+        if (!token_registry::has_token<CoinType>(@hippo_swap)) {
             token_registry::add_token<CoinType>(
                 admin,
                 name,
@@ -29,14 +29,14 @@ module HippoSwap::mock_deploy {
     }
 
     public fun init_registry(admin: &signer) {
-        if (!token_registry::is_registry_initialized(Std::signer::address_of(admin))) {
+        if (!token_registry::is_registry_initialized(std::signer::address_of(admin))) {
             token_registry::initialize(admin);
         }
     }
 
-    #[test(admin = @HippoSwap, core = @CoreResources, vm = @0, trader = @0xFFFFFF01, )]
+    #[test(admin = @hippo_swap)]
     fun test_init_coin(admin: &signer) {
-        use HippoSwap::mock_coin;
+        use hippo_swap::mock_coin;
         token_registry::initialize(admin);
         init_coin_and_create_store<mock_coin::WBTC>(admin, b"Bitcoin", b"BTC", 8);
     }

@@ -1,10 +1,10 @@
-address HippoSwap {
+address hippo_swap {
 module cp_scripts {
-    use HippoSwap::cp_swap;
-    use Std::signer;
+    use hippo_swap::cp_swap;
+    use std::signer;
     use token_registry::token_registry;
-    use HippoSwap::mock_coin;
-    use AptosFramework::coin;
+    use hippo_swap::mock_coin;
+    use aptos_framework::coin;
 
 
     const E_SWAP_ONLY_ONE_IN_ALLOWED: u64 = 0;
@@ -25,7 +25,7 @@ module cp_scripts {
         lp_logo_url: vector<u8>,
         lp_project_url: vector<u8>,
     ) {
-        use HippoSwap::math;
+        use hippo_swap::math;
 
         let admin_addr = signer::address_of(sender);
         assert!(token_registry::is_registry_initialized(admin_addr), E_TOKEN_REGISTRY_NOT_INITIALIZED);
@@ -111,7 +111,7 @@ module cp_scripts {
     }
 
     #[test_only]
-    use AptosFramework::timestamp;
+    use aptos_framework::timestamp;
 
     // #[test_only]
     fun init_coin_and_create_store<CoinType>(
@@ -203,7 +203,7 @@ module cp_scripts {
         );
     }
 
-    #[test(admin=@HippoSwap, user=@0x1234567, core=@0xa550c18)]
+    #[test(admin=@hippo_swap, user=@0x1234567, core=@aptos_framework)]
     public entry fun test_initialization_cpswap(admin: &signer, user: &signer, core: &signer) {
         /*
         1. perform local depploy
@@ -225,7 +225,7 @@ module cp_scripts {
 
     }
 
-    #[test(admin=@HippoSwap, user=@0x1234567, core=@0xa550c18)]
+    #[test(admin=@hippo_swap, user=@0x1234567, core=@aptos_framework)]
     public entry fun test_add_remove_liquidity(admin: &signer, user: &signer, core: &signer) {
 
         /*
@@ -260,7 +260,7 @@ module cp_scripts {
         assert!(coin::balance<mock_coin::WUSDC>(user_addr) == btc_amt * price, 0);
     }
 
-    #[test(admin=@HippoSwap, user=@0x1234567, core=@0xa550c18)]
+    #[test(admin=@hippo_swap, user=@0x1234567, core=@aptos_framework)]
     public entry fun test_swap(admin: &signer, user: &signer, core: &signer) {
         /*
         1. create pools

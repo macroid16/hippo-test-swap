@@ -1,6 +1,6 @@
 /// Uniswap v2 like token swap program
-module HippoSwap::cp_swap_utils {
-    use HippoSwap::safe_math;
+module hippo_swap::cp_swap_utils {
+    use hippo_swap::safe_math;
 
     const ERROR_INSUFFICIENT_INPUT_AMOUNT: u64 = 0;
     const ERROR_INSUFFICIENT_LIQUIDITY: u64 = 1;
@@ -38,7 +38,7 @@ module HippoSwap::cp_swap_utils {
     #[test]
     fun test_get_amount_out() {
         let a = get_amount_out(100, 10, 10);
-        Std::debug::print(&a);
+        std::debug::print(&a);
         assert!(a > 0, 0);
     }
 }

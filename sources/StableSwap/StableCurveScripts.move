@@ -1,13 +1,13 @@
-module HippoSwap::stable_curve_scripts {
-    use Std::string;
-    use AptosFramework::timestamp;
-    use HippoSwap::stable_curve_swap;
-    use Std::signer;
+module hippo_swap::stable_curve_scripts {
+    use std::string;
+    use aptos_framework::timestamp;
+    use hippo_swap::stable_curve_swap;
+    use std::signer;
     use token_registry::token_registry;
-    use HippoSwap::mock_deploy;
-    use HippoSwap::mock_coin;
-    use AptosFramework::coin;
-    use HippoSwap::math;
+    use hippo_swap::mock_deploy;
+    use hippo_swap::mock_coin;
+    use aptos_framework::coin;
+    use hippo_swap::math;
 
     const MICRO_CONVERSION_FACTOR: u64 = 1000000;
 
@@ -123,7 +123,7 @@ module HippoSwap::stable_curve_scripts {
         let (initial_A, future_A) = (60, 100);
         let initial_A_time = timestamp::now_microseconds();
         let future_A_time = initial_A_time + 24 * 3600 * MICRO_CONVERSION_FACTOR;
-        // Std::debug::print(&199928828);
+        // std::debug::print(&199928828);
         // It's weird that the coverage does not mark the if branch.
         // Find the reason later from the compiler part of the aptos-core repo.
         let decimals = math::max((coin::decimals<X>() as u128), (coin::decimals<Y>() as u128));
@@ -164,7 +164,7 @@ module HippoSwap::stable_curve_scripts {
         let admin_addr = signer::address_of(admin);
         // 1
         if (!token_registry::is_registry_initialized(admin_addr)) {
-            // Std::debug::print(&299999919999);
+            // std::debug::print(&299999919999);
             // It's weird that the coverage does not mark the if branch.
             // Find the reason later from the compiler part of the aptos-core repo.
             token_registry::initialize(admin);
@@ -202,8 +202,8 @@ module HippoSwap::stable_curve_scripts {
 
     #[test_only]
     public entry fun start_up(admin: &signer, user: &signer, core: &signer) {
-        use AptosFramework::coin;
-        use HippoSwap::mock_coin;
+        use aptos_framework::coin;
+        use hippo_swap::mock_coin;
         timestamp::set_time_has_started_for_testing(core);
         mock_deploy::init_registry(admin);
         mock_deploy::init_coin_and_create_store<mock_coin::WUSDT>(
@@ -238,9 +238,9 @@ module HippoSwap::stable_curve_scripts {
         coin::deposit(trader_addr, y);
     }
 
-    #[test(admin = @HippoSwap, user = @0x1234567, core = @0xa550c18)]
+    #[test(admin = @hippo_swap, user = @0x1234567, core = @aptos_framework)]
     public entry fun test_scripts(admin: &signer, user: &signer, core: &signer) {
-        use HippoSwap::mock_coin;
+        use hippo_swap::mock_coin;
         start_up(admin, user, core);
         add_liquidity<mock_coin::WUSDT, mock_coin::WDAI>(user, 10000000, 20000000);
         swap_script<mock_coin::WUSDT, mock_coin::WDAI>(user, 2000000, 0, 0, 100);
@@ -248,49 +248,49 @@ module HippoSwap::stable_curve_scripts {
         remove_liquidity<mock_coin::WUSDT, mock_coin::WDAI>(user, 400000, 100, 100);
     }
 
-    #[test(admin = @HippoSwap, user = @0x1234567, core = @0xa550c18)]
+    #[test(admin = @hippo_swap, user = @0x1234567, core = @aptos_framework)]
     #[expected_failure(abort_code = 0)]
     public entry fun test_failx(admin: &signer, user: &signer, core: &signer) {
-        use HippoSwap::mock_coin;
+        use hippo_swap::mock_coin;
         start_up(admin, user, core);
         add_liquidity<mock_coin::WUSDT, mock_coin::WDAI>(user, 10000000, 20000000);
         swap_script<mock_coin::WUSDT, mock_coin::WDAI>(user, 0, 0, 0, 100);
     }
 
-    #[test(admin = @HippoSwap, user = @0x1234567, core = @0xa550c18)]
+    #[test(admin = @hippo_swap, user = @0x1234567, core = @aptos_framework)]
     #[expected_failure(abort_code = 1)]
     public entry fun test_faily(admin: &signer, user: &signer, core: &signer) {
-        use HippoSwap::mock_coin;
+        use hippo_swap::mock_coin;
         start_up(admin, user, core);
         add_liquidity<mock_coin::WUSDT, mock_coin::WDAI>(user, 10000000, 20000000);
         swap_script<mock_coin::WUSDT, mock_coin::WDAI>(user, 120, 0, 10, 10);
     }
 
-    #[test(admin = @HippoSwap, user = @0x1234567, core = @0xa550c18)]
+    #[test(admin = @hippo_swap, user = @0x1234567, core = @aptos_framework)]
     #[expected_failure(abort_code = 3)]
     public entry fun test_fail_output_less_x(admin: &signer, user: &signer, core: &signer) {
-        use HippoSwap::mock_coin;
+        use hippo_swap::mock_coin;
         start_up(admin, user, core);
         add_liquidity<mock_coin::WUSDT, mock_coin::WDAI>(user, 20000000, 20000000);
         swap_script<mock_coin::WUSDT, mock_coin::WDAI>(user, 1, 0, 0, 100000000000);
     }
 
-    #[test(admin = @HippoSwap, user = @0x1234567, core = @0xa550c18)]
+    #[test(admin = @hippo_swap, user = @0x1234567, core = @aptos_framework)]
     #[expected_failure(abort_code = 3)]
     public entry fun test_fail_output_less_y(admin: &signer, user: &signer, core: &signer) {
-        use HippoSwap::mock_coin;
+        use hippo_swap::mock_coin;
         start_up(admin, user, core);
         add_liquidity<mock_coin::WUSDT, mock_coin::WDAI>(user, 20000000, 20000000);
         swap_script<mock_coin::WUSDT, mock_coin::WDAI>(user, 0, 1, 10000000000, 0);
     }
 
-    #[test(admin = @HippoSwap, user = @0x1234567, core = @0xa550c18)]
+    #[test(admin = @hippo_swap, user = @0x1234567, core = @aptos_framework)]
     public entry fun test_mock_deploy(admin: &signer, core: &signer) {
         timestamp::set_time_has_started_for_testing(core);
         mock_deploy_script(admin);
     }
 
-    #[test(admin = @HippoSwap, user = @0x1234567, core = @0xa550c18)]
+    #[test(admin = @hippo_swap, user = @0x1234567, core = @aptos_framework)]
     #[expected_failure(abort_code = 5)]
     public entry fun fail_lp_amt(admin: &signer, core: &signer) {
         timestamp::set_time_has_started_for_testing(core);
@@ -298,7 +298,7 @@ module HippoSwap::stable_curve_scripts {
         let btc_amt = 1000000000;
         let (fee, admin_fee) = (3000, 200000);
         mock_deploy::init_coin_and_create_store<mock_coin::WDAI>(admin, b"Dai", b"DAI", 8);
-        Std::debug::print(&110000000);
+        std::debug::print(&110000000);
         mock_create_pair_and_add_liquidity<mock_coin::WUSDT, mock_coin::WDAI>(
             admin,
             b"USDT-DAI-LP",
@@ -333,7 +333,7 @@ module HippoSwap::stable_curve_scripts {
         );
     }
 
-    #[test(admin = @HippoSwap, user = @0x1234567, core = @0xa550c18)]
+    #[test(admin = @hippo_swap, user = @0x1234567, core = @aptos_framework)]
     public fun test_data_set_validate_basic(admin: &signer, core: &signer) {
         test_data_set_init_coins(admin, core);
         let usdc_amt = 500000000;
@@ -359,13 +359,13 @@ module HippoSwap::stable_curve_scripts {
     }
 
     // Let's make initial value of x and y 10 times of the former test. We'll get lp_token of the corresponding factor.
-    #[test(admin = @HippoSwap, user = @0x1234567, core = @0xa550c18)]
+    #[test(admin = @hippo_swap, user = @0x1234567, core = @aptos_framework)]
     public fun test_data_set_validate_scale(admin: &signer, core: &signer) {
         assert_launch_lq(admin, core, 5000000000, 5000000000, 10000000000)
     }
 
 
-    #[test(admin = @HippoSwap, user = @0x1234567, core = @0xa550c18)]
+    #[test(admin = @hippo_swap, user = @0x1234567, core = @aptos_framework)]
     #[expected_failure]             //  ARITHMETIC_ERROR:  let new_d = (ann * s + d_p * 2) __*__ d / ((ann - 1) * d + 3 * d_p)
     public fun test_data_set_max_level(admin: &signer, core: &signer) {
         test_data_set_init_coins(admin, core);
@@ -380,42 +380,42 @@ module HippoSwap::stable_curve_scripts {
         );
     }
 
-    #[test(admin = @HippoSwap, user = @0x1234567, core = @0xa550c18)]
+    #[test(admin = @hippo_swap, user = @0x1234567, core = @aptos_framework)]
     public fun test_data_set_init_imbalance(admin: &signer, core: &signer) {
         assert_launch_lq(admin, core, 40 * 100000000, 60 * 100000000, 9996588165); // Slightly less than 100 * 100000000
     }
 
-    #[test(admin = @HippoSwap, user = @0x1234567, core = @0xa550c18)]
+    #[test(admin = @hippo_swap, user = @0x1234567, core = @aptos_framework)]
     public fun test_data_set_init_tiny_q(admin: &signer, core: &signer) {
         assert_launch_lq(admin, core, 40, 60, 99);
     }
 
-    #[test(admin = @HippoSwap, user = @0x1234567, core = @0xa550c18)]
+    #[test(admin = @hippo_swap, user = @0x1234567, core = @aptos_framework)]
     public fun test_data_set_init_tiny_qr_1(admin: &signer, core: &signer) {
         assert_launch_lq(admin, core, 30, 70, 99);
     }
 
-    #[test(admin = @HippoSwap, user = @0x1234567, core = @0xa550c18)]
+    #[test(admin = @hippo_swap, user = @0x1234567, core = @aptos_framework)]
     public fun test_data_set_init_tiny_qr_2(admin: &signer, core: &signer) {
         assert_launch_lq(admin, core, 10, 90, 98);
     }
 
-    #[test(admin = @HippoSwap, user = @0x1234567, core = @0xa550c18)]
+    #[test(admin = @hippo_swap, user = @0x1234567, core = @aptos_framework)]
     public fun test_data_set_init_tiny_qr_3(admin: &signer, core: &signer) {
         assert_launch_lq(admin, core, 1, 99, 86);
     }
 
-    #[test(admin = @HippoSwap, user = @0x1234567, core = @0xa550c18)]
+    #[test(admin = @hippo_swap, user = @0x1234567, core = @aptos_framework)]
     public fun test_data_set_init_small_qr_1(admin: &signer, core: &signer) {
         assert_launch_lq(admin, core, 100, 9900, 8690);
     }
 
-    #[test(admin = @HippoSwap, user = @0x1234567, core = @0xa550c18)]
+    #[test(admin = @hippo_swap, user = @0x1234567, core = @aptos_framework)]
     public fun test_data_set_init_small_qr_2(admin: &signer, core: &signer) {
         assert_launch_lq(admin, core, 1, 9999, 3199);
     }
 
-    #[test(admin = @HippoSwap, user = @0x1234567, core = @0xa550c18)]
+    #[test(admin = @hippo_swap, user = @0x1234567, core = @aptos_framework)]
     public fun test_data_set_trade_proc(admin: &signer, core: &signer) {
         let admin_addr = signer::address_of(admin);
         assert_launch_lq(admin, core, 500000, 500000, 1000000);
@@ -444,7 +444,7 @@ module HippoSwap::stable_curve_scripts {
         // now the token_supply increased to 2498397
 
         let balance = stable_curve_swap::balance<mock_coin::WUSDC, mock_coin::WUSDT>(admin_addr);
-        // Std::debug::print(&balance);
+        // std::debug::print(&balance);
         // 1500000 incoming currencies totally brings 1498397 lp.
         assert!(balance == 2498397, 1);
         let (_, _, _, fee_amt_x, fee_amt_y, _, _, _, _, _, _, _, _, _) = stable_curve_swap::get_pool_info<mock_coin::WUSDC, mock_coin::WUSDT>();

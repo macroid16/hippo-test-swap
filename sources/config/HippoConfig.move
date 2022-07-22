@@ -1,10 +1,10 @@
-module HippoSwap::hippo_config {
+module hippo_swap::hippo_config {
 
     public fun admin_address(): address {
-        @HippoSwap
+        @hippo_swap
     }
 
-    #[test(admin = @HippoSwap, core_resource_account = @CoreResources)]
+    #[test]
     fun addresses() {
         admin_address();
     }

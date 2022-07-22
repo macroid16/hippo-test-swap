@@ -1,15 +1,15 @@
 #[test_only]
-module HippoSwap::piece_test {
+module hippo_swap::piece_test {
 
-    use HippoSwap::mock_coin::{WUSDC, WDAI};
-    use HippoSwap::TestShared;
-    use HippoSwap::router;
-    use HippoSwap::piece_swap_script;
+    use hippo_swap::mock_coin::{WUSDC, WDAI};
+    use hippo_swap::TestShared;
+    use hippo_swap::router;
+    use hippo_swap::piece_swap_script;
 
     // Keep the consts the same with TestShared.move.
 
 
-    const ADMIN: address = @HippoSwap;
+    const ADMIN: address = @hippo_swap;
     const INVESTOR: address = @0x2FFF;
     const SWAPPER: address = @0x2FFE;
 
@@ -257,7 +257,7 @@ module HippoSwap::piece_test {
         perform_transaction<X, Y>(investor, pool_type, REMOVE_LIQUIDITY, print_debug, remove_1);
     }
 
-    #[test(admin = @HippoSwap, investor = @0x2FFF, swapper = @0x2FFE, core = @0xa550c18)]
+    #[test(admin = @hippo_swap, investor = @0x2FFF, swapper = @0x2FFE, core = @aptos_framework)]
     public fun test_pool_piece_swap_4(admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
         let (decimal_x, decimal_y, ) = (10, 6);
         let (k, n1, d1, n2, d2, fee, protocal_fee) = ((P18 as u128), 110, 100, 105, 100, 100, 100);
@@ -266,14 +266,14 @@ module HippoSwap::piece_test {
         let swap = swap_param(P10, 0, P10, 977172, 0, 9, 977163);
         let remove_1 = remove_param(2 * P10, 3 * P10, 1022828);
         test_pool_case<WUSDC, WDAI>(admin, investor, swapper, core,
-            true, false, POOL_TYPE_PIECEWISE,
+            false, false, POOL_TYPE_PIECEWISE,
             decimal_x, decimal_y,
             k, n1, d1, n2, d2, fee, protocal_fee,
             add_1, add_2, swap, remove_1
         );
     }
 
-    #[test(admin = @HippoSwap, investor = @0x2FFF, swapper = @0x2FFE, core = @0xa550c18)]
+    #[test(admin = @hippo_swap, investor = @0x2FFF, swapper = @0x2FFE, core = @aptos_framework)]
     public fun test_pool_piece_swap_5(admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
         let (decimal_x, decimal_y, ) = (10, 10);
         let (k, n1, d1, n2, d2, fee, protocal_fee) = ((P18 as u128), 110, 100, 105, 100, 100, 100);
@@ -282,17 +282,17 @@ module HippoSwap::piece_test {
         let swap = swap_param(P4, 0, P4, 9999, 0, 0, 9999);
         let remove_1 = remove_param(2 * P10, 2 * P10 + P4, 2 * P10 - P4 + 1);
         test_pool_case<WUSDC, WDAI>(admin, investor, swapper, core,
-            true, false, POOL_TYPE_PIECEWISE,
+            false, false, POOL_TYPE_PIECEWISE,
             decimal_x, decimal_y,
             k, n1, d1, n2, d2, fee, protocal_fee,
             add_1, add_2, swap, remove_1
         );
     }
 
-    #[test(admin = @HippoSwap, investor = @0x2FFF, swapper = @0x2FFE, core = @0xa550c18)]
+    #[test(admin = @hippo_swap, investor = @0x2FFF, swapper = @0x2FFE, core = @aptos_framework)]
     public fun test_pool_piece_swap_6(admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
         // The capacity of the stable curve pool size, nealy 10^17.
-        let (pool_type, print_debug) = (POOL_TYPE_PIECEWISE, true);
+        let (pool_type, print_debug) = (POOL_TYPE_PIECEWISE, false);
         let (decimal_x, decimal_y, ) = (10, 10);
         let (k, n1, d1, n2, d2, fee, protocal_fee) = ((P18 as u128), 110, 100, 105, 100, 100, 100);
         let add_1 = add_param(P17, P17, P17, P17, P17, 0, 0);
@@ -308,10 +308,10 @@ module HippoSwap::piece_test {
         );
     }
 
-    #[test(admin = @HippoSwap, investor = @0x2FFF, swapper = @0x2FFE, core = @0xa550c18)]
+    #[test(admin = @hippo_swap, investor = @0x2FFF, swapper = @0x2FFE, core = @aptos_framework)]
     public fun test_pool_piece_swap_7(admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
         // Overflow
-        let (pool_type, print_debug) = (POOL_TYPE_PIECEWISE, true);
+        let (pool_type, print_debug) = (POOL_TYPE_PIECEWISE, false);
         let (decimal_x, decimal_y, ) = (10, 10);
         let (k, n1, d1, n2, d2, fee, protocal_fee) = ((P18 as u128), 110, 100, 105, 100, 100, 100);
         let add_1 = add_param(P18, P18, P18, P18, P18, 0, 0);               // overflow
@@ -334,9 +334,9 @@ module HippoSwap::piece_test {
         perform_transaction<WUSDC, WDAI>(swapper, pool_type, SWAP, print_debug, swap_2);
     }
 
-    #[test(admin = @HippoSwap, investor = @0x2FFF, swapper = @0x2FFE, core = @0xa550c18)]
+    #[test(admin = @hippo_swap, investor = @0x2FFF, swapper = @0x2FFE, core = @aptos_framework)]
     public fun test_pool_piece_swap_8(admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
-        let (pool_type, print_debug) = (POOL_TYPE_PIECEWISE, true);
+        let (pool_type, print_debug) = (POOL_TYPE_PIECEWISE, false);
         let (decimal_x, decimal_y, ) = (8, 6);
         let (k, n1, d1, n2, d2, fee, protocal_fee) = ((P18 as u128), 110, 100, 105, 100, 100, 100);
         let add_1 = add_param(P17, P15, P17, P15, P17, 0, 0);
@@ -351,7 +351,7 @@ module HippoSwap::piece_test {
         );
     }
 
-    #[test(admin = @HippoSwap, investor = @0x2FFF, swapper = @0x2FFE, core = @0xa550c18)]
+    #[test(admin = @hippo_swap, investor = @0x2FFF, swapper = @0x2FFE, core = @aptos_framework)]
     public fun test_pool_piece_swap_accumulative_giant(admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
         // We perform trading actions continiously in this case.
         // The fee charged in add_liquidity comes from the inequality between the proportion of incoming x y and reserve x y.
@@ -359,7 +359,7 @@ module HippoSwap::piece_test {
         // And the other way is the direct charge during the swap process.
         // It shows that as the base of reserve increases, traders afford less for the slippage of the same amount of imbalanced reserve.
         // And the remove liquidity actions reverse the process which took away all the reserve by steps.
-        let (pool_type, print_debug) = (POOL_TYPE_PIECEWISE, true);
+        let (pool_type, print_debug) = (POOL_TYPE_PIECEWISE, false);
         let (decimal_x, decimal_y, ) = (8, 6);
         let (k, n1, d1, n2, d2, fee, protocal_fee) = ((P18 as u128), 110, 100, 105, 100, 100, 100);
 
@@ -409,10 +409,10 @@ module HippoSwap::piece_test {
         perform_transaction<WUSDC, WDAI>(investor, pool_type, REMOVE_LIQUIDITY, print_debug, remove_4);
     }
 
-    #[test(admin = @HippoSwap, investor = @0x2FFF, swapper = @0x2FFE, core = @0xa550c18)]
+    #[test(admin = @hippo_swap, investor = @0x2FFF, swapper = @0x2FFE, core = @aptos_framework)]
     public fun test_pool_piece_swap_deviant(admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
 
-        let (pool_type, print_debug) = (POOL_TYPE_PIECEWISE, true);
+        let (pool_type, print_debug) = (POOL_TYPE_PIECEWISE, false);
         let (decimal_x, decimal_y, ) = (8, 6);
         let (k, n1, d1, n2, d2, fee, protocal_fee) = ((P18 as u128), 110, 100, 105, 100, 100, 100);
 
@@ -430,7 +430,7 @@ module HippoSwap::piece_test {
         let swap_2 = swap_param(0, P6,  104695577, P6, 1047, 0,  104694530);  // swap 1 doller
         perform_transaction<WUSDC, WDAI>(swapper, pool_type, SWAP, print_debug, swap_2);
         let remove_2 = remove_param(  199999980000000000,      299999969895304423,    1022827436952755);
-        perform_transaction<WUSDC, WDAI>(investor, pool_type, REMOVE_LIQUIDITY, true, remove_2);
+        perform_transaction<WUSDC, WDAI>(investor, pool_type, REMOVE_LIQUIDITY, false, remove_2);
 
     }
 }

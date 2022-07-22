@@ -1,17 +1,17 @@
 /// Uniswap v2 like token swap program
-module HippoSwap::cp_swap {
-    use Std::signer;
-    use Std::option;
-    use Std::string;
+module hippo_swap::cp_swap {
+    use std::signer;
+    use std::option;
+    use std::string;
 
-    use AptosFramework::coin;
-    use AptosFramework::timestamp;
+    use aptos_framework::coin;
+    use aptos_framework::timestamp;
 
-    use HippoSwap::safe_math;
-    use HippoSwap::math;
-    use HippoSwap::cp_swap_utils;
+    use hippo_swap::safe_math;
+    use hippo_swap::math;
+    use hippo_swap::cp_swap_utils;
 
-    const MODULE_ADMIN: address = @HippoSwap;
+    const MODULE_ADMIN: address = @hippo_swap;
     const MINIMUM_LIQUIDITY: u128 = 1000;
     const BALANCE_MAX: u128 = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFF; // 2**112
 
@@ -537,7 +537,7 @@ module HippoSwap::cp_swap {
 
     /// Transfer LP Tokens to swap contract
     fun tranfer_lp_coin_in<X, Y>(coins: coin::Coin<LPToken<X, Y>>) acquires TokenPairMetadata {
-        let metadata = borrow_global_mut<TokenPairMetadata<X, Y>>(@HippoSwap);
+        let metadata = borrow_global_mut<TokenPairMetadata<X, Y>>(@hippo_swap);
         coin::merge(&mut metadata.lp, coins);
     }
 
@@ -630,7 +630,7 @@ module HippoSwap::cp_swap {
 
     #[test_only]
     fun mint_lp_to_self<X, Y>(amount: u64) acquires TokenPairMetadata {
-        let metadata = borrow_global_mut<TokenPairMetadata<X, Y>>(@HippoSwap);
+        let metadata = borrow_global_mut<TokenPairMetadata<X, Y>>(@hippo_swap);
         coin::merge(
             &mut metadata.lp,
             coin::mint(amount, &metadata.mint_cap)
@@ -655,7 +655,7 @@ module HippoSwap::cp_swap {
         move_to<CapContainer<T>>(admin, CapContainer{ mc, bc });
     }
 
-    #[test(admin = @HippoSwap)]
+    #[test(admin = @hippo_swap)]
     public fun init_works(admin: signer) {
         let fee_to = signer::address_of(&admin);
         create_token_pair<Token0, Token1>(
@@ -668,7 +668,7 @@ module HippoSwap::cp_swap {
         );
     }
 
-    #[test(admin = @HippoSwap, token_owner = @0x02, lp_provider = @0x03, lock = @0x01, core = @0xa550c18)]
+    #[test(admin = @hippo_swap, token_owner = @0x02, lp_provider = @0x03, lock = @0x01, core = @aptos_framework)]
     public fun mint_works(admin: signer, token_owner: signer, lp_provider: signer, lock: signer, core: signer)
         acquires TokenPairReserve, TokenPairMetadata
     {
@@ -727,7 +727,7 @@ module HippoSwap::cp_swap {
         assert!(r1 == amount_y, 0);
     }
 
-    #[test(admin = @HippoSwap, token_owner = @0x02, lp_provider = @0x03, lock = @0x01, core = @0xa550c18)]
+    #[test(admin = @hippo_swap, token_owner = @0x02, lp_provider = @0x03, lock = @0x01, core = @aptos_framework)]
     public fun remove_liquidity_works(admin: signer, token_owner: signer, lp_provider: signer, lock: signer, core: signer)
         acquires TokenPairReserve, TokenPairMetadata
     {
@@ -787,7 +787,7 @@ module HippoSwap::cp_swap {
         assert!(coin::balance<Token1>(signer::address_of(&lp_provider)) == amount_y - (MINIMUM_LIQUIDITY as u64), 0);
     }
 
-    #[test(admin = @HippoSwap, token_owner = @0x02, lp_provider = @0x03, lock = @0x01, core = @0xa550c18)]
+    #[test(admin = @hippo_swap, token_owner = @0x02, lp_provider = @0x03, lock = @0x01, core = @aptos_framework)]
     public fun swap_x_works(admin: signer, token_owner: signer, lp_provider: signer, lock: signer, core: signer)
         acquires TokenPairReserve, TokenPairMetadata
     {

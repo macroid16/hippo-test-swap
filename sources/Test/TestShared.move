@@ -1,25 +1,25 @@
 #[test_only]
-module HippoSwap::TestShared {
+module hippo_swap::TestShared {
 
     // The preconditions required by the test suite below:
     // Init Token registry for admin
 
-    use HippoSwap::mock_deploy;
-    use HippoSwap::mock_coin::{WUSDT, WUSDC, WDAI, WETH, WBTC, WDOT, WSOL};
+    use hippo_swap::mock_deploy;
+    use hippo_swap::mock_coin::{WUSDT, WUSDC, WDAI, WETH, WBTC, WDOT, WSOL};
     use token_registry::token_registry;
-    use AptosFramework::timestamp;
-    use HippoSwap::mock_coin;
-    use Std::signer;
-    use HippoSwap::cp_scripts;
-    use HippoSwap::stable_curve_scripts;
-    use HippoSwap::piece_swap_script;
-    use HippoSwap::cp_swap;
-    use HippoSwap::stable_curve_swap;
-    use HippoSwap::piece_swap;
-    use AptosFramework::coin;
-    use Std::option;
+    use aptos_framework::timestamp;
+    use hippo_swap::mock_coin;
+    use std::signer;
+    use hippo_swap::cp_scripts;
+    use hippo_swap::stable_curve_scripts;
+    use hippo_swap::piece_swap_script;
+    use hippo_swap::cp_swap;
+    use hippo_swap::stable_curve_swap;
+    use hippo_swap::piece_swap;
+    use aptos_framework::coin;
+    use std::option;
 
-    const ADMIN: address = @HippoSwap;
+    const ADMIN: address = @hippo_swap;
     const INVESTOR: address = @0x2FFF;
     const SWAPPER: address = @0x2FFE;
 
@@ -214,9 +214,9 @@ module HippoSwap::TestShared {
     #[test_only]
     public fun debug_print_pool_reserve_xy<X, Y>(pool_type: u8) {
         let (reserve_x, reserve_y) = get_pool_reserve_route<X, Y>(pool_type);
-        Std::debug::print(&LABEL_RESERVE_XY);
-        Std::debug::print(&reserve_x);
-        Std::debug::print(&reserve_y);
+        std::debug::print(&LABEL_RESERVE_XY);
+        std::debug::print(&reserve_x);
+        std::debug::print(&reserve_y);
     }
 
     #[test_only]
@@ -241,8 +241,8 @@ module HippoSwap::TestShared {
     #[test_only]
     public fun debug_print_pool_lp_supply<X, Y>(pool_type: u8) {
         let supply = get_pool_lp_supply_route<X, Y>(pool_type);
-        Std::debug::print(&LABEL_LPTOKEN_SUPPLY);
-        Std::debug::print(&supply);
+        std::debug::print(&LABEL_LPTOKEN_SUPPLY);
+        std::debug::print(&supply);
     }
 
     #[test_only]
@@ -274,10 +274,10 @@ module HippoSwap::TestShared {
     #[test_only]
     public fun debug_print_pool_fee<X, Y>(pool_type: u8) {
         let (fee_x, fee_y, fee_lp) = get_pool_fee_route<X, Y>(pool_type);
-        Std::debug::print(&LABEL_FEE);
-        Std::debug::print(&fee_x);
-        Std::debug::print(&fee_y);
-        Std::debug::print(&fee_lp);
+        std::debug::print(&LABEL_FEE);
+        std::debug::print(&fee_x);
+        std::debug::print(&fee_y);
+        std::debug::print(&fee_lp);
     }
 
     #[test_only]
@@ -286,12 +286,12 @@ module HippoSwap::TestShared {
         let reserve_lp = get_pool_lp_supply_route<X, Y>(pool_type);
         let (fee_x, fee_y, fee_lp) = get_pool_fee_route<X, Y>(pool_type);
         let s = PoolValue{ reserve_x, reserve_y, reserve_lp, fee_x, fee_y, fee_lp };
-        Std::debug::print(&s);
+        std::debug::print(&s);
     }
 
     #[test_only]
     public fun debug_print_comparision<X, Y>(pool_type: u8, ) acquires PoolSavePoint {
-        Std::debug::print(&LABEL_COMPARE);
+        std::debug::print(&LABEL_COMPARE);
         debug_print_save_point<X, Y>(pool_type);
         debug_print_pool<X, Y>(pool_type);
     }
@@ -337,7 +337,7 @@ module HippoSwap::TestShared {
             reserve_x: sp.reserve_x, reserve_y: sp.reserve_y, reserve_lp: sp.reserve_lp,
             fee_x: sp.fee_x, fee_y: sp.fee_y, fee_lp: sp.fee_lp
         };
-        Std::debug::print(&s);
+        std::debug::print(&s);
     }
 
     #[test_only]
@@ -548,7 +548,7 @@ module HippoSwap::TestShared {
         let s = WalletBalanceSavePoint{
             coin_x, coin_y, coin_lp
         };
-        Std::debug::print(&s);
+        std::debug::print(&s);
     }
 
     #[test_only]
@@ -558,7 +558,7 @@ module HippoSwap::TestShared {
         let s = WalletBalanceSavePoint{
             coin_x: sp.coin_x, coin_y: sp.coin_y, coin_lp: sp.coin_lp
         };
-        Std::debug::print(&s);
+        std::debug::print(&s);
     }
 
     #[test_only]

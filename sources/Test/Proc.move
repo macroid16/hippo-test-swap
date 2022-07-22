@@ -1,5 +1,5 @@
 #[test_only]
-module HippoSwap::proc {
+module hippo_swap::proc {
 
     // A use case which including 3 characters, the admin, the investor, and the swap guest.
     // We could observe the functionality by tracking the activity and the changes of the user account.
@@ -69,11 +69,11 @@ module HippoSwap::proc {
     // And the fuzz test demonstrates the ability of the pool to perform the business accumulatively.
 
 
-    use HippoSwap::TestShared;
-    use HippoSwap::mock_coin::{WUSDC, WETH};
-    use HippoSwap::router;
+    use hippo_swap::TestShared;
+    use hippo_swap::mock_coin::{WUSDC, WETH};
+    use hippo_swap::router;
 
-    const ADMIN: address = @HippoSwap;
+    const ADMIN: address = @hippo_swap;
     const INVESTOR: address = @0x2FFF;
     const SWAPPER: address = @0x2FFE;
 
@@ -101,7 +101,7 @@ module HippoSwap::proc {
     const P17: u64 = 100000000000000000;        // 10 ** 8  * 10 ** 9  (billion)
     const P18: u64 = 1000000000000000000;
 
-    #[test(admin = @HippoSwap, investor = @0x2FFF, swapper = @0x2FFE, core = @0xa550c18)]
+    #[test(admin = @hippo_swap, investor = @0x2FFF, swapper = @0x2FFE, core = @aptos_framework)]
     public fun test_pool_constant_product(admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
         let pool_type = POOL_TYPE_CONSTANT_PRODUCT;
         TestShared::time_start(core);
