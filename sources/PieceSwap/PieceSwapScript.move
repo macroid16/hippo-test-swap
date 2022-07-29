@@ -2,7 +2,7 @@ address hippo_swap {
 module piece_swap_script {
     use std::signer;
     use hippo_swap::piece_swap;
-    use token_registry::token_registry;
+    use coin_registry::coin_registry;
     use aptos_framework::coin;
 
     const E_SWAP_ONLY_ONE_IN_ALLOWED: u64 = 0;
@@ -39,11 +39,11 @@ module piece_swap_script {
         use hippo_swap::math;
 
         let admin_addr = signer::address_of(admin);
-        assert!(token_registry::is_registry_initialized(admin_addr), E_TOKEN_REGISTRY_NOT_INITIALIZED);
-        assert!(token_registry::has_token<X>(admin_addr), E_TOKEN_X_NOT_REGISTERED);
-        assert!(token_registry::has_token<Y>(admin_addr), E_TOKEN_Y_NOT_REGISTERED);
-        assert!(!token_registry::has_token<piece_swap::LPToken<X,Y>>(admin_addr), E_LP_TOKEN_ALREADY_REGISTERED);
-        assert!(!token_registry::has_token<piece_swap::LPToken<Y,X>>(admin_addr), E_LP_TOKEN_ALREADY_REGISTERED);
+        assert!(coin_registry::is_registry_initialized(admin_addr), E_TOKEN_REGISTRY_NOT_INITIALIZED);
+        assert!(coin_registry::has_token<X>(admin_addr), E_TOKEN_X_NOT_REGISTERED);
+        assert!(coin_registry::has_token<Y>(admin_addr), E_TOKEN_Y_NOT_REGISTERED);
+        assert!(!coin_registry::has_token<piece_swap::LPToken<X,Y>>(admin_addr), E_LP_TOKEN_ALREADY_REGISTERED);
+        assert!(!coin_registry::has_token<piece_swap::LPToken<Y,X>>(admin_addr), E_LP_TOKEN_ALREADY_REGISTERED);
 
         let decimals = math::max((coin::decimals<X>() as u128), (coin::decimals<Y>() as u128));
         let decimals = (decimals as u64);
@@ -63,7 +63,7 @@ module piece_swap_script {
         );
 
         // register LP token to registry
-        token_registry::add_token<piece_swap::LPToken<X,Y>>(
+        coin_registry::add_token<piece_swap::LPToken<X,Y>>(
             admin,
             lp_name,
             lp_symbol,
@@ -74,6 +74,7 @@ module piece_swap_script {
         );
     }
 
+    #[cmd]
     public entry fun create_new_pool_script<X, Y>(
         admin: &signer,
         lp_name: vector<u8>,
@@ -103,6 +104,7 @@ module piece_swap_script {
         )
     }
 
+    #[cmd]
     public entry fun add_liquidity_script<X, Y>(
         sender: &signer,
         amount_x: u64,
@@ -110,12 +112,14 @@ module piece_swap_script {
     ) {
         piece_swap::add_liquidity<X,Y>(sender, amount_x, amount_y);
     }
+    #[cmd]
     public entry fun remove_liquidity_script<X, Y>(
         sender: &signer,
         liquidity: u64,
     ) {
         piece_swap::remove_liquidity<X,Y>(sender, liquidity);
     }
+    #[cmd]
     public entry fun swap_script<X, Y>(
         sender: &signer,
         x_in: u64,
@@ -139,6 +143,7 @@ module piece_swap_script {
         }
     }
 
+    #[cmd]
     public entry fun mock_deploy_script(admin: &signer) {
         use hippo_swap::mock_deploy;
         use hippo_swap::mock_coin;
@@ -152,11 +157,11 @@ module piece_swap_script {
         let admin_addr = signer::address_of(admin);
 
         // 1
-        if (!token_registry::is_registry_initialized(admin_addr)) {
+        if (!coin_registry::is_registry_initialized(admin_addr)) {
             // std::debug::print(&299999919999);
             // It's weird that the coverage does not mark the if branch.
             // Find the reason later from the compiler part of the aptos-core repo.
-            token_registry::initialize(admin);
+            coin_registry::initialize(admin);
         };
 
         // 2

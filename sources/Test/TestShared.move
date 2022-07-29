@@ -6,7 +6,7 @@ module hippo_swap::TestShared {
 
     use hippo_swap::mock_deploy;
     use hippo_swap::mock_coin::{WUSDT, WUSDC, WDAI, WETH, WBTC, WDOT, WSOL};
-    use token_registry::token_registry;
+    use coin_registry::coin_registry;
     use aptos_framework::timestamp;
     use hippo_swap::mock_coin;
     use std::signer;
@@ -108,7 +108,7 @@ module hippo_swap::TestShared {
 
     #[test_only]
     public fun init_registry_and_mock_coins(admin: &signer) {
-        token_registry::initialize(admin);
+        coin_registry::initialize(admin);
         mock_deploy::init_coin_and_create_store<WUSDT>(admin, b"USDT", b"USDT", 8);
         mock_deploy::init_coin_and_create_store<WUSDC>(admin, b"USDC", b"USDC", 8);
         mock_deploy::init_coin_and_create_store<WDAI>(admin, b"DAI", b"DAI", 7);
@@ -120,7 +120,7 @@ module hippo_swap::TestShared {
 
     #[test_only]
     public fun init_mock_coin_pair<X, Y>(admin: &signer, decimal_x: u64, decimal_y: u64) {
-        token_registry::initialize(admin);
+        coin_registry::initialize(admin);
         mock_deploy::init_coin_and_create_store<X>(admin, b"COIN-X", b"COIN-X", decimal_x);
         mock_deploy::init_coin_and_create_store<Y>(admin, b"COIN-Y", b"COIN-Y", decimal_y);
     }

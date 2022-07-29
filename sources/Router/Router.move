@@ -86,6 +86,7 @@ module router {
         coin_z_amt
     }
 
+    #[cmd]
     public entry fun two_step_route_script<X, Y, Z>(
         sender: &signer,
         first_pool_type: u8,
@@ -134,6 +135,7 @@ module router {
         coin::deposit(sender_addr, coin_a);
     }
 
+    #[cmd]
     public entry fun three_step_route_script<X, Y, Z, A>(
         sender: &signer,
         first_pool_type: u8,

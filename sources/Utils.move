@@ -1,6 +1,6 @@
 module hippo_swap::utils {
     use std::vector;
-    use aptos_framework::type_info;
+    use aptos_std::type_info;
 
     const COMPARE_GREATER: u8 = 2;
     const COMPARE_EQUAL: u8 = 1;

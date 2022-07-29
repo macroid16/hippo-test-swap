@@ -22,6 +22,7 @@ module piece_swap {
 
     struct LPToken<phantom X, phantom Y> {}
 
+    #[show]
     struct PieceSwapPoolInfo<phantom X, phantom Y> has key {
         reserve_x: coin::Coin<X>,
         reserve_y: coin::Coin<Y>,

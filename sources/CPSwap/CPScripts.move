@@ -2,7 +2,7 @@ address hippo_swap {
 module cp_scripts {
     use hippo_swap::cp_swap;
     use std::signer;
-    use token_registry::token_registry;
+    use coin_registry::coin_registry;
     use hippo_swap::mock_coin;
     use aptos_framework::coin;
 
@@ -28,11 +28,11 @@ module cp_scripts {
         use hippo_swap::math;
 
         let admin_addr = signer::address_of(sender);
-        assert!(token_registry::is_registry_initialized(admin_addr), E_TOKEN_REGISTRY_NOT_INITIALIZED);
-        assert!(token_registry::has_token<X>(admin_addr), E_TOKEN_X_NOT_REGISTERED);
-        assert!(token_registry::has_token<Y>(admin_addr), E_TOKEN_Y_NOT_REGISTERED);
-        assert!(!token_registry::has_token<cp_swap::LPToken<X,Y>>(admin_addr), E_LP_TOKEN_ALREADY_REGISTERED);
-        assert!(!token_registry::has_token<cp_swap::LPToken<Y,X>>(admin_addr), E_LP_TOKEN_ALREADY_REGISTERED);
+        assert!(coin_registry::is_registry_initialized(admin_addr), E_TOKEN_REGISTRY_NOT_INITIALIZED);
+        assert!(coin_registry::has_token<X>(admin_addr), E_TOKEN_X_NOT_REGISTERED);
+        assert!(coin_registry::has_token<Y>(admin_addr), E_TOKEN_Y_NOT_REGISTERED);
+        assert!(!coin_registry::has_token<cp_swap::LPToken<X,Y>>(admin_addr), E_LP_TOKEN_ALREADY_REGISTERED);
+        assert!(!coin_registry::has_token<cp_swap::LPToken<Y,X>>(admin_addr), E_LP_TOKEN_ALREADY_REGISTERED);
 
         let decimals = math::max((coin::decimals<X>() as u128), (coin::decimals<Y>() as u128));
         let decimals = (decimals as u64);
@@ -41,7 +41,7 @@ module cp_scripts {
 
 
         // register LP token to registry
-        token_registry::add_token<cp_swap::LPToken<X,Y>>(
+        coin_registry::add_token<cp_swap::LPToken<X,Y>>(
             sender,
             lp_name,
             lp_symbol,
@@ -51,6 +51,7 @@ module cp_scripts {
             lp_project_url,
         );
     }
+    #[cmd]
     public entry fun create_new_pool_script<X, Y>(
         sender: &signer,
         fee_to: address,
@@ -72,6 +73,7 @@ module cp_scripts {
             lp_project_url,
         );
     }
+    #[cmd]
     public entry fun add_liquidity_script<X, Y>(
         sender: &signer,
         amount_x: u64,
@@ -79,6 +81,7 @@ module cp_scripts {
     ) {
         cp_swap::add_liquidity<X,Y>(sender, amount_x, amount_y);
     }
+    #[cmd]
     public entry fun remove_liquidity_script<X, Y>(
         sender: &signer,
         liquidity: u64,
@@ -87,6 +90,7 @@ module cp_scripts {
     ) {
         cp_swap::remove_liquidity<X,Y>(sender, liquidity, amount_x_min, amount_y_min);
     }
+    #[cmd]
     public entry fun swap_script<X, Y>(
         sender: &signer,
         x_in: u64,
@@ -124,7 +128,7 @@ module cp_scripts {
         mock_coin::initialize<CoinType>(admin, 8);
 
         // add coin to registry
-        token_registry::add_token<CoinType>(
+        coin_registry::add_token<CoinType>(
             admin,
             name,
             symbol,
@@ -177,8 +181,8 @@ module cp_scripts {
         */
         let admin_addr = signer::address_of(admin);
         // 1
-        if(!token_registry::is_registry_initialized(admin_addr)) {
-            token_registry::initialize(admin);
+        if(!coin_registry::is_registry_initialized(admin_addr)) {
+            coin_registry::initialize(admin);
         };
         // 2
         init_coin_and_create_store<mock_coin::WBTC>(admin, b"Bitcoin", b"BTC", 8);
@@ -213,7 +217,7 @@ module cp_scripts {
         let admin_addr = signer::address_of(admin);
         // 1
         mock_deploy_script(admin);
-        assert!(token_registry::is_registry_initialized(admin_addr), 5);
+        assert!(coin_registry::is_registry_initialized(admin_addr), 5);
         // 2
         coin::register_internal<mock_coin::WBTC>(user);
         coin::register_internal<mock_coin::WUSDC>(user);

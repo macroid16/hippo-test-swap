@@ -3,9 +3,9 @@ name = "hippo-swap"
 version = "0.0.1"
 
 [dependencies]
-AptosFramework = { git = "https://github.com/aptos-labs/aptos-core.git", subdir = "aptos-move/framework/aptos-framework/", rev = "a3143756d498821f4f51a5970c7ea35d483938b3" }
-MoveNursery = { git = "https://github.com/aptos-labs/aptos-core.git", subdir = "aptos-move/framework/move-stdlib/nursery/", rev = "a3143756d498821f4f51a5970c7ea35d483938b3" }
-TokenRegistry = { git = "https://github.com/hippospace/aptos-registry.git", subdir = "move", rev = "e02a7fd6667ade8e8a19ec74fd50855b5fa2e423" }
+AptosFramework = { git = "https://github.com/aptos-labs/aptos-core.git", subdir = "aptos-move/framework/aptos-framework/", rev = "7296f138e11113fab6a1e193fc3f18fa7d08bd3e" }
+AptosStdlib = { git = "https://github.com/aptos-labs/aptos-core.git", subdir = "aptos-move/framework/aptos-stdlib/", rev = "7296f138e11113fab6a1e193fc3f18fa7d08bd3e" }
+CoinRegistry = { git = "https://github.com/hippospace/aptos-registry.git", subdir = "move", rev = "97ba959117d416096e9522772ff333af8ab45fc7" }
 
 [addresses]
 hippo_swap = "a61e1e86e9f596e483283727d2739ba24b919012720648c29380f9cd0a96c11a"

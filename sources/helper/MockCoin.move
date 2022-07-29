@@ -2,7 +2,7 @@
 address hippo_swap {
 module mock_coin {
     use aptos_framework::coin;
-    use aptos_framework::type_info;
+    use aptos_std::type_info;
     use std::string;
     use std::signer;
 
@@ -80,6 +80,7 @@ module mock_coin {
         coin::deposit(to_addr, coin);
     }
 
+    #[cmd]
     public entry fun faucet_mint_to_script<TokenType>(to: &signer, amount: u64) acquires  TokenSharedCapability {
         faucet_mint_to<TokenType>(to, amount);
     }
