@@ -210,6 +210,9 @@ module piece_swap_script {
 
     #[test(admin=@hippo_swap)]
     public entry fun test_mock_deploy(admin: &signer) {
+        use aptos_framework::account;
+        account::create_account(signer::address_of(admin));
+
         mock_deploy_script(admin);
     }
 
@@ -217,6 +220,9 @@ module piece_swap_script {
     public entry fun test_remove_liquidity(admin: &signer) {
         use hippo_swap::mock_coin::{WUSDC, WUSDT, WDAI};
         use aptos_framework::coin;
+        use aptos_framework::account;
+        account::create_account(signer::address_of(admin));
+
         /*
         1. mock_deploy
         2. remove liquidity
@@ -238,6 +244,9 @@ module piece_swap_script {
         use hippo_swap::mock_coin;
         use hippo_swap::mock_coin::{WUSDC, WUSDT, WDAI};
         use aptos_framework::coin;
+        use aptos_framework::account;
+        account::create_account(signer::address_of(admin));
+        account::create_account(signer::address_of(user));
         /*
         1. create pools
         2. swap x to y

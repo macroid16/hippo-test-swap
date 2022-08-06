@@ -259,6 +259,11 @@ module hippo_swap::piece_test {
 
     #[test(admin = @hippo_swap, investor = @0x2FFF, swapper = @0x2FFE, core = @aptos_framework)]
     public fun test_pool_piece_swap_4(admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
+        use std::signer;
+        use aptos_framework::account;
+        account::create_account(signer::address_of(admin));
+        account::create_account(signer::address_of(investor));
+        account::create_account(signer::address_of(swapper));
         let (decimal_x, decimal_y, ) = (10, 6);
         let (k, n1, d1, n2, d2, fee, protocal_fee) = ((P18 as u128), 110, 100, 105, 100, 100, 100);
         let add_1 = add_param(P10, P6, P10, P6, P10, 0, 0);
@@ -275,6 +280,11 @@ module hippo_swap::piece_test {
 
     #[test(admin = @hippo_swap, investor = @0x2FFF, swapper = @0x2FFE, core = @aptos_framework)]
     public fun test_pool_piece_swap_5(admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
+        use std::signer;
+        use aptos_framework::account;
+        account::create_account(signer::address_of(admin));
+        account::create_account(signer::address_of(investor));
+        account::create_account(signer::address_of(swapper));
         let (decimal_x, decimal_y, ) = (10, 10);
         let (k, n1, d1, n2, d2, fee, protocal_fee) = ((P18 as u128), 110, 100, 105, 100, 100, 100);
         let add_1 = add_param(P10, P10, P10, P10, P10, 0, 0);
@@ -291,6 +301,11 @@ module hippo_swap::piece_test {
 
     #[test(admin = @hippo_swap, investor = @0x2FFF, swapper = @0x2FFE, core = @aptos_framework)]
     public fun test_pool_piece_swap_6(admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
+        use std::signer;
+        use aptos_framework::account;
+        account::create_account(signer::address_of(admin));
+        account::create_account(signer::address_of(investor));
+        account::create_account(signer::address_of(swapper));
         // The capacity of the stable curve pool size, nealy 10^17.
         let (pool_type, print_debug) = (POOL_TYPE_PIECEWISE, false);
         let (decimal_x, decimal_y, ) = (10, 10);
@@ -310,6 +325,11 @@ module hippo_swap::piece_test {
 
     #[test(admin = @hippo_swap, investor = @0x2FFF, swapper = @0x2FFE, core = @aptos_framework)]
     public fun test_pool_piece_swap_7(admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
+        use std::signer;
+        use aptos_framework::account;
+        account::create_account(signer::address_of(admin));
+        account::create_account(signer::address_of(investor));
+        account::create_account(signer::address_of(swapper));
         // Overflow
         let (pool_type, print_debug) = (POOL_TYPE_PIECEWISE, false);
         let (decimal_x, decimal_y, ) = (10, 10);
@@ -336,6 +356,11 @@ module hippo_swap::piece_test {
 
     #[test(admin = @hippo_swap, investor = @0x2FFF, swapper = @0x2FFE, core = @aptos_framework)]
     public fun test_pool_piece_swap_8(admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
+        use std::signer;
+        use aptos_framework::account;
+        account::create_account(signer::address_of(admin));
+        account::create_account(signer::address_of(investor));
+        account::create_account(signer::address_of(swapper));
         let (pool_type, print_debug) = (POOL_TYPE_PIECEWISE, false);
         let (decimal_x, decimal_y, ) = (8, 6);
         let (k, n1, d1, n2, d2, fee, protocal_fee) = ((P18 as u128), 110, 100, 105, 100, 100, 100);
@@ -359,6 +384,11 @@ module hippo_swap::piece_test {
         // And the other way is the direct charge during the swap process.
         // It shows that as the base of reserve increases, traders afford less for the slippage of the same amount of imbalanced reserve.
         // And the remove liquidity actions reverse the process which took away all the reserve by steps.
+        use std::signer;
+        use aptos_framework::account;
+        account::create_account(signer::address_of(admin));
+        account::create_account(signer::address_of(investor));
+        account::create_account(signer::address_of(swapper));
         let (pool_type, print_debug) = (POOL_TYPE_PIECEWISE, false);
         let (decimal_x, decimal_y, ) = (8, 6);
         let (k, n1, d1, n2, d2, fee, protocal_fee) = ((P18 as u128), 110, 100, 105, 100, 100, 100);
@@ -411,6 +441,11 @@ module hippo_swap::piece_test {
 
     #[test(admin = @hippo_swap, investor = @0x2FFF, swapper = @0x2FFE, core = @aptos_framework)]
     public fun test_pool_piece_swap_deviant(admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
+        use std::signer;
+        use aptos_framework::account;
+        account::create_account(signer::address_of(admin));
+        account::create_account(signer::address_of(investor));
+        account::create_account(signer::address_of(swapper));
 
         let (pool_type, print_debug) = (POOL_TYPE_PIECEWISE, false);
         let (decimal_x, decimal_y, ) = (8, 6);

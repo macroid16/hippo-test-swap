@@ -37,6 +37,9 @@ module hippo_swap::mock_deploy {
     #[test(admin = @hippo_swap)]
     fun test_init_coin(admin: &signer) {
         use hippo_swap::mock_coin;
+        use aptos_framework::account;
+        use std::signer;
+        account::create_account(signer::address_of(admin));
         coin_registry::initialize(admin);
         init_coin_and_create_store<mock_coin::WBTC>(admin, b"Bitcoin", b"BTC", 8);
     }

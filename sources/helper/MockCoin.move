@@ -2,6 +2,7 @@
 address hippo_swap {
 module mock_coin {
     use aptos_framework::coin;
+    use aptos_framework::coins;
     use aptos_std::type_info;
     use std::string;
     use std::signer;
@@ -46,7 +47,7 @@ module mock_coin {
             decimals,
             true
         );
-        coin::register_internal<TokenType>(account);
+        coins::register_internal<TokenType>(account);
 
         move_to(account, TokenSharedCapability { mint: mint_capability, burn: burn_capability });
     }
@@ -74,7 +75,7 @@ module mock_coin {
     public fun faucet_mint_to<TokenType>(to: &signer, amount: u64) acquires TokenSharedCapability {
         let to_addr = signer::address_of(to);
         if (!coin::is_account_registered<TokenType>(to_addr)) {
-            coin::register_internal<TokenType>(to);
+            coins::register_internal<TokenType>(to);
         };
         let coin = mint<TokenType>(amount);
         coin::deposit(to_addr, coin);
@@ -88,6 +89,9 @@ module mock_coin {
 
     #[test(admin=@hippo_swap, user=@0x1234567, core=@0xa550c18)]
     public entry fun test_mint_script(admin: &signer, user: &signer) acquires TokenSharedCapability {
+        use aptos_framework::account;
+        account::create_account(signer::address_of(admin));
+        account::create_account(signer::address_of(user));
         initialize<WETH>(admin, 6);
         faucet_mint_to_script<WETH>(user, 1000000);
     }

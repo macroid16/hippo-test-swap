@@ -207,20 +207,26 @@ module cp_scripts {
         );
     }
 
+    #[test_only]
+    use aptos_framework::coins;
+
     #[test(admin=@hippo_swap, user=@0x1234567, core=@aptos_framework)]
     public entry fun test_initialization_cpswap(admin: &signer, user: &signer, core: &signer) {
         /*
         1. perform local depploy
         2. user trades
         */
+        use aptos_framework::account;
+        account::create_account(signer::address_of(admin));
+        account::create_account(signer::address_of(user));
         timestamp::set_time_has_started_for_testing(core);
         let admin_addr = signer::address_of(admin);
         // 1
         mock_deploy_script(admin);
         assert!(coin_registry::is_registry_initialized(admin_addr), 5);
         // 2
-        coin::register_internal<mock_coin::WBTC>(user);
-        coin::register_internal<mock_coin::WUSDC>(user);
+        coins::register_internal<mock_coin::WBTC>(user);
+        coins::register_internal<mock_coin::WUSDC>(user);
         let user_addr = signer::address_of(user);
         mock_coin::faucet_mint_to<mock_coin::WBTC>(user, 100);
         assert!(coin::balance<mock_coin::WUSDC>(user_addr)==0, 5);
@@ -237,6 +243,9 @@ module cp_scripts {
         2. add liquidity to BTC-USDC
         3. remove liquidity from BTC-USDC
         */
+        use aptos_framework::account;
+        account::create_account(signer::address_of(admin));
+        account::create_account(signer::address_of(user));
 
         timestamp::set_time_has_started_for_testing(core);
         // 1
@@ -266,6 +275,10 @@ module cp_scripts {
 
     #[test(admin=@hippo_swap, user=@0x1234567, core=@aptos_framework)]
     public entry fun test_swap(admin: &signer, user: &signer, core: &signer) {
+        use aptos_framework::account;
+        account::create_account(signer::address_of(admin));
+        account::create_account(signer::address_of(user));
+
         /*
         1. create pools
         2. swap x to y

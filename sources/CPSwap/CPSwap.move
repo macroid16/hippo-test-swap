@@ -5,6 +5,7 @@ module hippo_swap::cp_swap {
     use std::string;
 
     use aptos_framework::coin;
+    use aptos_framework::coins;
     use aptos_framework::timestamp;
 
     use hippo_swap::safe_math;
@@ -120,13 +121,13 @@ module hippo_swap::cp_swap {
         );
 
         // create LP CoinStore for admin, which is needed as a lock for minimum_liquidity
-        coin::register_internal<LPToken<X,Y>>(admin);
+        coins::register_internal<LPToken<X,Y>>(admin);
     }
 
     /// The init process for a sender. One must call this function first
     /// before interacting with the mint/burn.
     public fun register_account<X, Y>(sender: &signer) {
-        coin::register_internal<LPToken<X, Y>>(sender);
+        coins::register_internal<LPToken<X, Y>>(sender);
     }
 
     // ====================== Getters ===========================
@@ -155,7 +156,7 @@ module hippo_swap::cp_swap {
 
     fun check_coin_store<X>(sender: &signer) {
         if (!coin::is_account_registered<X>(signer::address_of(sender))) {
-            coin::register_internal<X>(sender);
+            coins::register_internal<X>(sender);
         };
     }
 
@@ -647,8 +648,8 @@ module hippo_swap::cp_swap {
             true
         );
 
-        coin::register_internal<T>(admin);
-        coin::register_internal<T>(to);
+        coins::register_internal<T>(admin);
+        coins::register_internal<T>(to);
 
         let a = coin::mint(total_supply, &mc);
         coin::deposit(signer::address_of(to), a);
@@ -656,10 +657,12 @@ module hippo_swap::cp_swap {
     }
 
     #[test(admin = @hippo_swap)]
-    public fun init_works(admin: signer) {
-        let fee_to = signer::address_of(&admin);
+    public fun init_works(admin: &signer) {
+        use aptos_framework::account;
+        account::create_account(signer::address_of(admin));
+        let fee_to = signer::address_of(admin);
         create_token_pair<Token0, Token1>(
-            &admin,
+            admin,
             fee_to,
             true,
             b"name",
@@ -668,10 +671,16 @@ module hippo_swap::cp_swap {
         );
     }
 
-    #[test(admin = @hippo_swap, token_owner = @0x02, lp_provider = @0x03, lock = @0x01, core = @aptos_framework)]
-    public fun mint_works(admin: signer, token_owner: signer, lp_provider: signer, lock: signer, core: signer)
+    #[test(admin = @hippo_swap, token_owner = @0x02, lp_provider = @0x03, lock = @0x01, core_resource=@core_resources)]
+    public fun mint_works(admin: signer, token_owner: signer, lp_provider: signer, lock: signer, core_resource: signer)
         acquires TokenPairReserve, TokenPairMetadata
     {
+        use aptos_framework::account;
+        use aptos_framework::genesis;
+        genesis::setup(&core_resource);
+        account::create_account(signer::address_of(&admin));
+        account::create_account(signer::address_of(&token_owner));
+        account::create_account(signer::address_of(&lp_provider));
         // initial setup work
         let decimals: u8 = 8;
         let total_supply: u64 = (expand_to_decimals(1000000, 8) as u64);
@@ -689,12 +698,11 @@ module hippo_swap::cp_swap {
             8
         );
 
-        timestamp::set_time_has_started_for_testing(&core);
         register_account<Token0, Token1>(&lp_provider);
         register_account<Token0, Token1>(&lock);
 
-        coin::register_internal<Token0>(&lp_provider);
-        coin::register_internal<Token1>(&lp_provider);
+        coins::register_internal<Token0>(&lp_provider);
+        coins::register_internal<Token1>(&lp_provider);
 
         // now perform the test
         let amount_x = expand_to_decimals(1u64, decimals);
@@ -727,10 +735,16 @@ module hippo_swap::cp_swap {
         assert!(r1 == amount_y, 0);
     }
 
-    #[test(admin = @hippo_swap, token_owner = @0x02, lp_provider = @0x03, lock = @0x01, core = @aptos_framework)]
-    public fun remove_liquidity_works(admin: signer, token_owner: signer, lp_provider: signer, lock: signer, core: signer)
+    #[test(admin = @hippo_swap, token_owner = @0x02, lp_provider = @0x03, lock = @0x01, core_resource=@core_resources)]
+    public fun remove_liquidity_works(admin: signer, token_owner: signer, lp_provider: signer, lock: signer, core_resource: signer)
         acquires TokenPairReserve, TokenPairMetadata
     {
+        use aptos_framework::account;
+        use aptos_framework::genesis;
+        genesis::setup(&core_resource);
+        account::create_account(signer::address_of(&admin));
+        account::create_account(signer::address_of(&token_owner));
+        account::create_account(signer::address_of(&lp_provider));
         // initial setup work
         let decimals: u8 = 8;
         let total_supply: u64 = (expand_to_decimals(1000000, 8) as u64);
@@ -748,11 +762,10 @@ module hippo_swap::cp_swap {
             8
         );
 
-        timestamp::set_time_has_started_for_testing(&core);
         register_account<Token0, Token1>(&lp_provider);
         register_account<Token0, Token1>(&lock);
-        coin::register_internal<Token0>(&lp_provider);
-        coin::register_internal<Token1>(&lp_provider);
+        coins::register_internal<Token0>(&lp_provider);
+        coins::register_internal<Token1>(&lp_provider);
 
         let amount_x = expand_to_decimals(3u64, decimals);
         let amount_y = expand_to_decimals(3u64, decimals);
@@ -787,10 +800,16 @@ module hippo_swap::cp_swap {
         assert!(coin::balance<Token1>(signer::address_of(&lp_provider)) == amount_y - (MINIMUM_LIQUIDITY as u64), 0);
     }
 
-    #[test(admin = @hippo_swap, token_owner = @0x02, lp_provider = @0x03, lock = @0x01, core = @aptos_framework)]
-    public fun swap_x_works(admin: signer, token_owner: signer, lp_provider: signer, lock: signer, core: signer)
+    #[test(admin = @hippo_swap, token_owner = @0x02, lp_provider = @0x03, lock = @0x01, core_resource=@core_resources)]
+    public fun swap_x_works(admin: signer, token_owner: signer, lp_provider: signer, lock: signer, core_resource: signer)
         acquires TokenPairReserve, TokenPairMetadata
     {
+        use aptos_framework::account;
+        use aptos_framework::genesis;
+        genesis::setup(&core_resource);
+        account::create_account(signer::address_of(&admin));
+        account::create_account(signer::address_of(&token_owner));
+        account::create_account(signer::address_of(&lp_provider));
         // initial setup work
         let decimals: u8 = 8;
         let total_supply: u64 = (expand_to_decimals(1000000, 8) as u64);
@@ -808,12 +827,11 @@ module hippo_swap::cp_swap {
             8
         );
 
-        timestamp::set_time_has_started_for_testing(&core);
         register_account<Token0, Token1>(&lp_provider);
         register_account<Token0, Token1>(&lock);
         register_account<Token0, Token1>(&token_owner);
-        coin::register_internal<Token0>(&lp_provider);
-        coin::register_internal<Token1>(&lp_provider);
+        coins::register_internal<Token0>(&lp_provider);
+        coins::register_internal<Token1>(&lp_provider);
 
         let amount_x = expand_to_decimals(5u64, decimals);
         let amount_y = expand_to_decimals(10u64, decimals);
