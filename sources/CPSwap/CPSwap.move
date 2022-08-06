@@ -39,6 +39,7 @@ module hippo_swap::cp_swap {
     /// The LP Token type
     struct LPToken<phantom X, phantom Y> has key {}
 
+    #[query(quote_x_to_y_after_fees, quote_y_to_x_after_fees)]
     /// Stores the metadata required for the token pairs
     struct TokenPairMetadata<phantom X, phantom Y> has key {
         /// Lock for mint and burn
@@ -263,6 +264,14 @@ module hippo_swap::cp_swap {
         (coins_x, coins_y)
     }
 
+    public fun quote_x_to_y_after_fees <X, Y>(
+        pool: &TokenPairMetadata<X, Y>,
+        amount_x_in: u64
+    ): u64 {
+        let (x_balance, y_balance) = token_balances_metadata(pool);
+        cp_swap_utils::get_amount_out(amount_x_in, x_balance, y_balance)
+    }
+
     /// Swap X to Y, X is in and Y is out. This method assumes amount_out_min is 0
     public fun swap_x_to_exact_y<X, Y>(
         sender: &signer,
@@ -289,6 +298,14 @@ module hippo_swap::cp_swap {
         let (coins_x_out, coins_y_out) = swap<X, Y>(0, amount_out);
         assert!(coin::value<X>(&coins_x_out) == 0, ERROR_INSUFFICIENT_OUTPUT_AMOUNT);
         (coins_x_out, coins_y_out)
+    }
+
+    public fun quote_y_to_x_after_fees<X, Y>(
+        pool: &TokenPairMetadata<X, Y>,
+        amount_y_in: u64
+    ): u64 {
+        let (x_balance, y_balance) = token_balances_metadata(pool);
+        cp_swap_utils::get_amount_out(amount_y_in, y_balance, x_balance)
     }
 
     /// Swap Y to X, Y is in and X is out. This method assumes amount_out_min is 0

@@ -23,6 +23,7 @@ module piece_swap {
 
     struct LPToken<phantom X, phantom Y> {}
 
+    #[query(quote_x_to_y, quote_y_to_x, quote_x_to_y_after_fees, quote_y_to_x_after_fees)]
     struct PieceSwapPoolInfo<phantom X, phantom Y> has key {
         reserve_x: coin::Coin<X>,
         reserve_y: coin::Coin<Y>,
@@ -288,14 +289,13 @@ module piece_swap {
         value_y
     }
 
-    public fun swap_x_to_y_direct<X, Y>(
-        coin_x: coin::Coin<X>,
-    ): coin::Coin<Y> acquires PieceSwapPoolInfo {
-        let pool = borrow_global_mut<PieceSwapPoolInfo<X, Y>>(MODULE_ADMIN);
+    public fun quote_x_to_y<X, Y>(
+        pool: &PieceSwapPoolInfo<X, Y>,
+        amount_x_in: u64,
+    ): u64 {
         let current_x = (coin::value(&pool.reserve_x) as u128) * (pool.x_deci_mult as u128);
         let current_y = (coin::value(&pool.reserve_y) as u128) * (pool.y_deci_mult as u128);
-        let x_value = (coin::value(&coin_x) as u128);
-        coin::merge(&mut pool.reserve_x, coin_x);
+        let x_value = (amount_x_in as u128);
         let input_x = x_value * (pool.x_deci_mult as u128);
         let opt_output_y = piece_swap_math::get_swap_x_to_y_out(
             current_x,
@@ -310,6 +310,27 @@ module piece_swap {
         );
 
         let actual_out_y = ((opt_output_y / (pool.y_deci_mult as u128)) as u64);
+        actual_out_y
+    }
+
+    public fun quote_x_to_y_after_fees<X, Y>(
+        pool: &PieceSwapPoolInfo<X, Y>,
+        amount_x_in: u64,
+    ): u64 {
+        let actual_out_y = quote_x_to_y(pool, amount_x_in);
+        let total_fees = actual_out_y * pool.swap_fee_per_million / 1000000;
+        let out_y_after_fees = actual_out_y - total_fees;
+        out_y_after_fees
+    }
+
+    public fun swap_x_to_y_direct<X, Y>(
+        coin_x: coin::Coin<X>,
+    ): coin::Coin<Y> acquires PieceSwapPoolInfo {
+        let pool = borrow_global_mut<PieceSwapPoolInfo<X, Y>>(MODULE_ADMIN);
+        let actual_out_y = quote_x_to_y(pool, coin::value(&coin_x));
+
+        // deposit
+        coin::merge(&mut pool.reserve_x, coin_x);
 
         // handle fees
         let total_fees = actual_out_y * pool.swap_fee_per_million / 1000000;
@@ -332,14 +353,13 @@ module piece_swap {
         value_x
     }
 
-    public fun swap_y_to_x_direct<X, Y>(
-        coin_y: coin::Coin<Y>,
-    ): coin::Coin<X> acquires PieceSwapPoolInfo {
-        let pool = borrow_global_mut<PieceSwapPoolInfo<X, Y>>(MODULE_ADMIN);
+    public fun quote_y_to_x<X, Y>(
+        pool: &PieceSwapPoolInfo<X, Y>,
+        amount_y_in: u64,
+    ): u64 {
         let current_x = (coin::value(&pool.reserve_x) as u128) * (pool.x_deci_mult as u128);
         let current_y = (coin::value(&pool.reserve_y) as u128) * (pool.y_deci_mult as u128);
-        let y_value = (coin::value(&coin_y) as u128);
-        coin::merge(&mut pool.reserve_y, coin_y);
+        let y_value = (amount_y_in as u128);
         let input_y = y_value * (pool.y_deci_mult as u128);
         let opt_output_x = piece_swap_math::get_swap_y_to_x_out(
             current_x,
@@ -354,6 +374,27 @@ module piece_swap {
         );
 
         let actual_out_x = ((opt_output_x / (pool.x_deci_mult as u128)) as u64);
+        actual_out_x
+    }
+
+    public fun quote_y_to_x_after_fees<X, Y>(
+        pool: &PieceSwapPoolInfo<X, Y>,
+        amount_y_in: u64,
+    ): u64 {
+        let actual_out_x = quote_y_to_x(pool, amount_y_in);
+        let total_fees = actual_out_x * pool.swap_fee_per_million / 1000000;
+        let out_x_after_fees = actual_out_x - total_fees;
+        out_x_after_fees
+    }
+
+    public fun swap_y_to_x_direct<X, Y>(
+        coin_y: coin::Coin<Y>,
+    ): coin::Coin<X> acquires PieceSwapPoolInfo {
+        let pool = borrow_global_mut<PieceSwapPoolInfo<X, Y>>(MODULE_ADMIN);
+        let actual_out_x = quote_y_to_x(pool, coin::value(&coin_y));
+
+        // deposit
+        coin::merge(&mut pool.reserve_y, coin_y);
 
         // handle fees
         let total_fees = actual_out_x * pool.swap_fee_per_million / 1000000;

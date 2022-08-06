@@ -21,6 +21,7 @@ module hippo_swap::stable_curve_swap {
 
     // Swap
 
+    #[query(quote_x_to_y_after_fees, quote_y_to_x_after_fees)]
     struct StableCurvePoolInfo<phantom X, phantom Y> has key {
         disabled: bool,
         reserve_x: coin::Coin<X>,
@@ -277,6 +278,37 @@ module hippo_swap::stable_curve_swap {
         let d = stable_curve_numeral::get_D((xp as u128), (yp as u128), amp);
         let x = if (i == 0) dx + xp else dx + yp;
         (stable_curve_numeral::get_y(x, amp, d) as u64)
+    }
+
+    public fun quote_x_to_y_after_fees<X, Y>(
+        pool: &StableCurvePoolInfo<X, Y>,
+        amount_x_in: u64,
+    ): u64 {
+        let ( reserve_amt_x, reserve_amt_y ) = (coin::value(&pool.reserve_x), coin::value(&pool.reserve_y));
+        let (xp, yp) = get_xp_mem(reserve_amt_x, reserve_amt_y, pool.multiplier_x, pool.multiplier_y);
+        let dx_rated = amount_x_in * pool.multiplier_x;
+        let y = get_y(0, dx_rated, xp, yp, pool.initial_A, pool.initial_A_time, pool.future_A, pool.future_A_time);
+
+        let amount_dy = ( yp - y - 1) / pool.multiplier_y;
+        let amount_dy_fee = amount_dy * pool.fee / (FEE_DENOMINATOR as u64);
+        let charged_amt_dy = (amount_dy - amount_dy_fee);
+        charged_amt_dy
+    }
+
+    public fun quote_y_to_x_after_fees<X, Y>(
+        pool: &StableCurvePoolInfo<X, Y>,
+        amount_y_in: u64,
+    ): u64 {
+        let ( reserve_amt_x, reserve_amt_y ) = (coin::value(&pool.reserve_x), coin::value(&pool.reserve_y));
+        let (xp, yp) = get_xp_mem(reserve_amt_x, reserve_amt_y, pool.multiplier_x, pool.multiplier_y);
+
+        let dy_rated = amount_y_in * pool.multiplier_y;
+        let x = get_y(0, dy_rated, xp, yp, pool.initial_A, pool.initial_A_time, pool.future_A, pool.future_A_time);
+
+        let amount_dx = (xp - x - 1 )  / pool.multiplier_x;
+        let amount_dx_fee = amount_dx * pool.fee / (FEE_DENOMINATOR as u64);
+        let charged_amt_dx = (amount_dx - amount_dx_fee);
+        charged_amt_dx
     }
 
     public fun swap_x_to_exact_y_direct<X, Y>(coins_in: coin::Coin<X>): (coin::Coin<X>, coin::Coin<X>, coin::Coin<Y>) acquires StableCurvePoolInfo {
