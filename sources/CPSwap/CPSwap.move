@@ -39,7 +39,7 @@ module hippo_swap::cp_swap {
     /// The LP Token type
     struct LPToken<phantom X, phantom Y> has key {}
 
-    #[query(quote_x_to_y_after_fees, quote_y_to_x_after_fees)]
+    #[method(quote_x_to_y_after_fees, quote_y_to_x_after_fees)]
     /// Stores the metadata required for the token pairs
     struct TokenPairMetadata<phantom X, phantom Y> has key {
         /// Lock for mint and burn

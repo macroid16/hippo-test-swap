@@ -21,7 +21,7 @@ module hippo_swap::stable_curve_swap {
 
     // Swap
 
-    #[query(quote_x_to_y_after_fees, quote_y_to_x_after_fees)]
+    #[method(quote_x_to_y_after_fees, quote_y_to_x_after_fees)]
     struct StableCurvePoolInfo<phantom X, phantom Y> has key {
         disabled: bool,
         reserve_x: coin::Coin<X>,
