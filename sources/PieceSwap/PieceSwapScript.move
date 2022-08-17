@@ -147,7 +147,6 @@ module piece_swap_script {
     public entry fun mock_deploy_script(admin: &signer) {
         use hippo_swap::mock_deploy;
         use hippo_swap::mock_coin;
-        use hippo_swap::mock_coin::{WUSDC, WUSDT, WDAI};
         /*
         1. initialize registry
         2. initialize coins (and add them to registry)
@@ -165,13 +164,13 @@ module piece_swap_script {
         };
 
         // 2
-        mock_deploy::init_coin_and_create_store<WUSDC>(admin, b"USDC", b"USDC", 8);
-        mock_deploy::init_coin_and_create_store<WUSDT>(admin, b"USDT", b"USDT", 8);
-        mock_deploy::init_coin_and_create_store<WDAI>(admin, b"DAI", b"DAI", 8);
+        mock_deploy::init_coin_and_create_store<mock_coin::WUSDC>(admin, b"USDC", b"USDC", 8);
+        mock_deploy::init_coin_and_create_store<mock_coin::WUSDT>(admin, b"USDT", b"USDT", 8);
+        mock_deploy::init_coin_and_create_store<mock_coin::WDAI>(admin, b"DAI", b"DAI", 8);
 
         // 3
         let billion = 1000000000;
-        create_new_pool_script<WUSDT, WUSDC>(
+        create_new_pool_script<mock_coin::WUSDT, mock_coin::WUSDC>(
             admin,
             b"USDT-USDC PieceSwap LP Token",
             b"USDT-USDC-PS_LP",
@@ -184,7 +183,7 @@ module piece_swap_script {
             100,
         );
 
-        create_new_pool_script<WDAI, WUSDC>(
+        create_new_pool_script<mock_coin::WDAI, mock_coin::WUSDC>(
             admin,
             b"DAI-USDC PieceSwap LP Token",
             b"DAI-USDC-PS_LP",
@@ -199,13 +198,13 @@ module piece_swap_script {
 
         // 4
         let initial_amount = 1000000 * 100000000;
-        mock_coin::faucet_mint_to<WUSDT>(admin, initial_amount);
-        mock_coin::faucet_mint_to<WUSDC>(admin, initial_amount);
-        add_liquidity_script<WUSDT, WUSDC>(admin, initial_amount, initial_amount);
+        mock_coin::faucet_mint_to<mock_coin::WUSDT>(admin, initial_amount);
+        mock_coin::faucet_mint_to<mock_coin::WUSDC>(admin, initial_amount);
+        add_liquidity_script<mock_coin::WUSDT, mock_coin::WUSDC>(admin, initial_amount, initial_amount);
 
-        mock_coin::faucet_mint_to<WDAI>(admin, initial_amount);
-        mock_coin::faucet_mint_to<WUSDC>(admin, initial_amount);
-        add_liquidity_script<WDAI, WUSDC>(admin, initial_amount, initial_amount);
+        mock_coin::faucet_mint_to<mock_coin::WDAI>(admin, initial_amount);
+        mock_coin::faucet_mint_to<mock_coin::WUSDC>(admin, initial_amount);
+        add_liquidity_script<mock_coin::WDAI, mock_coin::WUSDC>(admin, initial_amount, initial_amount);
     }
 
     #[test(admin=@hippo_swap)]
@@ -218,7 +217,7 @@ module piece_swap_script {
 
     #[test(admin=@hippo_swap)]
     public entry fun test_remove_liquidity(admin: &signer) {
-        use hippo_swap::mock_coin::{WUSDC, WUSDT, WDAI};
+        use hippo_swap::mock_coin;
         use aptos_framework::coin;
         use aptos_framework::account;
         account::create_account(signer::address_of(admin));
@@ -230,19 +229,18 @@ module piece_swap_script {
         mock_deploy_script(admin);
 
         // 2
-        remove_liquidity_script<WUSDT, WUSDC>(admin, 100);
-        remove_liquidity_script<WDAI, WUSDC>(admin, 100);
+        remove_liquidity_script<mock_coin::WUSDT, mock_coin::WUSDC>(admin, 100);
+        remove_liquidity_script<mock_coin::WDAI, mock_coin::WUSDC>(admin, 100);
 
         let admin_addr = signer::address_of(admin);
-        assert!(coin::balance<WUSDT>(admin_addr) == 100, 0);
-        assert!(coin::balance<WDAI>(admin_addr) == 100, 0);
-        assert!(coin::balance<WUSDC>(admin_addr) == 200, 0);
+        assert!(coin::balance<mock_coin::WUSDT>(admin_addr) == 100, 0);
+        assert!(coin::balance<mock_coin::WDAI>(admin_addr) == 100, 0);
+        assert!(coin::balance<mock_coin::WUSDC>(admin_addr) == 200, 0);
     }
 
     #[test(admin=@hippo_swap, user=@0x1234567)]
     public entry fun test_swap(admin: &signer, user: &signer) {
         use hippo_swap::mock_coin;
-        use hippo_swap::mock_coin::{WUSDC, WUSDT, WDAI};
         use aptos_framework::coin;
         use aptos_framework::account;
         account::create_account(signer::address_of(admin));
@@ -257,15 +255,15 @@ module piece_swap_script {
 
         // 2
         let usdt_amt = 10000000;
-        mock_coin::faucet_mint_to<WUSDT>(user, usdt_amt);
-        swap_script<WUSDT, WUSDC>(user, usdt_amt, 0, 0, usdt_amt * 999 / 1000);
+        mock_coin::faucet_mint_to<mock_coin::WUSDT>(user, usdt_amt);
+        swap_script<mock_coin::WUSDT, mock_coin::WUSDC>(user, usdt_amt, 0, 0, usdt_amt * 999 / 1000);
 
         // 3
         let usdc_balance = coin::balance<mock_coin::WUSDC>(signer::address_of(user));
-        swap_script<WDAI, WUSDC>(user, 0, usdc_balance, usdc_balance * 999 / 1000, 0);
-        assert!(coin::balance<WUSDC>(signer::address_of(user)) == 0, 0);
-        assert!(coin::balance<WUSDT>(signer::address_of(user)) == 0, 0);
-        assert!(coin::balance<WDAI>(signer::address_of(user)) >= usdc_balance * 999 / 1000, 0);
+        swap_script<mock_coin::WDAI, mock_coin::WUSDC>(user, 0, usdc_balance, usdc_balance * 999 / 1000, 0);
+        assert!(coin::balance<mock_coin::WUSDC>(signer::address_of(user)) == 0, 0);
+        assert!(coin::balance<mock_coin::WUSDT>(signer::address_of(user)) == 0, 0);
+        assert!(coin::balance<mock_coin::WDAI>(signer::address_of(user)) >= usdc_balance * 999 / 1000, 0);
 
     }
 
