@@ -1,9 +1,11 @@
 module hippo_swap::mock_deploy {
     use hippo_swap::mock_coin;
-    use coin_registry::coin_registry;
     use aptos_framework::coin;
+    use coin_list::coin_list;
+    use std::string;
+    use std::vector;
 
-    public fun init_coin_and_create_store<CoinType>(
+    public fun init_coin_and_register<CoinType>(
         admin: &signer,
         name: vector<u8>,
         symbol: vector<u8>,
@@ -15,32 +17,37 @@ module hippo_swap::mock_deploy {
         };
 
         // add coin to registry
-        if (!coin_registry::has_token<CoinType>(@hippo_swap)) {
-            coin_registry::add_token<CoinType>(
+        if (!coin_list::is_coin_registered<CoinType>()){
+            coin_list::add_to_registry_by_signer<CoinType>(
                 admin,
-                name,
-                symbol,
-                name,
-                (decimals as u8),
-                b"",
-                b"",
+                string::utf8(name),
+                string::utf8(symbol),
+                string::utf8(vector::empty<u8>()),
+                string::utf8(vector::empty<u8>()),
+                string::utf8(vector::empty<u8>()),
+                false
             );
-        }
+        };
     }
 
-    public fun init_registry(admin: &signer) {
-        if (!coin_registry::is_registry_initialized(std::signer::address_of(admin))) {
-            coin_registry::initialize(admin);
-        }
+    public fun init_registry(coin_list_admin: &signer) {
+        if (!coin_list::is_registry_initialized()){
+            coin_list::initialize(coin_list_admin)
+        };
     }
 
-    #[test(admin = @hippo_swap)]
-    fun test_init_coin(admin: &signer) {
+    #[test(admin = @hippo_swap, coin_list_admin = @coin_list)]
+    fun test_init_coin(admin: &signer, coin_list_admin: &signer) {
         use hippo_swap::mock_coin;
         use aptos_framework::account;
         use std::signer;
         account::create_account(signer::address_of(admin));
-        coin_registry::initialize(admin);
-        init_coin_and_create_store<mock_coin::WBTC>(admin, b"Bitcoin", b"BTC", 8);
+
+        coin_list::initialize(coin_list_admin);
+        assert!(coin_list::is_registry_initialized(), 1);
+
+        init_coin_and_register<mock_coin::WBTC>(admin, b"Bitcoin", b"BTC", 8);
+        assert!(coin::is_coin_initialized<mock_coin::WBTC>(), 2);
+        assert!(coin_list::is_coin_registered<mock_coin::WBTC>(), 3);
     }
 }

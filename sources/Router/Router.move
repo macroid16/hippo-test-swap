@@ -169,12 +169,15 @@ module router {
     use hippo_swap::cp_scripts;
     #[test_only]
     use hippo_swap::mock_coin;
+    #[test_only]
+    use hippo_swap::mock_deploy;
 
-    #[test(admin=@hippo_swap, user=@0x12345, core=@aptos_framework)]
-    public entry fun test_two_step(admin: &signer, user: &signer, core: &signer) {
+    #[test(admin=@hippo_swap, coin_list_admin = @coin_list, user=@0x12345, core=@aptos_framework)]
+    public entry fun test_two_step(admin: &signer, coin_list_admin: &signer, user: &signer, core: &signer) {
         use aptos_framework::account;
         account::create_account(signer::address_of(admin));
         account::create_account(signer::address_of(user));
+        mock_deploy::init_registry(coin_list_admin);
         timestamp::set_time_has_started_for_testing(core);
         // 1
         // creates BTC-USDC and BTC-USDT
@@ -204,11 +207,12 @@ module router {
         assert!(coin::balance<mock_coin::WUSDT>(user_addr) <= btc_amount * 10000, 0);
     }
 
-    #[test(admin=@hippo_swap, user=@0x12345, core=@aptos_framework)]
-    public entry fun test_three_step(admin: &signer, user: &signer, core: &signer) {
+    #[test(admin=@hippo_swap, coin_list_admin=@coin_list, user=@0x12345, core=@aptos_framework)]
+    public entry fun test_three_step(admin: &signer, coin_list_admin: &signer, user: &signer, core: &signer) {
         use aptos_framework::account;
         account::create_account(signer::address_of(admin));
         account::create_account(signer::address_of(user));
+        mock_deploy::init_registry(coin_list_admin);
         timestamp::set_time_has_started_for_testing(core);
         // 1
         // creates BTC-USDC and BTC-USDT

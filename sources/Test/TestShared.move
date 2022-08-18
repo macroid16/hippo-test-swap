@@ -6,7 +6,6 @@ module hippo_swap::TestShared {
 
     use hippo_swap::mock_deploy;
     use hippo_swap::mock_coin::{WUSDT, WUSDC, WDAI, WETH, WBTC, WDOT, WSOL};
-    use coin_registry::coin_registry;
     use aptos_framework::timestamp;
     use hippo_swap::mock_coin;
     use std::signer;
@@ -19,6 +18,7 @@ module hippo_swap::TestShared {
     use aptos_framework::coin;
     use aptos_framework::coins;
     use std::option;
+    use coin_list::coin_list;
 
     const ADMIN: address = @hippo_swap;
     const INVESTOR: address = @0x2FFF;
@@ -108,22 +108,22 @@ module hippo_swap::TestShared {
     }
 
     #[test_only]
-    public fun init_registry_and_mock_coins(admin: &signer) {
-        coin_registry::initialize(admin);
-        mock_deploy::init_coin_and_create_store<WUSDT>(admin, b"USDT", b"USDT", 8);
-        mock_deploy::init_coin_and_create_store<WUSDC>(admin, b"USDC", b"USDC", 8);
-        mock_deploy::init_coin_and_create_store<WDAI>(admin, b"DAI", b"DAI", 7);
-        mock_deploy::init_coin_and_create_store<WETH>(admin, b"ETH", b"ETH", 9);
-        mock_deploy::init_coin_and_create_store<WBTC>(admin, b"BTC", b"BTC", 10);
-        mock_deploy::init_coin_and_create_store<WDOT>(admin, b"DOT", b"DOT", 6);
-        mock_deploy::init_coin_and_create_store<WSOL>(admin, b"SOL", b"SOL", 8);
+    public fun init_registry_and_mock_coins(admin: &signer, coin_list_admin: &signer) {
+        coin_list::initialize(coin_list_admin);
+        mock_deploy::init_coin_and_register<WUSDT>(admin, b"USDT", b"USDT", 8);
+        mock_deploy::init_coin_and_register<WUSDC>(admin, b"USDC", b"USDC", 8);
+        mock_deploy::init_coin_and_register<WDAI>(admin, b"DAI", b"DAI", 7);
+        mock_deploy::init_coin_and_register<WETH>(admin, b"ETH", b"ETH", 9);
+        mock_deploy::init_coin_and_register<WBTC>(admin, b"BTC", b"BTC", 10);
+        mock_deploy::init_coin_and_register<WDOT>(admin, b"DOT", b"DOT", 6);
+        mock_deploy::init_coin_and_register<WSOL>(admin, b"SOL", b"SOL", 8);
     }
 
     #[test_only]
-    public fun init_mock_coin_pair<X, Y>(admin: &signer, decimal_x: u64, decimal_y: u64) {
-        coin_registry::initialize(admin);
-        mock_deploy::init_coin_and_create_store<X>(admin, b"COIN-X", b"COIN-X", decimal_x);
-        mock_deploy::init_coin_and_create_store<Y>(admin, b"COIN-Y", b"COIN-Y", decimal_y);
+    public fun init_mock_coin_pair<X, Y>(admin: &signer, coin_list_admin: &signer, decimal_x: u64, decimal_y: u64) {
+        coin_list::initialize(coin_list_admin);
+        mock_deploy::init_coin_and_register<X>(admin, b"COIN-X", b"COIN-X", decimal_x);
+        mock_deploy::init_coin_and_register<Y>(admin, b"COIN-Y", b"COIN-Y", decimal_y);
     }
 
     #[test_only]
@@ -149,13 +149,13 @@ module hippo_swap::TestShared {
         if ( pool_type == POOL_TYPE_CONSTANT_PRODUCT ) {
             let addr = signer::address_of(signer);
             let fee_on = true;
-            cp_scripts::create_new_pool<X, Y>(signer, addr, fee_on, lp_name, lp_name, lp_name, logo_url, project_url);
+            cp_scripts::create_new_pool<X, Y>(signer, addr, fee_on, lp_name, lp_name, logo_url, project_url);
             create_save_point<cp_swap::LPToken<X, Y>>(signer);
         } else if ( pool_type == POOL_TYPE_STABLE_CURVE ) {
-            stable_curve_scripts::create_new_pool<X, Y>(signer, lp_name, lp_name, lp_name, logo_url, project_url, fee, protocal_fee);
+            stable_curve_scripts::create_new_pool<X, Y>(signer, lp_name, lp_name, logo_url, project_url, fee, protocal_fee);
             create_save_point<stable_curve_swap::LPToken<X, Y>>(signer);
         } else if ( pool_type == POOL_TYPE_PIECEWISE ) {
-            piece_swap_script::create_new_pool<X, Y>(signer, lp_name, lp_name, lp_name, logo_url, project_url, k, n1, d1, n2, d2, fee, protocal_fee);
+            piece_swap_script::create_new_pool<X, Y>(signer, lp_name, lp_name, logo_url, project_url, k, n1, d1, n2, d2, fee, protocal_fee);
             create_save_point<piece_swap::LPToken<X, Y>>(signer);
         }
     }
@@ -178,12 +178,12 @@ module hippo_swap::TestShared {
 
     #[test_only]
     public fun prepare_for_test<X, Y>(
-        admin: &signer, investor: &signer, swapper: &signer, core: &signer,
+        admin: &signer, coin_list_admin: &signer, investor: &signer, swapper: &signer, core: &signer,
         pool_type: u8, decimal_x: u64, decimal_y: u64,
         k: u128, n1: u128, d1: u128, n2: u128, d2: u128, fee: u64, protocal_fee: u64
     ) {
         time_start(core);
-        init_mock_coin_pair<X, Y>(admin, decimal_x, decimal_y);
+        init_mock_coin_pair<X, Y>(admin, coin_list_admin, decimal_x, decimal_y);
         create_pool<X, Y>(
             admin, pool_type,
             k, n1, d1, n2, d2, fee, protocal_fee

@@ -3,7 +3,7 @@ module hippo_swap::stable_curve_scripts {
     use aptos_framework::timestamp;
     use hippo_swap::stable_curve_swap;
     use std::signer;
-    use coin_registry::coin_registry;
+    use coin_list::coin_list;
     use hippo_swap::mock_deploy;
     use hippo_swap::mock_coin;
     use aptos_framework::coin;
@@ -16,27 +16,31 @@ module hippo_swap::stable_curve_scripts {
     const E_SWAP_NONZERO_INPUT_REQUIRED: u64 = 2;
     const E_OUTPUT_LESS_THAN_MIN: u64 = 3;
     const E_TOKEN_REGISTRY_NOT_INITIALIZED: u64 = 4;
+
     const E_TOKEN_X_NOT_REGISTERED: u64 = 5;
     const E_TOKEN_Y_NOT_REGISTERED: u64 = 6;
     const E_LP_TOKEN_ALREADY_REGISTERED:u64 = 7;
+    const E_LP_TOKEN_ALREADY_IN_COIN_LIST:u64 = 8;
 
     public fun create_new_pool<X, Y>(
-        sender: &signer,
+        admin: &signer,
         lp_name: vector<u8>,
         lp_symbol: vector<u8>,
-        lp_description: vector<u8>,
         lp_logo_url: vector<u8>,
         lp_project_url: vector<u8>,
         fee: u64,
         admin_fee: u64
     ) {
 
-        let admin_addr = signer::address_of(sender);
-        assert!(coin_registry::is_registry_initialized(admin_addr), E_TOKEN_REGISTRY_NOT_INITIALIZED);
-        assert!(coin_registry::has_token<X>(admin_addr), E_TOKEN_X_NOT_REGISTERED);
-        assert!(coin_registry::has_token<Y>(admin_addr), E_TOKEN_Y_NOT_REGISTERED);
-        assert!(!coin_registry::has_token<stable_curve_swap::LPToken<X,Y>>(admin_addr), E_LP_TOKEN_ALREADY_REGISTERED);
-        assert!(!coin_registry::has_token<stable_curve_swap::LPToken<Y,X>>(admin_addr), E_LP_TOKEN_ALREADY_REGISTERED);
+        let admin_addr = signer::address_of(admin);
+        assert!(coin_list::is_registry_initialized(), E_TOKEN_REGISTRY_NOT_INITIALIZED);
+        assert!(coin_list::is_coin_registered<X>(), E_TOKEN_X_NOT_REGISTERED);
+        assert!(coin_list::is_coin_registered<Y>(), E_TOKEN_Y_NOT_REGISTERED);
+        assert!(!coin_list::is_coin_registered<stable_curve_swap::LPToken<X,Y>>(), E_LP_TOKEN_ALREADY_REGISTERED);
+        assert!(!coin_list::is_coin_registered<stable_curve_swap::LPToken<Y,X>>(), E_LP_TOKEN_ALREADY_REGISTERED);
+
+        assert!(!coin_list::is_coin_in_list<stable_curve_swap::LPToken<X,Y>>(admin_addr), E_LP_TOKEN_ALREADY_IN_COIN_LIST);
+        assert!(!coin_list::is_coin_in_list<stable_curve_swap::LPToken<Y,X>>(admin_addr), E_LP_TOKEN_ALREADY_IN_COIN_LIST);
 
         let block_timestamp = timestamp::now_microseconds();
         let future_time = block_timestamp + 24 * 3600 * MICRO_CONVERSION_FACTOR;
@@ -45,7 +49,7 @@ module hippo_swap::stable_curve_scripts {
         let decimals = (decimals as u64);
 
         stable_curve_swap::initialize<X, Y>(
-            sender,
+            admin,
             string::utf8(lp_name),
             string::utf8(lp_symbol),
             decimals,
@@ -53,19 +57,27 @@ module hippo_swap::stable_curve_scripts {
             80,
             block_timestamp,
             future_time,
-            fee, admin_fee
+            fee,
+            admin_fee
         );
 
-        // register LP token to registry
-        coin_registry::add_token<stable_curve_swap::LPToken<X,Y>>(
-            sender,
-            lp_name,
-            lp_symbol,
-            lp_description,
-            8,
-            lp_logo_url,
-            lp_project_url,
+
+        coin_list::add_to_registry_by_signer<stable_curve_swap::LPToken<X,Y>>(
+            admin,
+            string::utf8(lp_name),
+            string::utf8(lp_symbol),
+            string::utf8(vector::empty<u8>()),
+            string::utf8(lp_logo_url),
+            string::utf8(lp_project_url),
+            false,
         );
+        if (!coin_list::is_coin_in_list<X>(admin_addr)){
+            coin_list::add_to_list<X>(admin);
+        };
+        if (!coin_list::is_coin_in_list<Y>(admin_addr)){
+            coin_list::add_to_list<Y>(admin);
+        };
+        coin_list::add_to_list<stable_curve_swap::LPToken<X,Y>>(admin);
     }
 
     #[cmd]
@@ -74,8 +86,7 @@ module hippo_swap::stable_curve_scripts {
     }
 
     #[cmd]
-    public entry fun remove_liquidity<X, Y>(sender: &signer, liquidity: u64, min_amount_x: u64, min_amount_y: u64,
-    ) {
+    public entry fun remove_liquidity<X, Y>(sender: &signer, liquidity: u64, min_amount_x: u64, min_amount_y: u64, ) {
         stable_curve_swap::remove_liquidity<X, Y>(sender, liquidity, min_amount_x, min_amount_y);
     }
 
@@ -122,6 +133,8 @@ module hippo_swap::stable_curve_scripts {
         right_amt: u64,
         lp_amt: u64,
     ) {
+        // 1. create pair(pool)
+        let admin_addr = signer::address_of(admin);
         let name = string::utf8(symbol);
         let (initial_A, future_A) = (60, 100);
         let initial_A_time = timestamp::now_microseconds();
@@ -134,16 +147,24 @@ module hippo_swap::stable_curve_scripts {
         stable_curve_swap::initialize<X, Y>(
             admin, name, name, decimals, initial_A, future_A, initial_A_time, future_A_time, fee, admin_fee
         );
-
-        coin_registry::add_token<stable_curve_swap::LPToken<X,Y>>(
+        coin_list::add_to_registry_by_signer<stable_curve_swap::LPToken<X,Y>>(
             admin,
-            symbol,
-            symbol,
-            symbol,
-            (decimals as u8),
-            b"",
-            b"",
+            string::utf8(symbol),
+            string::utf8(symbol),
+            string::utf8(vector::empty<u8>()),
+            string::utf8(vector::empty<u8>()),
+            string::utf8(vector::empty<u8>()),
+            false,
         );
+        if (!coin_list::is_coin_in_list<X>(admin_addr)){
+            coin_list::add_to_list<X>(admin);
+        };
+        if (!coin_list::is_coin_in_list<Y>(admin_addr)){
+            coin_list::add_to_list<Y>(admin);
+        };
+        coin_list::add_to_list<stable_curve_swap::LPToken<X,Y>>(admin);
+
+        // 2. add liquidity
         let some_x = mock_coin::mint<X>(left_amt);
         let some_y = mock_coin::mint<Y>(right_amt);
 
@@ -156,28 +177,23 @@ module hippo_swap::stable_curve_scripts {
         coin::deposit(signer::address_of(admin), some_lp);
     }
 
-    // local validator deployment
-    fun mock_deploy(admin: &signer) {
-        /*
-        1. initialize registry
-        2. initialize coins (and add them to registry)
-        3. create token pairs
-        4. adds liquidity
-        */
-        let admin_addr = signer::address_of(admin);
-        // 1
-        if (!coin_registry::is_registry_initialized(admin_addr)) {
-            // std::debug::print(&299999919999);
-            // It's weird that the coverage does not mark the if branch.
-            // Find the reason later from the compiler part of the aptos-core repo.
-            coin_registry::initialize(admin);
-        };
-        // 2
 
-        mock_deploy::init_coin_and_create_store<mock_coin::WUSDC>(admin, b"USDC", b"USDC", 8);
-        mock_deploy::init_coin_and_create_store<mock_coin::WUSDT>(admin, b"USDT", b"USDT", 8);
-        mock_deploy::init_coin_and_create_store<mock_coin::WDAI>(admin, b"DAI", b"DAI", 8);
-        // 3
+
+    // coinlist registry must be initialized before this method
+    #[cmd]
+    public entry fun mock_deploy_script(admin: &signer) {
+        /*
+           1. initialize coins (and add them to registry)
+           2. create token pairs
+           3. adds liquidity
+       */
+
+        // 1
+        mock_deploy::init_coin_and_register<mock_coin::WUSDC>(admin, b"USDC", b"USDC", 8);
+        mock_deploy::init_coin_and_register<mock_coin::WUSDT>(admin, b"USDT", b"USDT", 8);
+        mock_deploy::init_coin_and_register<mock_coin::WDAI>(admin, b"DAI", b"DAI", 8);
+
+        // 2
         let (fee, admin_fee) = (3000, 200000);
         let coin_amt = 1000000000;
         mock_create_pair_and_add_liquidity<mock_coin::WUSDC, mock_coin::WUSDT>(
@@ -197,28 +213,27 @@ module hippo_swap::stable_curve_scripts {
             200000000000
         );
     }
-
-    #[cmd]
-    public entry fun mock_deploy_script(admin: &signer) {
-        mock_deploy(admin);
-    }
     #[test_only]
     use aptos_framework::coins;
-
+    use std::vector;
 
     #[test_only]
-    public entry fun start_up(admin: &signer, user: &signer, core: &signer) {
+    fun start_up(admin: &signer, coin_list_admin: &signer, user: &signer, core: &signer) {
         use aptos_framework::coin;
         use hippo_swap::mock_coin;
+        use aptos_framework::account;
+        account::create_account(signer::address_of(admin));
+        account::create_account(signer::address_of(user));
+        mock_deploy::init_registry(coin_list_admin);
         timestamp::set_time_has_started_for_testing(core);
-        mock_deploy::init_registry(admin);
-        mock_deploy::init_coin_and_create_store<mock_coin::WUSDT>(
+
+        mock_deploy::init_coin_and_register<mock_coin::WUSDT>(
             admin,
             b"USDT",
             b"USDT",
             6,
         );
-        mock_deploy::init_coin_and_create_store<mock_coin::WDAI>(
+        mock_deploy::init_coin_and_register<mock_coin::WDAI>(
             admin,
             b"DAI",
             b"DAI",
@@ -228,7 +243,6 @@ module hippo_swap::stable_curve_scripts {
             admin,
             b"Curve:WUSDT-WDAI",
             b"WUWD",
-            b"",
             b"",
             b"",
             3000, // 0.3 %
@@ -244,85 +258,81 @@ module hippo_swap::stable_curve_scripts {
         coin::deposit(trader_addr, y);
     }
 
-    #[test(admin = @hippo_swap, user = @0x1234567, core = @aptos_framework)]
-    public entry fun test_scripts(admin: &signer, user: &signer, core: &signer) {
+    #[test(admin = @hippo_swap, coin_list_admin = @coin_list, user = @0x1234567, core = @aptos_framework)]
+    fun test_scripts(admin: &signer, coin_list_admin: &signer, user: &signer, core: &signer) {
         use hippo_swap::mock_coin;
-        use aptos_framework::account;
-        account::create_account(signer::address_of(admin));
-        account::create_account(signer::address_of(user));
-        start_up(admin, user, core);
+        start_up(admin, coin_list_admin, user, core);
+
         add_liquidity<mock_coin::WUSDT, mock_coin::WDAI>(user, 10000000, 20000000);
         swap_script<mock_coin::WUSDT, mock_coin::WDAI>(user, 2000000, 0, 0, 100);
         swap_script<mock_coin::WUSDT, mock_coin::WDAI>(user, 0, 2000000, 110, 0);
         remove_liquidity<mock_coin::WUSDT, mock_coin::WDAI>(user, 400000, 100, 100);
     }
 
-    #[test(admin = @hippo_swap, user = @0x1234567, core = @aptos_framework)]
+    #[test(admin = @hippo_swap, coin_list_admin = @coin_list, user = @0x1234567, core = @aptos_framework)]
     #[expected_failure(abort_code = 0)]
-    public entry fun test_failx(admin: &signer, user: &signer, core: &signer) {
+    fun test_failx(admin: &signer, coin_list_admin: &signer, user: &signer, core: &signer) {
         use hippo_swap::mock_coin;
-        use aptos_framework::account;
-        account::create_account(signer::address_of(admin));
-        account::create_account(signer::address_of(user));
-        start_up(admin, user, core);
+        start_up(admin, coin_list_admin, user, core);
+
         add_liquidity<mock_coin::WUSDT, mock_coin::WDAI>(user, 10000000, 20000000);
         swap_script<mock_coin::WUSDT, mock_coin::WDAI>(user, 0, 0, 0, 100);
     }
 
-    #[test(admin = @hippo_swap, user = @0x1234567, core = @aptos_framework)]
+    #[test(admin = @hippo_swap, coin_list_admin = @coin_list, user = @0x1234567, core = @aptos_framework)]
     #[expected_failure(abort_code = 1)]
-    public entry fun test_faily(admin: &signer, user: &signer, core: &signer) {
+    fun test_faily(admin: &signer, coin_list_admin: &signer, user: &signer, core: &signer) {
         use hippo_swap::mock_coin;
-        use aptos_framework::account;
-        account::create_account(signer::address_of(admin));
-        account::create_account(signer::address_of(user));
-        start_up(admin, user, core);
+        start_up(admin, coin_list_admin, user, core);
+
         add_liquidity<mock_coin::WUSDT, mock_coin::WDAI>(user, 10000000, 20000000);
         swap_script<mock_coin::WUSDT, mock_coin::WDAI>(user, 120, 0, 10, 10);
     }
 
-    #[test(admin = @hippo_swap, user = @0x1234567, core = @aptos_framework)]
+    #[test(admin = @hippo_swap, coin_list_admin = @coin_list, user = @0x1234567, core = @aptos_framework)]
     #[expected_failure(abort_code = 3)]
-    public entry fun test_fail_output_less_x(admin: &signer, user: &signer, core: &signer) {
+    fun test_fail_output_less_x(admin: &signer, coin_list_admin: &signer, user: &signer, core: &signer) {
         use hippo_swap::mock_coin;
-        use aptos_framework::account;
-        account::create_account(signer::address_of(admin));
-        account::create_account(signer::address_of(user));
-        start_up(admin, user, core);
+        start_up(admin, coin_list_admin, user, core);
+
         add_liquidity<mock_coin::WUSDT, mock_coin::WDAI>(user, 20000000, 20000000);
         swap_script<mock_coin::WUSDT, mock_coin::WDAI>(user, 1, 0, 0, 100000000000);
     }
 
-    #[test(admin = @hippo_swap, user = @0x1234567, core = @aptos_framework)]
+    #[test(admin = @hippo_swap, coin_list_admin = @coin_list, user = @0x1234567, core = @aptos_framework)]
     #[expected_failure(abort_code = 3)]
-    public entry fun test_fail_output_less_y(admin: &signer, user: &signer, core: &signer) {
+    fun test_fail_output_less_y(admin: &signer, coin_list_admin: &signer, user: &signer, core: &signer) {
         use hippo_swap::mock_coin;
-        use aptos_framework::account;
-        account::create_account(signer::address_of(admin));
-        account::create_account(signer::address_of(user));
-        start_up(admin, user, core);
+        start_up(admin, coin_list_admin, user, core);
+
         add_liquidity<mock_coin::WUSDT, mock_coin::WDAI>(user, 20000000, 20000000);
         swap_script<mock_coin::WUSDT, mock_coin::WDAI>(user, 0, 1, 10000000000, 0);
     }
 
-    #[test(admin = @hippo_swap, user = @0x1234567, core = @aptos_framework)]
-    public entry fun test_mock_deploy(admin: &signer, core: &signer) {
+    #[test(admin = @hippo_swap, coin_list_admin = @coin_list, core = @aptos_framework)]
+    fun test_mock_deploy(admin: &signer, coin_list_admin: &signer, core: &signer) {
         use aptos_framework::account;
         account::create_account(signer::address_of(admin));
+        mock_deploy::init_registry(coin_list_admin);
         timestamp::set_time_has_started_for_testing(core);
+
         mock_deploy_script(admin);
     }
 
-    #[test(admin = @hippo_swap, user = @0x1234567, core = @aptos_framework)]
+    #[test(admin = @hippo_swap, coin_list_admin = @coin_list, user = @0x1234567, core = @aptos_framework)]
     #[expected_failure(abort_code = 5)]
-    public entry fun fail_lp_amt(admin: &signer, core: &signer) {
+    fun fail_lp_amt(admin: &signer, coin_list_admin: &signer, core: &signer) {
+        // mock depoly
         use aptos_framework::account;
         account::create_account(signer::address_of(admin));
+        mock_deploy::init_registry(coin_list_admin);
         timestamp::set_time_has_started_for_testing(core);
+
         mock_deploy_script(admin);
+
         let btc_amt = 1000000000;
         let (fee, admin_fee) = (3000, 200000);
-        mock_deploy::init_coin_and_create_store<mock_coin::WDAI>(admin, b"Dai", b"DAI", 8);
+        mock_deploy::init_coin_and_register<mock_coin::WDAI>(admin, b"Dai", b"DAI", 8);
         std::debug::print(&110000000);
         mock_create_pair_and_add_liquidity<mock_coin::WUSDT, mock_coin::WDAI>(
             admin,
@@ -336,23 +346,21 @@ module hippo_swap::stable_curve_scripts {
 
 
     #[test_only]
-    public fun test_data_set_init_coins(admin: &signer, core: &signer) {
+    public fun test_data_set_init_coins(admin: &signer, coin_list_admin: &signer, core: &signer) {
+        mock_deploy::init_registry(coin_list_admin);
         timestamp::set_time_has_started_for_testing(core);
-        let admin_addr = signer::address_of(admin);
-        if (!coin_registry::is_registry_initialized(admin_addr)) {
-            coin_registry::initialize(admin);
-        };
-        mock_deploy::init_coin_and_create_store<mock_coin::WUSDC>(admin, b"USDC", b"USDC", 8);
-        mock_deploy::init_coin_and_create_store<mock_coin::WUSDT>(admin, b"USDT", b"USDT", 8);
+
+        mock_deploy::init_coin_and_register<mock_coin::WUSDC>(admin, b"USDC", b"USDC", 8);
+        mock_deploy::init_coin_and_register<mock_coin::WUSDT>(admin, b"USDT", b"USDT", 8);
         assert!(coin::decimals<mock_coin::WUSDC>() == 8, 1);
         assert!(coin::decimals<mock_coin::WUSDT>() == 8, 1);
     }
 
     #[test_only]
-    public fun assert_launch_lq(admin: &signer, core: &signer, amt_x: u64, amt_y: u64, lp_predict: u64) {
+    public fun assert_launch_lq(admin: &signer, coin_list_admin: &signer, core: &signer, amt_x: u64, amt_y: u64, lp_predict: u64) {
         use aptos_framework::account;
         account::create_account(signer::address_of(admin));
-        test_data_set_init_coins(admin, core);
+        test_data_set_init_coins(admin, coin_list_admin, core);
         let (fee, admin_fee) = (3000, 200000);
         // the A value was initialed with 60.
         mock_create_pair_and_add_liquidity<mock_coin::WUSDC, mock_coin::WUSDT>(
@@ -360,11 +368,11 @@ module hippo_swap::stable_curve_scripts {
         );
     }
 
-    #[test(admin = @hippo_swap, user = @0x1234567, core = @aptos_framework)]
-    public fun test_data_set_validate_basic(admin: &signer, core: &signer) {
+    #[test(admin = @hippo_swap, coin_list_admin = @coin_list, core = @aptos_framework)]
+    public fun test_data_set_validate_basic(admin: &signer, coin_list_admin: &signer, core: &signer) {
         use aptos_framework::account;
         account::create_account(signer::address_of(admin));
-        test_data_set_init_coins(admin, core);
+        test_data_set_init_coins(admin, coin_list_admin, core);
         let usdc_amt = 500000000;
         let usdt_amt = 500000000;
         let (fee, admin_fee) = (3000, 200000);
@@ -388,16 +396,16 @@ module hippo_swap::stable_curve_scripts {
     }
 
     // Let's make initial value of x and y 10 times of the former test. We'll get lp_token of the corresponding factor.
-    #[test(admin = @hippo_swap, user = @0x1234567, core = @aptos_framework)]
-    public fun test_data_set_validate_scale(admin: &signer, core: &signer) {
-        assert_launch_lq(admin, core, 5000000000, 5000000000, 10000000000)
+    #[test(admin = @hippo_swap, coin_list_admin = @coin_list, core = @aptos_framework)]
+    public fun test_data_set_validate_scale(admin: &signer, coin_list_admin: &signer, core: &signer) {
+        assert_launch_lq(admin, coin_list_admin, core, 5000000000, 5000000000, 10000000000)
     }
 
 
-    #[test(admin = @hippo_swap, user = @0x1234567, core = @aptos_framework)]
+    #[test(admin = @hippo_swap,coin_list_admin = @coin_list, core = @aptos_framework)]
     #[expected_failure]             //  ARITHMETIC_ERROR:  let new_d = (ann * s + d_p * 2) __*__ d / ((ann - 1) * d + 3 * d_p)
-    public fun test_data_set_max_level(admin: &signer, core: &signer) {
-        test_data_set_init_coins(admin, core);
+    public fun test_data_set_max_level(admin: &signer, coin_list_admin: &signer, core: &signer) {
+        test_data_set_init_coins(admin, coin_list_admin, core);
         let usdc_amt = 5 * 100000000 * 10000000000;
         // 10 ** 10 of 8 decimal coin will cause the digits overflow from the optimized get_D_origin method.
         // The capacity will be much lower if using the get_D_improved or get_D_newton_method which are mathematically equivalent.
@@ -409,45 +417,45 @@ module hippo_swap::stable_curve_scripts {
         );
     }
 
-    #[test(admin = @hippo_swap, user = @0x1234567, core = @aptos_framework)]
-    public fun test_data_set_init_imbalance(admin: &signer, core: &signer) {
-        assert_launch_lq(admin, core, 40 * 100000000, 60 * 100000000, 9996588165); // Slightly less than 100 * 100000000
+    #[test(admin = @hippo_swap,coin_list_admin = @coin_list, core = @aptos_framework)]
+    public fun test_data_set_init_imbalance(admin: &signer, coin_list_admin: &signer, core: &signer) {
+        assert_launch_lq(admin, coin_list_admin, core, 40 * 100000000, 60 * 100000000, 9996588165); // Slightly less than 100 * 100000000
     }
 
-    #[test(admin = @hippo_swap, user = @0x1234567, core = @aptos_framework)]
-    public fun test_data_set_init_tiny_q(admin: &signer, core: &signer) {
-        assert_launch_lq(admin, core, 40, 60, 99);
+    #[test(admin = @hippo_swap,coin_list_admin = @coin_list, core = @aptos_framework)]
+    public fun test_data_set_init_tiny_q(admin: &signer, coin_list_admin: &signer, core: &signer) {
+        assert_launch_lq(admin, coin_list_admin, core, 40, 60, 99);
     }
 
-    #[test(admin = @hippo_swap, user = @0x1234567, core = @aptos_framework)]
-    public fun test_data_set_init_tiny_qr_1(admin: &signer, core: &signer) {
-        assert_launch_lq(admin, core, 30, 70, 99);
+    #[test(admin = @hippo_swap,coin_list_admin = @coin_list, core = @aptos_framework)]
+    public fun test_data_set_init_tiny_qr_1(admin: &signer, coin_list_admin: &signer, core: &signer) {
+        assert_launch_lq(admin, coin_list_admin, core, 30, 70, 99);
     }
 
-    #[test(admin = @hippo_swap, user = @0x1234567, core = @aptos_framework)]
-    public fun test_data_set_init_tiny_qr_2(admin: &signer, core: &signer) {
-        assert_launch_lq(admin, core, 10, 90, 98);
+    #[test(admin = @hippo_swap,coin_list_admin = @coin_list, core = @aptos_framework)]
+    public fun test_data_set_init_tiny_qr_2(admin: &signer, coin_list_admin: &signer, core: &signer) {
+        assert_launch_lq(admin, coin_list_admin, core, 10, 90, 98);
     }
 
-    #[test(admin = @hippo_swap, user = @0x1234567, core = @aptos_framework)]
-    public fun test_data_set_init_tiny_qr_3(admin: &signer, core: &signer) {
-        assert_launch_lq(admin, core, 1, 99, 86);
+    #[test(admin = @hippo_swap,coin_list_admin = @coin_list, core = @aptos_framework)]
+    public fun test_data_set_init_tiny_qr_3(admin: &signer, coin_list_admin: &signer, core: &signer) {
+        assert_launch_lq(admin, coin_list_admin, core, 1, 99, 86);
     }
 
-    #[test(admin = @hippo_swap, user = @0x1234567, core = @aptos_framework)]
-    public fun test_data_set_init_small_qr_1(admin: &signer, core: &signer) {
-        assert_launch_lq(admin, core, 100, 9900, 8690);
+    #[test(admin = @hippo_swap,coin_list_admin = @coin_list, core = @aptos_framework)]
+    public fun test_data_set_init_small_qr_1(admin: &signer, coin_list_admin: &signer, core: &signer) {
+        assert_launch_lq(admin, coin_list_admin, core, 100, 9900, 8690);
     }
 
-    #[test(admin = @hippo_swap, user = @0x1234567, core = @aptos_framework)]
-    public fun test_data_set_init_small_qr_2(admin: &signer, core: &signer) {
-        assert_launch_lq(admin, core, 1, 9999, 3199);
+    #[test(admin = @hippo_swap,coin_list_admin = @coin_list, core = @aptos_framework)]
+    public fun test_data_set_init_small_qr_2(admin: &signer, coin_list_admin: &signer, core: &signer) {
+        assert_launch_lq(admin, coin_list_admin, core, 1, 9999, 3199);
     }
 
-    #[test(admin = @hippo_swap, user = @0x1234567, core = @aptos_framework)]
-    public fun test_data_set_trade_proc(admin: &signer, core: &signer) {
+    #[test(admin = @hippo_swap,coin_list_admin = @coin_list, core = @aptos_framework)]
+    public fun test_data_set_trade_proc(admin: &signer, coin_list_admin: &signer, core: &signer) {
         let admin_addr = signer::address_of(admin);
-        assert_launch_lq(admin, core, 500000, 500000, 1000000);
+        assert_launch_lq(admin, coin_list_admin, core, 500000, 500000, 1000000);
         // let balance = coin::balance<LPToken<Mockcoin::WUSDC, Mockcoin::WUSDT>>(admin_addr);
         let balance = stable_curve_swap::balance<mock_coin::WUSDC, mock_coin::WUSDT>(admin_addr);
         assert!(balance == 1000000, 1);

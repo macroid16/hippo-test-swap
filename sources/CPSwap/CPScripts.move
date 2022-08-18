@@ -2,7 +2,6 @@ address hippo_swap {
 module cp_scripts {
     use hippo_swap::cp_swap;
     use std::signer;
-    use coin_registry::coin_registry;
     use hippo_swap::mock_coin;
     use aptos_framework::coin;
 
@@ -12,44 +11,55 @@ module cp_scripts {
     const E_SWAP_NONZERO_INPUT_REQUIRED: u64 = 2;
     const E_OUTPUT_LESS_THAN_MIN: u64 = 3;
     const E_TOKEN_REGISTRY_NOT_INITIALIZED:u64 = 4;
+
     const E_TOKEN_X_NOT_REGISTERED:u64 = 5;
     const E_TOKEN_Y_NOT_REGISTERED:u64 = 6;
     const E_LP_TOKEN_ALREADY_REGISTERED:u64 = 7;
+    const E_LP_TOKEN_ALREADY_IN_COIN_LIST:u64 = 8;
+
     public fun create_new_pool<X, Y>(
-        sender: &signer,
+        admin: &signer,
         fee_to: address,
         fee_on: bool,
         lp_name: vector<u8>,
         lp_symbol: vector<u8>,
-        lp_description: vector<u8>,
         lp_logo_url: vector<u8>,
         lp_project_url: vector<u8>,
     ) {
         use hippo_swap::math;
 
-        let admin_addr = signer::address_of(sender);
-        assert!(coin_registry::is_registry_initialized(admin_addr), E_TOKEN_REGISTRY_NOT_INITIALIZED);
-        assert!(coin_registry::has_token<X>(admin_addr), E_TOKEN_X_NOT_REGISTERED);
-        assert!(coin_registry::has_token<Y>(admin_addr), E_TOKEN_Y_NOT_REGISTERED);
-        assert!(!coin_registry::has_token<cp_swap::LPToken<X,Y>>(admin_addr), E_LP_TOKEN_ALREADY_REGISTERED);
-        assert!(!coin_registry::has_token<cp_swap::LPToken<Y,X>>(admin_addr), E_LP_TOKEN_ALREADY_REGISTERED);
+        let admin_addr = signer::address_of(admin);
+        assert!(coin_list::is_registry_initialized(), E_TOKEN_REGISTRY_NOT_INITIALIZED);
+        assert!(coin_list::is_coin_registered<X>(), E_TOKEN_X_NOT_REGISTERED);
+        assert!(coin_list::is_coin_registered<Y>(), E_TOKEN_Y_NOT_REGISTERED);
+        assert!(!coin_list::is_coin_registered<cp_swap::LPToken<X,Y>>(), E_LP_TOKEN_ALREADY_REGISTERED);
+        assert!(!coin_list::is_coin_registered<cp_swap::LPToken<Y,X>>(), E_LP_TOKEN_ALREADY_REGISTERED);
+
+        assert!(!coin_list::is_coin_in_list<cp_swap::LPToken<X,Y>>(admin_addr), E_LP_TOKEN_ALREADY_IN_COIN_LIST);
+        assert!(!coin_list::is_coin_in_list<cp_swap::LPToken<Y,X>>(admin_addr), E_LP_TOKEN_ALREADY_IN_COIN_LIST);
 
         let decimals = math::max((coin::decimals<X>() as u128), (coin::decimals<Y>() as u128));
         let decimals = (decimals as u64);
 
-        cp_swap::create_token_pair<X, Y>(sender, fee_to, fee_on, lp_name, lp_symbol, decimals);
+        cp_swap::create_token_pair<X, Y>(admin, fee_to, fee_on, lp_name, lp_symbol, decimals);
 
 
-        // register LP token to registry
-        coin_registry::add_token<cp_swap::LPToken<X,Y>>(
-            sender,
-            lp_name,
-            lp_symbol,
-            lp_description,
-            (decimals as u8),
-            lp_logo_url,
-            lp_project_url,
+        coin_list::add_to_registry_by_signer<cp_swap::LPToken<X,Y>>(
+            admin,
+            string::utf8(lp_name),
+            string::utf8(lp_symbol),
+            string::utf8(vector::empty<u8>()),
+            string::utf8(lp_logo_url),
+            string::utf8(lp_project_url),
+            false,
         );
+        if (!coin_list::is_coin_in_list<X>(admin_addr)){
+            coin_list::add_to_list<X>(admin);
+        };
+        if (!coin_list::is_coin_in_list<Y>(admin_addr)){
+            coin_list::add_to_list<Y>(admin);
+        };
+        coin_list::add_to_list<cp_swap::LPToken<X,Y>>(admin);
     }
     #[cmd]
     public entry fun create_new_pool_script<X, Y>(
@@ -58,7 +68,6 @@ module cp_scripts {
         fee_on: bool,
         lp_name: vector<u8>,
         lp_symbol: vector<u8>,
-        lp_description: vector<u8>,
         lp_logo_url: vector<u8>,
         lp_project_url: vector<u8>,
     ) {
@@ -68,7 +77,6 @@ module cp_scripts {
             fee_on,
             lp_name,
             lp_symbol,
-            lp_description,
             lp_logo_url,
             lp_project_url,
         );
@@ -117,27 +125,6 @@ module cp_scripts {
     #[test_only]
     use aptos_framework::timestamp;
 
-    // #[test_only]
-    fun init_coin_and_create_store<CoinType>(
-        admin: &signer,
-        name: vector<u8>,
-        symbol: vector<u8>,
-        decimals: u8,
-    ) {
-        // create CoinInfo
-        mock_coin::initialize<CoinType>(admin, 8);
-
-        // add coin to registry
-        coin_registry::add_token<CoinType>(
-            admin,
-            name,
-            symbol,
-            name,
-            decimals,
-            b"",
-            b"",
-        );
-    }
 
     fun mock_create_pair_and_add_liquidity<X, Y>(
         admin: &signer,
@@ -150,7 +137,6 @@ module cp_scripts {
             admin,
             signer::address_of(admin),
             false,
-            symbol,
             symbol,
             symbol,
             b"",
@@ -171,24 +157,21 @@ module cp_scripts {
 
     }
 
-    // local validator deployment
+    // coinlist registry must be initialized before this method
+    #[cmd]
     public entry fun mock_deploy_script(admin: &signer) {
         /*
-        1. initialize registry
-        2. initialize coins (and add them to registry)
-        3. create token pairs
-        4. adds liquidity
-        */
-        let admin_addr = signer::address_of(admin);
+             1. initialize coins (and add them to registry)
+             2. create token pairs
+             3. adds liquidity
+         */
+
         // 1
-        if(!coin_registry::is_registry_initialized(admin_addr)) {
-            coin_registry::initialize(admin);
-        };
+        mock_deploy::init_coin_and_register<mock_coin::WBTC>(admin, b"Bitcoin", b"BTC", 8);
+        mock_deploy::init_coin_and_register<mock_coin::WUSDC>(admin,b"USDC", b"USDC", 8);
+        mock_deploy::init_coin_and_register<mock_coin::WUSDT>(admin, b"USDT", b"USDT", 8);
+
         // 2
-        init_coin_and_create_store<mock_coin::WBTC>(admin, b"Bitcoin", b"BTC", 8);
-        init_coin_and_create_store<mock_coin::WUSDC>(admin,b"USDC", b"USDC", 8);
-        init_coin_and_create_store<mock_coin::WUSDT>(admin, b"USDT", b"USDT", 8);
-        // 3
         let btc_amt = 1000000000;
         mock_create_pair_and_add_liquidity<mock_coin::WBTC, mock_coin::WUSDC>(
             admin,
@@ -209,21 +192,25 @@ module cp_scripts {
 
     #[test_only]
     use aptos_framework::coins;
+    use coin_list::coin_list;
+    use std::string;
+    use std::vector;
+    use hippo_swap::mock_deploy;
 
-    #[test(admin=@hippo_swap, user=@0x1234567, core=@aptos_framework)]
-    public entry fun test_initialization_cpswap(admin: &signer, user: &signer, core: &signer) {
-        /*
-        1. perform local depploy
-        2. user trades
-        */
+    #[test(admin=@hippo_swap, coin_list_admin = @coin_list, user=@0x1234567, core=@aptos_framework)]
+    public entry fun test_initialization_cpswap(admin: &signer, coin_list_admin: &signer, user: &signer, core: &signer) {
+
         use aptos_framework::account;
         account::create_account(signer::address_of(admin));
         account::create_account(signer::address_of(user));
+        mock_deploy::init_registry(coin_list_admin);
         timestamp::set_time_has_started_for_testing(core);
-        let admin_addr = signer::address_of(admin);
+        /*
+           1. perform local depploy
+           2. user trades
+       */
         // 1
         mock_deploy_script(admin);
-        assert!(coin_registry::is_registry_initialized(admin_addr), 5);
         // 2
         coins::register_internal<mock_coin::WBTC>(user);
         coins::register_internal<mock_coin::WUSDC>(user);
@@ -235,19 +222,19 @@ module cp_scripts {
 
     }
 
-    #[test(admin=@hippo_swap, user=@0x1234567, core=@aptos_framework)]
-    public entry fun test_add_remove_liquidity(admin: &signer, user: &signer, core: &signer) {
-
-        /*
-        1. create pools
-        2. add liquidity to BTC-USDC
-        3. remove liquidity from BTC-USDC
-        */
+    #[test(admin=@hippo_swap, coin_list_admin = @coin_list, user=@0x1234567, core=@aptos_framework)]
+    public entry fun test_add_remove_liquidity(admin: &signer, coin_list_admin: &signer, user: &signer, core: &signer) {
         use aptos_framework::account;
         account::create_account(signer::address_of(admin));
         account::create_account(signer::address_of(user));
-
+        mock_deploy::init_registry(coin_list_admin);
         timestamp::set_time_has_started_for_testing(core);
+        /*
+            1. create pools
+            2. add liquidity to BTC-USDC
+            3. remove liquidity from BTC-USDC
+        */
+
         // 1
         mock_deploy_script(admin);
 
@@ -273,16 +260,16 @@ module cp_scripts {
         assert!(coin::balance<mock_coin::WUSDC>(user_addr) == btc_amt * price, 0);
     }
 
-    #[test(admin=@hippo_swap, user=@0x1234567, core=@aptos_framework)]
-    public entry fun test_swap(admin: &signer, user: &signer, core: &signer) {
+    #[test(admin=@hippo_swap, coin_list_admin = @coin_list, user=@0x1234567, core=@aptos_framework)]
+    public entry fun test_swap(admin: &signer, coin_list_admin: &signer, user: &signer, core: &signer) {
         use aptos_framework::account;
         account::create_account(signer::address_of(admin));
         account::create_account(signer::address_of(user));
-
+        mock_deploy::init_registry(coin_list_admin);
         /*
-        1. create pools
-        2. swap x to y
-        3. swap y to x
+            1. create pools
+            2. swap x to y
+            3. swap y to x
         */
         timestamp::set_time_has_started_for_testing(core);
         // 1

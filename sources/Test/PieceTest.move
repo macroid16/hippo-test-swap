@@ -211,7 +211,7 @@ module hippo_swap::piece_test {
 
     #[test_only]
     public fun test_pool_case<X, Y>(
-        admin: &signer, investor: &signer, swapper: &signer, core: &signer,
+        admin: &signer, coin_list_admin: &signer, investor: &signer, swapper: &signer, core: &signer,
         print_debug: bool,
         skip_swap: bool,
         pool_type: u8,
@@ -229,7 +229,7 @@ module hippo_swap::piece_test {
         swap_1: TransactionParams,
         remove_1: TransactionParams
     ) {
-        TestShared::prepare_for_test<X, Y>(admin, investor, swapper, core, pool_type, decimal_x, decimal_y,
+        TestShared::prepare_for_test<X, Y>(admin, coin_list_admin, investor, swapper, core, pool_type, decimal_x, decimal_y,
             k, n1, d1, n2, d2, fee, protocal_fee,
             //0, 0, 0, 0, 0, fee, protocal_fee
         );
@@ -257,8 +257,8 @@ module hippo_swap::piece_test {
         perform_transaction<X, Y>(investor, pool_type, REMOVE_LIQUIDITY, print_debug, remove_1);
     }
 
-    #[test(admin = @hippo_swap, investor = @0x2FFF, swapper = @0x2FFE, core = @aptos_framework)]
-    public fun test_pool_piece_swap_4(admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
+    #[test(admin = @hippo_swap, coin_list_admin=@coin_list, investor = @0x2FFF, swapper = @0x2FFE, core = @aptos_framework)]
+    public fun test_pool_piece_swap_4(admin: &signer, coin_list_admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
         use std::signer;
         use aptos_framework::account;
         account::create_account(signer::address_of(admin));
@@ -270,7 +270,7 @@ module hippo_swap::piece_test {
         let add_2 = add_param(P10, P6, P10, P6, P10, 0, 0);
         let swap = swap_param(P10, 0, P10, 977172, 0, 9, 977163);
         let remove_1 = remove_param(2 * P10, 3 * P10, 1022828);
-        test_pool_case<WUSDC, WDAI>(admin, investor, swapper, core,
+        test_pool_case<WUSDC, WDAI>(admin, coin_list_admin, investor, swapper, core,
             false, false, POOL_TYPE_PIECEWISE,
             decimal_x, decimal_y,
             k, n1, d1, n2, d2, fee, protocal_fee,
@@ -278,8 +278,8 @@ module hippo_swap::piece_test {
         );
     }
 
-    #[test(admin = @hippo_swap, investor = @0x2FFF, swapper = @0x2FFE, core = @aptos_framework)]
-    public fun test_pool_piece_swap_5(admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
+    #[test(admin = @hippo_swap, coin_list_admin=@coin_list, investor = @0x2FFF, swapper = @0x2FFE, core = @aptos_framework)]
+    public fun test_pool_piece_swap_5(admin: &signer, coin_list_admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
         use std::signer;
         use aptos_framework::account;
         account::create_account(signer::address_of(admin));
@@ -291,7 +291,7 @@ module hippo_swap::piece_test {
         let add_2 = add_param(P10, P10, P10, P10, P10, 0, 0);
         let swap = swap_param(P4, 0, P4, 9999, 0, 0, 9999);
         let remove_1 = remove_param(2 * P10, 2 * P10 + P4, 2 * P10 - P4 + 1);
-        test_pool_case<WUSDC, WDAI>(admin, investor, swapper, core,
+        test_pool_case<WUSDC, WDAI>(admin, coin_list_admin, investor, swapper, core,
             false, false, POOL_TYPE_PIECEWISE,
             decimal_x, decimal_y,
             k, n1, d1, n2, d2, fee, protocal_fee,
@@ -299,8 +299,8 @@ module hippo_swap::piece_test {
         );
     }
 
-    #[test(admin = @hippo_swap, investor = @0x2FFF, swapper = @0x2FFE, core = @aptos_framework)]
-    public fun test_pool_piece_swap_6(admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
+    #[test(admin = @hippo_swap, coin_list_admin=@coin_list, investor = @0x2FFF, swapper = @0x2FFE, core = @aptos_framework)]
+    public fun test_pool_piece_swap_6(admin: &signer, coin_list_admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
         use std::signer;
         use aptos_framework::account;
         account::create_account(signer::address_of(admin));
@@ -315,7 +315,7 @@ module hippo_swap::piece_test {
         let swap = swap_param(P4, 0, P4, 8000, 0, 0, 8000);
         // TODO: 20% deviation.
         let remove_1 = remove_param(P10, P10, P10 - 1);
-        test_pool_case<WUSDC, WDAI>(admin, investor, swapper, core,
+        test_pool_case<WUSDC, WDAI>(admin, coin_list_admin, investor, swapper, core,
             print_debug, false, pool_type,
             decimal_x, decimal_y,
             k, n1, d1, n2, d2, fee, protocal_fee,
@@ -323,8 +323,8 @@ module hippo_swap::piece_test {
         );
     }
 
-    #[test(admin = @hippo_swap, investor = @0x2FFF, swapper = @0x2FFE, core = @aptos_framework)]
-    public fun test_pool_piece_swap_7(admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
+    #[test(admin = @hippo_swap, coin_list_admin=@coin_list, investor = @0x2FFF, swapper = @0x2FFE, core = @aptos_framework)]
+    public fun test_pool_piece_swap_7(admin: &signer, coin_list_admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
         use std::signer;
         use aptos_framework::account;
         account::create_account(signer::address_of(admin));
@@ -339,7 +339,7 @@ module hippo_swap::piece_test {
         let swap = swap_param(P4, 0, P4, 0, 0, 0, 0);
         // TODO: totally loss.
         let remove_1 = remove_param(P10, P10, P10);
-        test_pool_case<WUSDC, WDAI>(admin, investor, swapper, core,
+        test_pool_case<WUSDC, WDAI>(admin, coin_list_admin, investor, swapper, core,
             print_debug, false, pool_type,
             decimal_x, decimal_y,
             k, n1, d1, n2, d2, fee, protocal_fee,
@@ -354,8 +354,8 @@ module hippo_swap::piece_test {
         perform_transaction<WUSDC, WDAI>(swapper, pool_type, SWAP, print_debug, swap_2);
     }
 
-    #[test(admin = @hippo_swap, investor = @0x2FFF, swapper = @0x2FFE, core = @aptos_framework)]
-    public fun test_pool_piece_swap_8(admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
+    #[test(admin = @hippo_swap, coin_list_admin=@coin_list, investor = @0x2FFF, swapper = @0x2FFE, core = @aptos_framework)]
+    public fun test_pool_piece_swap_8(admin: &signer, coin_list_admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
         use std::signer;
         use aptos_framework::account;
         account::create_account(signer::address_of(admin));
@@ -368,7 +368,7 @@ module hippo_swap::piece_test {
         let add_2 = add_param(P17, P15, P17, P15, P17, 0, 0);
         let swap = swap_param(P8, 0, P8, P6 - 130, 0, 9, P6 - 139);
         let remove_1 = remove_param(P10, P10 + 5, P8 - 1);
-        test_pool_case<WUSDC, WDAI>(admin, investor, swapper, core,
+        test_pool_case<WUSDC, WDAI>(admin, coin_list_admin, investor, swapper, core,
             print_debug, false, pool_type,
             decimal_x, decimal_y,
             k, n1, d1, n2, d2, fee, protocal_fee,
@@ -376,8 +376,8 @@ module hippo_swap::piece_test {
         );
     }
 
-    #[test(admin = @hippo_swap, investor = @0x2FFF, swapper = @0x2FFE, core = @aptos_framework)]
-    public fun test_pool_piece_swap_accumulative_giant(admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
+    #[test(admin = @hippo_swap, coin_list_admin=@coin_list, investor = @0x2FFF, swapper = @0x2FFE, core = @aptos_framework)]
+    public fun test_pool_piece_swap_accumulative_giant(admin: &signer, coin_list_admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
         // We perform trading actions continiously in this case.
         // The fee charged in add_liquidity comes from the inequality between the proportion of incoming x y and reserve x y.
         // The pool charged the swap fee implicitly in the process of add liquidity.
@@ -399,7 +399,7 @@ module hippo_swap::piece_test {
         let add_4 = add_param(P17 - P8, P15 - P6, P17 - P8, P15 - P6, P17 - P8, 0, 0);
         // The fee was based on the deviation between the proportion of reserve coins and the input coins.
 
-        TestShared::prepare_for_test<WUSDC, WDAI>(admin, investor, swapper, core, pool_type, decimal_x, decimal_y, k, n1, d1, n2, d2, fee, protocal_fee);
+        TestShared::prepare_for_test<WUSDC, WDAI>(admin, coin_list_admin, investor, swapper, core, pool_type, decimal_x, decimal_y, k, n1, d1, n2, d2, fee, protocal_fee);
         TestShared::fund_for_participants<WUSDC, WDAI>(investor, 4 * P17 - 3 * P8, 4 * P15 + 3 * P6);
         TestShared::sync_wallet_save_point<WUSDC, WDAI>(investor, pool_type);
 
@@ -439,8 +439,8 @@ module hippo_swap::piece_test {
         perform_transaction<WUSDC, WDAI>(investor, pool_type, REMOVE_LIQUIDITY, print_debug, remove_4);
     }
 
-    #[test(admin = @hippo_swap, investor = @0x2FFF, swapper = @0x2FFE, core = @aptos_framework)]
-    public fun test_pool_piece_swap_deviant(admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
+    #[test(admin = @hippo_swap, coin_list_admin=@coin_list, investor = @0x2FFF, swapper = @0x2FFE, core = @aptos_framework)]
+    public fun test_pool_piece_swap_deviant(admin: &signer, coin_list_admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
         use std::signer;
         use aptos_framework::account;
         account::create_account(signer::address_of(admin));
@@ -456,7 +456,7 @@ module hippo_swap::piece_test {
         let swap = swap_param(P17, 0, P17,  977172461764492, 0, 9772604152,  977162689160340);
 
         let remove_1 = remove_param(2 * P10,   30000000000,  102282753);
-        test_pool_case<WUSDC, WDAI>(admin, investor, swapper, core,
+        test_pool_case<WUSDC, WDAI>(admin, coin_list_admin, investor, swapper, core,
             print_debug, false, pool_type,
             decimal_x, decimal_y,
             k, n1, d1, n2, d2, fee, protocal_fee,

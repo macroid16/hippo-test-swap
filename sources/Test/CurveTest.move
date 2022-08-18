@@ -178,10 +178,10 @@ module hippo_swap::curve_test {
 
     #[test_only]
     public fun test_pool_debug<X, Y>(
-        admin: &signer, investor: &signer, swapper: &signer, core: &signer
+        admin: &signer, coin_list_admin: &signer, investor: &signer, swapper: &signer, core: &signer
     ) {
         let pool_type = POOL_TYPE_STABLE_CURVE;
-        TestShared::prepare_for_test<X, Y>(admin, investor, swapper, core, pool_type, 8, 7, 0, 0, 0, 0, 0, 100, 100000);
+        TestShared::prepare_for_test<X, Y>(admin, coin_list_admin, investor, swapper, core, pool_type, 8, 7, 0, 0, 0, 0, 0, 100, 100000);
         TestShared::fund_for_participants<X, Y>(investor, P8, P7);
         TestShared::sync_wallet_save_point<X, Y>(investor, pool_type);
         TestShared::fund_for_participants<X, Y>(swapper, P8, P7);
@@ -209,12 +209,12 @@ module hippo_swap::curve_test {
 
     #[test_only]
     public fun test_pool<X, Y>(
-        admin: &signer, investor: &signer, swapper: &signer, core: &signer, decimal_x: u64, decimal_y: u64
+        admin: &signer, coin_list_admin: &signer, investor: &signer, swapper: &signer, core: &signer, decimal_x: u64, decimal_y: u64
     ) {
         let pool_type = POOL_TYPE_STABLE_CURVE;
         TestShared::time_start(core);
         // TestShared::init_regitry_and_mock_coins(admin);
-        TestShared::init_mock_coin_pair<X, Y>(admin, decimal_x, decimal_y);
+        TestShared::init_mock_coin_pair<X, Y>(admin, coin_list_admin, decimal_x, decimal_y);
         TestShared::create_pool<X, Y>(admin, pool_type, 0, 0, 0, 0, 0, 100, 100000);
         TestShared::fund_for_participants<X, Y>(investor, P8, P7);
         TestShared::fund_for_participants<X, Y>(swapper, P8, P7);
@@ -272,7 +272,7 @@ module hippo_swap::curve_test {
 
     #[test_only]
     public fun test_pool_case<X, Y>(
-        admin: &signer, investor: &signer, swapper: &signer, core: &signer,
+        admin: &signer, coin_list_admin: &signer, investor: &signer, swapper: &signer, core: &signer,
         print_debug: bool,
         skip_swap: bool,
         pool_type: u8,
@@ -285,7 +285,7 @@ module hippo_swap::curve_test {
         swap_1: TransactionParams,
         remove_1: TransactionParams
     ) {
-        TestShared::prepare_for_test<X, Y>(admin, investor, swapper, core, pool_type, decimal_x, decimal_y,
+        TestShared::prepare_for_test<X, Y>(admin, coin_list_admin, investor, swapper, core, pool_type, decimal_x, decimal_y,
             0, 0, 0, 0, 0, fee, protocal_fee
         );
         let liquidity_x = add_1.amt_x + add_2.amt_x;
@@ -311,8 +311,8 @@ module hippo_swap::curve_test {
         perform_transaction<X, Y>(investor, pool_type, REMOVE_LIQUIDITY, print_debug, remove_1);
     }
 
-    #[test(admin = @hippo_swap, investor = @0x2FFF, swapper = @0x2FFE, core = @aptos_framework)]
-    public fun test_pool_stable_curve_add_remove(admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
+    #[test(admin = @hippo_swap, coin_list_admin = @coin_list, investor = @0x2FFF, swapper = @0x2FFE, core = @aptos_framework)]
+    public fun test_pool_stable_curve_add_remove(admin: &signer, coin_list_admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
         use std::signer;
         use aptos_framework::account;
         account::create_account(signer::address_of(admin));
@@ -351,7 +351,7 @@ module hippo_swap::curve_test {
                 dx: P8, dy: P7, dlp: 2 * P8
             },
         };
-        test_pool_case<WUSDC, WDAI>(admin, investor, swapper, core,
+        test_pool_case<WUSDC, WDAI>(admin, coin_list_admin, investor, swapper, core,
             false, true,
             POOL_TYPE_STABLE_CURVE,
             decimal_x, decimal_y, fee, protocal_fee,
@@ -362,8 +362,8 @@ module hippo_swap::curve_test {
         );
     }
 
-    #[test(admin = @hippo_swap, investor = @0x2FFF, swapper = @0x2FFE, core = @aptos_framework)]
-    public fun test_pool_stable_curve_standard(admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
+    #[test(admin = @hippo_swap, coin_list_admin = @coin_list, investor = @0x2FFF, swapper = @0x2FFE, core = @aptos_framework)]
+    public fun test_pool_stable_curve_standard(admin: &signer, coin_list_admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
         use std::signer;
         use aptos_framework::account;
         account::create_account(signer::address_of(admin));
@@ -388,14 +388,14 @@ module hippo_swap::curve_test {
         let remove_1 = new_transaction_param(
             0, 0, 2 * P8, DEC, DEC, DEC, INC, INC, INC, 15 * P7, 5053661, 2 * P8, 0, 0, 0, INC, INC, DEC, 15 * P7, 5053661, 2 * P8
         );
-        test_pool_case<WUSDC, WDAI>(admin, investor, swapper, core,
+        test_pool_case<WUSDC, WDAI>(admin, coin_list_admin, investor, swapper, core,
             false, false, POOL_TYPE_STABLE_CURVE, decimal_x, decimal_y, fee, protocal_fee, add_1, add_2, swap, remove_1
         );
     }
 
 
-    #[test(admin = @hippo_swap, investor = @0x2FFF, swapper = @0x2FFE, core = @aptos_framework)]
-    public fun test_pool_stable_curve_2(admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
+    #[test(admin = @hippo_swap, coin_list_admin = @coin_list, investor = @0x2FFF, swapper = @0x2FFE, core = @aptos_framework)]
+    public fun test_pool_stable_curve_2(admin: &signer, coin_list_admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
         use std::signer;
         use aptos_framework::account;
         account::create_account(signer::address_of(admin));
@@ -422,13 +422,13 @@ module hippo_swap::curve_test {
             INC, INC, DEC,
             P8 + 5 * P5, P7 - 5 * P4 + 9, 2 * P8
         );
-        test_pool_case<WUSDC, WDAI>(admin, investor, swapper, core,
+        test_pool_case<WUSDC, WDAI>(admin, coin_list_admin, investor, swapper, core,
             false, false, POOL_TYPE_STABLE_CURVE, decimal_x, decimal_y, fee, protocal_fee, add_1, add_2, swap, remove_1
         );
     }
 
-    #[test(admin = @hippo_swap, investor = @0x2FFF, swapper = @0x2FFE, core = @aptos_framework)]
-    public fun test_pool_stable_curve_3(admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
+    #[test(admin = @hippo_swap, coin_list_admin = @coin_list, investor = @0x2FFF, swapper = @0x2FFE, core = @aptos_framework)]
+    public fun test_pool_stable_curve_3(admin: &signer, coin_list_admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
         use std::signer;
         use aptos_framework::account;
         account::create_account(signer::address_of(admin));
@@ -445,14 +445,14 @@ module hippo_swap::curve_test {
         let add_2 = add_param(P8, P6, P8, P6, 2 * P8, 0, 0);
         let swap = swap_param(P8, 0, P8, 989267, 0, 9, 989258);
         let remove_1 = remove_param(2 * P8, 15 * P7, 505366);
-        test_pool_case<WUSDC, WDAI>(admin, investor, swapper, core,
+        test_pool_case<WUSDC, WDAI>(admin, coin_list_admin, investor, swapper, core,
             false, false, POOL_TYPE_STABLE_CURVE, decimal_x, decimal_y, fee, protocal_fee, add_1, add_2, swap, remove_1
         );
     }
 
 
-    #[test(admin = @hippo_swap, investor = @0x2FFF, swapper = @0x2FFE, core = @aptos_framework)]
-    public fun test_pool_stable_curve_tiny_amt(admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
+    #[test(admin = @hippo_swap, coin_list_admin = @coin_list, investor = @0x2FFF, swapper = @0x2FFE, core = @aptos_framework)]
+    public fun test_pool_stable_curve_tiny_amt(admin: &signer, coin_list_admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
         use std::signer;
         use aptos_framework::account;
         account::create_account(signer::address_of(admin));
@@ -465,14 +465,14 @@ module hippo_swap::curve_test {
         let add_2 = add_param(P8, P6, P8, P6, 2 * P8, 0, 0);
         let swap = swap_param(P3, 0, P3, 10, 0, 0, 10);
         let remove_1 = remove_param(2 * P8, P8 + 500, P6 - 5);
-        test_pool_case<WUSDC, WDAI>(admin, investor, swapper, core,
+        test_pool_case<WUSDC, WDAI>(admin, coin_list_admin, investor, swapper, core,
             false, false, POOL_TYPE_STABLE_CURVE, decimal_x, decimal_y, fee, protocal_fee, add_1, add_2, swap, remove_1
         );
     }
 
 
-    #[test(admin = @hippo_swap, investor = @0x2FFF, swapper = @0x2FFE, core = @aptos_framework)]
-    public fun test_pool_stable_curve_4(admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
+    #[test(admin = @hippo_swap, coin_list_admin = @coin_list, investor = @0x2FFF, swapper = @0x2FFE, core = @aptos_framework)]
+    public fun test_pool_stable_curve_4(admin: &signer, coin_list_admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
         use std::signer;
         use aptos_framework::account;
         account::create_account(signer::address_of(admin));
@@ -485,13 +485,13 @@ module hippo_swap::curve_test {
         let add_2 = add_param(P10, P6, P10, P6, 2 * P10, 0, 0);
         let swap = swap_param(P10, 0, P10, 989267, 0, 9, 989258);
         let remove_1 = remove_param(2 * P10, 15 * P9, 505366);
-        test_pool_case<WUSDC, WDAI>(admin, investor, swapper, core,
+        test_pool_case<WUSDC, WDAI>(admin, coin_list_admin, investor, swapper, core,
             false, false, POOL_TYPE_STABLE_CURVE, decimal_x, decimal_y, fee, protocal_fee, add_1, add_2, swap, remove_1
         );
     }
 
-    #[test(admin = @hippo_swap, investor = @0x2FFF, swapper = @0x2FFE, core = @aptos_framework)]
-    public fun test_pool_stable_curve_5(admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
+    #[test(admin = @hippo_swap, coin_list_admin = @coin_list, investor = @0x2FFF, swapper = @0x2FFE, core = @aptos_framework)]
+    public fun test_pool_stable_curve_5(admin: &signer, coin_list_admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
         use std::signer;
         use aptos_framework::account;
         account::create_account(signer::address_of(admin));
@@ -505,7 +505,7 @@ module hippo_swap::curve_test {
         let add_2 = add_param(P10, P10, P10, P10, 2 * P10, 0, 0);
         let swap = swap_param(P4, 0, P4, 9999, 0, 0, 9999);
         let remove_1 = remove_param(2 * P10, P10 + 5 * P3, P10 - 5 * P3);
-        test_pool_case<WUSDC, WDAI>(admin, investor, swapper, core,
+        test_pool_case<WUSDC, WDAI>(admin, coin_list_admin, investor, swapper, core,
             false, false, pool_type, decimal_x, decimal_y, fee, protocal_fee, add_1, add_2, swap, remove_1
         );
         TestShared::fund_for_participants<WUSDC, WDAI>(swapper, 0, P4);
@@ -516,8 +516,8 @@ module hippo_swap::curve_test {
     }
 
 
-    #[test(admin = @hippo_swap, investor = @0x2FFF, swapper = @0x2FFE, core = @aptos_framework)]
-    public fun test_pool_stable_curve_6(admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
+    #[test(admin = @hippo_swap, coin_list_admin = @coin_list, investor = @0x2FFF, swapper = @0x2FFE, core = @aptos_framework)]
+    public fun test_pool_stable_curve_6(admin: &signer, coin_list_admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
         use std::signer;
         use aptos_framework::account;
         account::create_account(signer::address_of(admin));
@@ -530,14 +530,14 @@ module hippo_swap::curve_test {
         let add_2 = add_param(P17, P17, P17, P17, 2 * P17, 0, 0);
         let swap = swap_param(P4, 0, P4, 9999, 0, 0, 9999);
         let remove_1 = remove_param(2 * P10, P10, P10 - 1);
-        test_pool_case<WUSDC, WDAI>(admin, investor, swapper, core,
+        test_pool_case<WUSDC, WDAI>(admin, coin_list_admin, investor, swapper, core,
             print_debug, false, pool_type, decimal_x, decimal_y, fee, protocal_fee, add_1, add_2, swap, remove_1
         );
     }
 
-    #[test(admin = @hippo_swap, investor = @0x2FFF, swapper = @0x2FFE, core = @aptos_framework)]
+    #[test(admin = @hippo_swap, coin_list_admin = @coin_list, investor = @0x2FFF, swapper = @0x2FFE, core = @aptos_framework)]
     #[expected_failure]         // ARITHMETIC_ERROR
-    public fun test_pool_stable_curve_7(admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
+    public fun test_pool_stable_curve_7(admin: &signer, coin_list_admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
         use std::signer;
         use aptos_framework::account;
         account::create_account(signer::address_of(admin));
@@ -550,13 +550,13 @@ module hippo_swap::curve_test {
         let add_2 = add_param(P18, P18, P18, P18, 2 * P18, 0, 0);
         let swap = swap_param(P4, 0, P4, 9999, 0, 0, 9999);
         let remove_1 = remove_param(2 * P10, P10, P10 - 1);
-        test_pool_case<WUSDC, WDAI>(admin, investor, swapper, core,
+        test_pool_case<WUSDC, WDAI>(admin, coin_list_admin, investor, swapper, core,
             print_debug, false, pool_type, decimal_x, decimal_y, fee, protocal_fee, add_1, add_2, swap, remove_1
         );
     }
 
-    #[test(admin = @hippo_swap, investor = @0x2FFF, swapper = @0x2FFE, core = @aptos_framework)]
-    public fun test_pool_stable_curve_8(admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
+    #[test(admin = @hippo_swap, coin_list_admin = @coin_list, investor = @0x2FFF, swapper = @0x2FFE, core = @aptos_framework)]
+    public fun test_pool_stable_curve_8(admin: &signer, coin_list_admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
         use std::signer;
         use aptos_framework::account;
         account::create_account(signer::address_of(admin));
@@ -575,13 +575,13 @@ module hippo_swap::curve_test {
         let add_2 = add_param(P17, P15, P17, P15, 2 * P17, 0, 0);
         let swap = swap_param(P8, 0, P8, P6 - 91, 0, 9, P6 - 100);
         let remove_1 = remove_param(2 * P10, P10 + 5, P8 - 1);
-        test_pool_case<WUSDC, WDAI>(admin, investor, swapper, core,
+        test_pool_case<WUSDC, WDAI>(admin, coin_list_admin, investor, swapper, core,
             print_debug, false, pool_type, decimal_x, decimal_y, fee, protocal_fee, add_1, add_2, swap, remove_1
         );
     }
 
-    #[test(admin = @hippo_swap, investor = @0x2FFF, swapper = @0x2FFE, core = @aptos_framework)]
-    public fun test_pool_stable_curve_accumulative_giant(admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
+    #[test(admin = @hippo_swap, coin_list_admin = @coin_list, investor = @0x2FFF, swapper = @0x2FFE, core = @aptos_framework)]
+    public fun test_pool_stable_curve_accumulative_giant(admin: &signer, coin_list_admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
         use std::signer;
         use aptos_framework::account;
         account::create_account(signer::address_of(admin));
@@ -603,7 +603,7 @@ module hippo_swap::curve_test {
         let add_4 = add_param(P17 - P8, P15 + P6, P17 - P8 - 166, P15 + P6 - 1, 2 * P17 - P4 + 717, 166, 1);
         // The fee was based on the deviation between the proportion of reserve coins and the input coins.
 
-        TestShared::prepare_for_test<WUSDC, WDAI>(admin, investor, swapper, core, pool_type, decimal_x, decimal_y, 0, 0, 0, 0, 0, fee, protocal_fee);
+        TestShared::prepare_for_test<WUSDC, WDAI>(admin, coin_list_admin, investor, swapper, core, pool_type, decimal_x, decimal_y, 0, 0, 0, 0, 0, fee, protocal_fee);
         TestShared::fund_for_participants<WUSDC, WDAI>(investor, 4 * P17 - 3 * P8, 4 * P15 + 3 * P6);
         TestShared::sync_wallet_save_point<WUSDC, WDAI>(investor, pool_type);
 
@@ -644,8 +644,8 @@ module hippo_swap::curve_test {
     }
 
 
-    #[test(admin = @hippo_swap, investor = @0x2FFF, swapper = @0x2FFE, core = @aptos_framework)]
-    public fun test_pool_stable_curve_accumulative_loop_swap(admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
+    #[test(admin = @hippo_swap, coin_list_admin = @coin_list, investor = @0x2FFF, swapper = @0x2FFE, core = @aptos_framework)]
+    public fun test_pool_stable_curve_accumulative_loop_swap(admin: &signer, coin_list_admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
         use std::signer;
         use aptos_framework::account;
         account::create_account(signer::address_of(admin));
@@ -660,7 +660,7 @@ module hippo_swap::curve_test {
         let add_1 = add_param(P17, P15, P17, P15, 2 * P17, 0, 0);
         // The fee was based on the deviation between the proportion of reserve coins and the input coins.
 
-        TestShared::prepare_for_test<WUSDC, WDAI>(admin, investor, swapper, core, pool_type, decimal_x, decimal_y, 0, 0, 0, 0, 0, fee, protocal_fee);
+        TestShared::prepare_for_test<WUSDC, WDAI>(admin, coin_list_admin, investor, swapper, core, pool_type, decimal_x, decimal_y, 0, 0, 0, 0, 0, fee, protocal_fee);
         TestShared::fund_for_participants<WUSDC, WDAI>(investor, 4 * P17 - 3 * P8, 4 * P15 + 3 * P6);
         TestShared::sync_wallet_save_point<WUSDC, WDAI>(investor, pool_type);
 
@@ -684,8 +684,8 @@ module hippo_swap::curve_test {
     }
 
 
-    #[test(admin = @hippo_swap, investor = @0x2FFF, swapper = @0x2FFE, core = @aptos_framework)]
-    public fun test_pool_stable_curve_deviant(admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
+    #[test(admin = @hippo_swap, coin_list_admin = @coin_list, investor = @0x2FFF, swapper = @0x2FFE, core = @aptos_framework)]
+    public fun test_pool_stable_curve_deviant(admin: &signer, coin_list_admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
         use std::signer;
         use aptos_framework::account;
         account::create_account(signer::address_of(admin));
@@ -699,7 +699,7 @@ module hippo_swap::curve_test {
         let swap = swap_param(P8, 0, P8,  1007033, 0, 10,  1007023);
 
         let remove_1 = remove_param(2 * P10,  8002800501, 120042057);
-        test_pool_case<WUSDC, WDAI>(admin, investor, swapper, core,
+        test_pool_case<WUSDC, WDAI>(admin, coin_list_admin, investor, swapper, core,
             print_debug, false, pool_type, decimal_x, decimal_y, fee, protocal_fee, add_1, add_2, swap, remove_1
         );
         let swap_2 = swap_param(0, P6,  99283755, P6, 992, 0, 99282763);  // swap 1 doller

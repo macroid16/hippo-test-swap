@@ -101,8 +101,8 @@ module hippo_swap::proc {
     const P17: u64 = 100000000000000000;        // 10 ** 8  * 10 ** 9  (billion)
     const P18: u64 = 1000000000000000000;
 
-    #[test(admin = @hippo_swap, investor = @0x2FFF, swapper = @0x2FFE, core = @aptos_framework)]
-    public fun test_pool_constant_product(admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
+    #[test(admin = @hippo_swap, coin_list_admin = @coin_list, investor = @0x2FFF, swapper = @0x2FFE, core = @aptos_framework)]
+    public fun test_pool_constant_product(admin: &signer, coin_list_admin:&signer, investor: &signer, swapper: &signer, core: &signer) {
         use std::signer;
         use aptos_framework::account;
         account::create_account(signer::address_of(admin));
@@ -110,7 +110,7 @@ module hippo_swap::proc {
         account::create_account(signer::address_of(swapper));
         let pool_type = POOL_TYPE_CONSTANT_PRODUCT;
         TestShared::time_start(core);
-        TestShared::init_registry_and_mock_coins(admin);
+        TestShared::init_registry_and_mock_coins(admin,coin_list_admin);
         TestShared::create_pool<WUSDC, WETH>(admin, pool_type, 0,0,0,0,0,100, 100000);
         TestShared::fund_for_participants<WUSDC, WETH>(investor, P8, P9);
         TestShared::fund_for_participants<WUSDC, WETH>(swapper, P8, P9);
