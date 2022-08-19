@@ -3,8 +3,9 @@ name = "hippo-swap"
 version = "0.0.1"
 
 [dependencies]
-AptosFramework = { git = "https://github.com/aptos-labs/aptos-core.git", subdir = "aptos-move/framework/aptos-framework/", rev = "a58060f88d66b90a0548a506e22270b04a328db3" }
-AptosStdlib = { git = "https://github.com/aptos-labs/aptos-core.git", subdir = "aptos-move/framework/aptos-stdlib/", rev = "a58060f88d66b90a0548a506e22270b04a328db3" }
-CoinList = { git = "https://github.com/hippospace/aptos-coin-list.git", subdir = "", rev = "209f9e7016effc7e293794e22d0a7ad860b57bbd" }
+AptosFramework = { git = "https://github.com/aptos-labs/aptos-core.git", subdir = "aptos-move/framework/aptos-framework/", rev = "a026097e1873d6ce2a264c4e162e910bbf5788f3" }
+AptosStdlib = { git = "https://github.com/aptos-labs/aptos-core.git", subdir = "aptos-move/framework/aptos-stdlib/", rev = "a026097e1873d6ce2a264c4e162e910bbf5788f3" }
+CoinList = { git = "https://github.com/hippospace/aptos-coin-list.git", subdir = "", rev = "e6384696841ce85eb6b348ea236c7c1df8fe2685" }
+
 [addresses]
 hippo_swap = "a61e1e86e9f596e483283727d2739ba24b919012720648c29380f9cd0a96c11a"
