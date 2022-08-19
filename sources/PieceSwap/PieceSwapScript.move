@@ -3,11 +3,10 @@ module piece_swap_script {
     use std::signer;
     use hippo_swap::piece_swap;
     use aptos_framework::coin;
-    use coin_list::coin_list;
     use std::vector;
     use std::string;
-    #[test_only]
-    use hippo_swap::mock_deploy;
+    use coin_list::coin_list;
+    use coin_list::devnet_coins;
 
     const E_SWAP_ONLY_ONE_IN_ALLOWED: u64 = 0;
     const E_SWAP_ONLY_ONE_OUT_ALLOWED: u64 = 1;
@@ -157,25 +156,11 @@ module piece_swap_script {
         }
     }
 
-    // coinlist registry must be initialized before this method
     #[cmd]
     public entry fun mock_deploy_script(admin: &signer) {
-        use hippo_swap::mock_deploy;
-        use hippo_swap::mock_coin;
-        /*
-            1. initialize coins (and add them to registry)
-            2. create token pairs
-            3. adds liquidity
-        */
 
-        // 1
-        mock_deploy::init_coin_and_register<mock_coin::WUSDC>(admin, b"USDC", b"USDC", 8);
-        mock_deploy::init_coin_and_register<mock_coin::WUSDT>(admin, b"USDT", b"USDT", 8);
-        mock_deploy::init_coin_and_register<mock_coin::WDAI>(admin, b"DAI", b"DAI", 8);
-
-        // 2
         let billion = 1000000000;
-        create_new_pool_script<mock_coin::WUSDT, mock_coin::WUSDC>(
+        create_new_pool_script<devnet_coins::DevnetUSDT, devnet_coins::DevnetUSDC>(
             admin,
             b"USDT-USDC PieceSwap LP Token",
             b"USDT-USDC-PS_LP",
@@ -188,7 +173,7 @@ module piece_swap_script {
             100,
         );
 
-        create_new_pool_script<mock_coin::WDAI, mock_coin::WUSDC>(
+        create_new_pool_script<devnet_coins::DevnetDAI, devnet_coins::DevnetUSDC>(
             admin,
             b"DAI-USDC PieceSwap LP Token",
             b"DAI-USDC-PS_LP",
@@ -203,30 +188,31 @@ module piece_swap_script {
 
         // 3
         let initial_amount = 1000000 * 100000000;
-        mock_coin::faucet_mint_to<mock_coin::WUSDT>(admin, initial_amount);
-        mock_coin::faucet_mint_to<mock_coin::WUSDC>(admin, initial_amount);
-        add_liquidity_script<mock_coin::WUSDT, mock_coin::WUSDC>(admin, initial_amount, initial_amount);
+        devnet_coins::mint_to_wallet<devnet_coins::DevnetUSDT>(admin, initial_amount);
+        devnet_coins::mint_to_wallet<devnet_coins::DevnetUSDC>(admin, initial_amount);
+        add_liquidity_script<devnet_coins::DevnetUSDT, devnet_coins::DevnetUSDC>(admin, initial_amount, initial_amount);
 
-        mock_coin::faucet_mint_to<mock_coin::WDAI>(admin, initial_amount);
-        mock_coin::faucet_mint_to<mock_coin::WUSDC>(admin, initial_amount);
-        add_liquidity_script<mock_coin::WDAI, mock_coin::WUSDC>(admin, initial_amount, initial_amount);
+        devnet_coins::mint_to_wallet<devnet_coins::DevnetDAI>(admin, initial_amount);
+        devnet_coins::mint_to_wallet<devnet_coins::DevnetUSDC>(admin, initial_amount);
+        add_liquidity_script<devnet_coins::DevnetDAI, devnet_coins::DevnetUSDC>(admin, initial_amount, initial_amount);
     }
+    #[test_only]
+    use hippo_swap::devcoin_util::init_registry_and_devnet_coins;
 
     #[test(admin=@hippo_swap, coin_list_admin = @coin_list)]
     public entry fun test_mock_deploy(admin: &signer, coin_list_admin: &signer) {
         use aptos_framework::account;
         account::create_account(signer::address_of(admin));
-        mock_deploy::init_registry(coin_list_admin);
+        init_registry_and_devnet_coins(coin_list_admin);
         mock_deploy_script(admin);
     }
 
     #[test(admin=@hippo_swap, coin_list_admin = @coin_list)]
     public entry fun test_remove_liquidity(admin: &signer, coin_list_admin: &signer) {
-        use hippo_swap::mock_coin;
         use aptos_framework::coin;
         use aptos_framework::account;
         account::create_account(signer::address_of(admin));
-        mock_deploy::init_registry(coin_list_admin);
+        init_registry_and_devnet_coins(coin_list_admin);
         /*
             1. mock_deploy
             2. remove liquidity
@@ -236,23 +222,23 @@ module piece_swap_script {
         mock_deploy_script(admin);
 
         // 2
-        remove_liquidity_script<mock_coin::WUSDT, mock_coin::WUSDC>(admin, 100);
-        remove_liquidity_script<mock_coin::WDAI, mock_coin::WUSDC>(admin, 100);
+        remove_liquidity_script<devnet_coins::DevnetUSDT, devnet_coins::DevnetUSDC>(admin, 100);
+        remove_liquidity_script<devnet_coins::DevnetDAI, devnet_coins::DevnetUSDC>(admin, 100);
 
         let admin_addr = signer::address_of(admin);
-        assert!(coin::balance<mock_coin::WUSDT>(admin_addr) == 100, 0);
-        assert!(coin::balance<mock_coin::WDAI>(admin_addr) == 100, 0);
-        assert!(coin::balance<mock_coin::WUSDC>(admin_addr) == 200, 0);
+        assert!(coin::balance<devnet_coins::DevnetUSDT>(admin_addr) == 100, 0);
+        assert!(coin::balance<devnet_coins::DevnetDAI>(admin_addr) == 100, 0);
+        assert!(coin::balance<devnet_coins::DevnetUSDC>(admin_addr) == 200, 0);
     }
 
     #[test(admin=@hippo_swap, coin_list_admin = @coin_list, user=@0x1234567)]
     public entry fun test_swap(admin: &signer, coin_list_admin: &signer, user: &signer) {
-        use hippo_swap::mock_coin;
+        use coin_list::devnet_coins;
         use aptos_framework::coin;
         use aptos_framework::account;
         account::create_account(signer::address_of(admin));
         account::create_account(signer::address_of(user));
-        mock_deploy::init_registry(coin_list_admin);
+        init_registry_and_devnet_coins(coin_list_admin);
         /*
             1. create pools
             2. swap x to y
@@ -264,15 +250,15 @@ module piece_swap_script {
 
         // 2
         let usdt_amt = 10000000;
-        mock_coin::faucet_mint_to<mock_coin::WUSDT>(user, usdt_amt);
-        swap_script<mock_coin::WUSDT, mock_coin::WUSDC>(user, usdt_amt, 0, 0, usdt_amt * 999 / 1000);
+        devnet_coins::mint_to_wallet<devnet_coins::DevnetUSDT>(user, usdt_amt);
+        swap_script<devnet_coins::DevnetUSDT, devnet_coins::DevnetUSDC>(user, usdt_amt, 0, 0, usdt_amt * 999 / 1000);
 
         // 3
-        let usdc_balance = coin::balance<mock_coin::WUSDC>(signer::address_of(user));
-        swap_script<mock_coin::WDAI, mock_coin::WUSDC>(user, 0, usdc_balance, usdc_balance * 999 / 1000, 0);
-        assert!(coin::balance<mock_coin::WUSDC>(signer::address_of(user)) == 0, 0);
-        assert!(coin::balance<mock_coin::WUSDT>(signer::address_of(user)) == 0, 0);
-        assert!(coin::balance<mock_coin::WDAI>(signer::address_of(user)) >= usdc_balance * 999 / 1000, 0);
+        let usdc_balance = coin::balance<devnet_coins::DevnetUSDC>(signer::address_of(user));
+        swap_script<devnet_coins::DevnetDAI, devnet_coins::DevnetUSDC>(user, 0, usdc_balance, usdc_balance * 999 / 1000, 0);
+        assert!(coin::balance<devnet_coins::DevnetUSDC>(signer::address_of(user)) == 0, 0);
+        assert!(coin::balance<devnet_coins::DevnetUSDT>(signer::address_of(user)) == 0, 0);
+        assert!(coin::balance<devnet_coins::DevnetDAI>(signer::address_of(user)) >= usdc_balance * 999 / 1000, 0);
 
     }
 

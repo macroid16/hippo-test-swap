@@ -4,10 +4,9 @@ module hippo_swap::TestShared {
     // The preconditions required by the test suite below:
     // Init Token registry for admin
 
-    use hippo_swap::mock_deploy;
-    use hippo_swap::mock_coin::{WUSDT, WUSDC, WDAI, WETH, WBTC, WDOT, WSOL};
+//    use hippo_swap::mock_deploy;
+//    use hippo_swap::mock_coin::{WUSDT, WUSDC, WDAI, WETH, WBTC, WDOT, WSOL};
     use aptos_framework::timestamp;
-    use hippo_swap::mock_coin;
     use std::signer;
     use hippo_swap::cp_scripts;
     use hippo_swap::stable_curve_scripts;
@@ -19,6 +18,8 @@ module hippo_swap::TestShared {
     use aptos_framework::coins;
     use std::option;
     use coin_list::coin_list;
+    use coin_list::devnet_coins;
+    use hippo_swap::devcoin_util;
 
     const ADMIN: address = @hippo_swap;
     const INVESTOR: address = @0x2FFF;
@@ -108,28 +109,28 @@ module hippo_swap::TestShared {
     }
 
     #[test_only]
-    public fun init_registry_and_mock_coins(admin: &signer, coin_list_admin: &signer) {
+    public fun init_registry_and_mock_coins(coin_list_admin: &signer) {
         coin_list::initialize(coin_list_admin);
-        mock_deploy::init_coin_and_register<WUSDT>(admin, b"USDT", b"USDT", 8);
-        mock_deploy::init_coin_and_register<WUSDC>(admin, b"USDC", b"USDC", 8);
-        mock_deploy::init_coin_and_register<WDAI>(admin, b"DAI", b"DAI", 7);
-        mock_deploy::init_coin_and_register<WETH>(admin, b"ETH", b"ETH", 9);
-        mock_deploy::init_coin_and_register<WBTC>(admin, b"BTC", b"BTC", 10);
-        mock_deploy::init_coin_and_register<WDOT>(admin, b"DOT", b"DOT", 6);
-        mock_deploy::init_coin_and_register<WSOL>(admin, b"SOL", b"SOL", 8);
+        devcoin_util::init_coin_and_register<devnet_coins::DevnetUSDT>(coin_list_admin, b"USDT", b"USDT", 8);
+        devcoin_util::init_coin_and_register<devnet_coins::DevnetUSDC>(coin_list_admin, b"USDC", b"USDC", 8);
+        devcoin_util::init_coin_and_register<devnet_coins::DevnetDAI>(coin_list_admin, b"DAI", b"DAI", 7);
+        devcoin_util::init_coin_and_register<devnet_coins::DevnetETH>(coin_list_admin, b"ETH", b"ETH", 9);
+        devcoin_util::init_coin_and_register<devnet_coins::DevnetBTC>(coin_list_admin, b"BTC", b"BTC", 10);
+        devcoin_util::init_coin_and_register<devnet_coins::DevnetBNB>(coin_list_admin, b"BNB", b"BNB", 6);
+        devcoin_util::init_coin_and_register<devnet_coins::DevnetSOL>(coin_list_admin, b"SOL", b"SOL", 8);
     }
 
     #[test_only]
-    public fun init_mock_coin_pair<X, Y>(admin: &signer, coin_list_admin: &signer, decimal_x: u64, decimal_y: u64) {
+    public fun init_mock_coin_pair<X, Y>(coin_list_admin: &signer, decimal_x: u64, decimal_y: u64) {
         coin_list::initialize(coin_list_admin);
-        mock_deploy::init_coin_and_register<X>(admin, b"COIN-X", b"COIN-X", decimal_x);
-        mock_deploy::init_coin_and_register<Y>(admin, b"COIN-Y", b"COIN-Y", decimal_y);
+        devcoin_util::init_coin_and_register<X>(coin_list_admin, b"COIN-X", b"COIN-X", decimal_x);
+        devcoin_util::init_coin_and_register<Y>(coin_list_admin, b"COIN-Y", b"COIN-Y", decimal_y);
     }
 
     #[test_only]
     public fun fund_for_participants<X, Y>(signer: &signer, amount_x: u64, amount_y: u64) {
-        mock_coin::faucet_mint_to<X>(signer, amount_x);
-        mock_coin::faucet_mint_to<Y>(signer, amount_y);
+        devnet_coins::mint_to_wallet<X>(signer, amount_x);
+        devnet_coins::mint_to_wallet<Y>(signer, amount_y);
     }
 
     #[test_only]
@@ -183,7 +184,7 @@ module hippo_swap::TestShared {
         k: u128, n1: u128, d1: u128, n2: u128, d2: u128, fee: u64, protocal_fee: u64
     ) {
         time_start(core);
-        init_mock_coin_pair<X, Y>(admin, coin_list_admin, decimal_x, decimal_y);
+        init_mock_coin_pair<X, Y>(coin_list_admin, decimal_x, decimal_y);
         create_pool<X, Y>(
             admin, pool_type,
             k, n1, d1, n2, d2, fee, protocal_fee
@@ -567,4 +568,5 @@ module hippo_swap::TestShared {
         debug_print_wallet_sp<X, Y>(sender);
         debug_print_balance<X, Y>(sender, pool_type);
     }
+
 }

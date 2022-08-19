@@ -70,8 +70,9 @@ module hippo_swap::proc {
 
 
     use hippo_swap::TestShared;
-    use hippo_swap::mock_coin::{WUSDC, WETH};
     use hippo_swap::router;
+    use coin_list::devnet_coins;
+    use hippo_swap::devcoin_util;
 
     const ADMIN: address = @hippo_swap;
     const INVESTOR: address = @0x2FFF;
@@ -110,17 +111,17 @@ module hippo_swap::proc {
         account::create_account(signer::address_of(swapper));
         let pool_type = POOL_TYPE_CONSTANT_PRODUCT;
         TestShared::time_start(core);
-        TestShared::init_registry_and_mock_coins(admin,coin_list_admin);
-        TestShared::create_pool<WUSDC, WETH>(admin, pool_type, 0,0,0,0,0,100, 100000);
-        TestShared::fund_for_participants<WUSDC, WETH>(investor, P8, P9);
-        TestShared::fund_for_participants<WUSDC, WETH>(swapper, P8, P9);
-        router::add_liquidity_route<WUSDC, WETH>(investor, pool_type, P8, P9);
-        TestShared::debug_print_pool_reserve_xy<WUSDC, WETH>(pool_type);
-        TestShared::debug_print_pool_lp_supply<WUSDC, WETH>(pool_type);
-        TestShared::debug_print_pool_fee<WUSDC, WETH>(pool_type);
-        TestShared::debug_print_save_point<WUSDC, WETH>(pool_type);
-        TestShared::sync_save_point<WUSDC, WETH>(pool_type);
-        TestShared::debug_print_save_point<WUSDC, WETH>(pool_type);
+        devcoin_util::init_registry_and_devnet_coins(coin_list_admin);
+        TestShared::create_pool<devnet_coins::DevnetUSDC, devnet_coins::DevnetETH>(admin, pool_type, 0,0,0,0,0,100, 100000);
+        TestShared::fund_for_participants<devnet_coins::DevnetUSDC, devnet_coins::DevnetETH>(investor, P8, P9);
+        TestShared::fund_for_participants<devnet_coins::DevnetUSDC, devnet_coins::DevnetETH>(swapper, P8, P9);
+        router::add_liquidity_route<devnet_coins::DevnetUSDC, devnet_coins::DevnetETH>(investor, pool_type, P8, P9);
+        TestShared::debug_print_pool_reserve_xy<devnet_coins::DevnetUSDC, devnet_coins::DevnetETH>(pool_type);
+        TestShared::debug_print_pool_lp_supply<devnet_coins::DevnetUSDC, devnet_coins::DevnetETH>(pool_type);
+        TestShared::debug_print_pool_fee<devnet_coins::DevnetUSDC, devnet_coins::DevnetETH>(pool_type);
+        TestShared::debug_print_save_point<devnet_coins::DevnetUSDC, devnet_coins::DevnetETH>(pool_type);
+        TestShared::sync_save_point<devnet_coins::DevnetUSDC, devnet_coins::DevnetETH>(pool_type);
+        TestShared::debug_print_save_point<devnet_coins::DevnetUSDC, devnet_coins::DevnetETH>(pool_type);
      }
 
 }

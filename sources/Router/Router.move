@@ -168,16 +168,23 @@ module router {
     #[test_only]
     use hippo_swap::cp_scripts;
     #[test_only]
-    use hippo_swap::mock_coin;
+    use coin_list::devnet_coins;
     #[test_only]
-    use hippo_swap::mock_deploy;
+    use coin_list::devnet_coins::{
+        DevnetBTC as BTC,
+        DevnetUSDC as USDC,
+        DevnetUSDT as USDT,
+        DevnetDAI as DAI
+    };
+    #[test_only]
+    use hippo_swap::devcoin_util;
 
     #[test(admin=@hippo_swap, coin_list_admin = @coin_list, user=@0x12345, core=@aptos_framework)]
     public entry fun test_two_step(admin: &signer, coin_list_admin: &signer, user: &signer, core: &signer) {
         use aptos_framework::account;
         account::create_account(signer::address_of(admin));
         account::create_account(signer::address_of(user));
-        mock_deploy::init_registry(coin_list_admin);
+        devcoin_util::init_registry_and_devnet_coins(coin_list_admin);
         timestamp::set_time_has_started_for_testing(core);
         // 1
         // creates BTC-USDC and BTC-USDT
@@ -187,9 +194,9 @@ module router {
 
         // mint some BTC to user first
         let btc_amount = 100;
-        mock_coin::faucet_mint_to<mock_coin::WBTC>(user, btc_amount);
+        devnet_coins::mint_to_wallet<BTC>(user, btc_amount);
 
-        two_step_route_script<mock_coin::WBTC, mock_coin::WUSDC, mock_coin::WUSDT>(
+        two_step_route_script<BTC, USDC, USDT>(
             user,
             POOL_TYPE_CONSTANT_PRODUCT,
             true,
@@ -201,10 +208,10 @@ module router {
 
         let user_addr = signer::address_of(user);
 
-        assert!(coin::balance<mock_coin::WBTC>(user_addr) == 0, 0);
-        assert!(!coin::is_account_registered<mock_coin::WUSDC>(user_addr), 0);
-        assert!(coin::balance<mock_coin::WUSDT>(user_addr) >= btc_amount * 10000 * 99 / 100, 0);
-        assert!(coin::balance<mock_coin::WUSDT>(user_addr) <= btc_amount * 10000, 0);
+        assert!(coin::balance<BTC>(user_addr) == 0, 0);
+        assert!(!coin::is_account_registered<USDC>(user_addr), 0);
+        assert!(coin::balance<USDT>(user_addr) >= btc_amount * 10000 * 99 / 100, 0);
+        assert!(coin::balance<USDT>(user_addr) <= btc_amount * 10000, 0);
     }
 
     #[test(admin=@hippo_swap, coin_list_admin=@coin_list, user=@0x12345, core=@aptos_framework)]
@@ -212,7 +219,7 @@ module router {
         use aptos_framework::account;
         account::create_account(signer::address_of(admin));
         account::create_account(signer::address_of(user));
-        mock_deploy::init_registry(coin_list_admin);
+        devcoin_util::init_registry_and_devnet_coins(coin_list_admin);
         timestamp::set_time_has_started_for_testing(core);
         // 1
         // creates BTC-USDC and BTC-USDT
@@ -223,9 +230,9 @@ module router {
         // DAI -> USDC -> USDT -> BTC
         // mint some BTC to user first
         let dai_amount = 10000000;
-        mock_coin::faucet_mint_to<mock_coin::WDAI>(user, dai_amount);
+        devnet_coins::mint_to_wallet<DAI>(user, dai_amount);
 
-        three_step_route_script<mock_coin::WDAI, mock_coin::WUSDC, mock_coin::WUSDT, mock_coin::WBTC>(
+        three_step_route_script<DAI, USDC, USDT, BTC>(
             user,
             POOL_TYPE_PIECEWISE, // dai to usdc
             true,
@@ -239,11 +246,11 @@ module router {
 
         let user_addr = signer::address_of(user);
 
-        assert!(coin::balance<mock_coin::WDAI>(user_addr) == 0, 0);
-        assert!(!coin::is_account_registered<mock_coin::WUSDC>(user_addr), 0);
-        assert!(!coin::is_account_registered<mock_coin::WUSDT>(user_addr), 0);
-        assert!(coin::balance<mock_coin::WBTC>(user_addr) >= dai_amount / 10000 * 99 / 100, 0);
-        assert!(coin::balance<mock_coin::WBTC>(user_addr) <= dai_amount / 10000, 0);
+        assert!(coin::balance<DAI>(user_addr) == 0, 0);
+        assert!(!coin::is_account_registered<USDC>(user_addr), 0);
+        assert!(!coin::is_account_registered<USDT>(user_addr), 0);
+        assert!(coin::balance<BTC>(user_addr) >= dai_amount / 10000 * 99 / 100, 0);
+        assert!(coin::balance<BTC>(user_addr) <= dai_amount / 10000, 0);
     }
 
     // Extra utilities.

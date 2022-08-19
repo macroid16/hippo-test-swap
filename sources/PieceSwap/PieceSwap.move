@@ -407,17 +407,16 @@ module piece_swap {
     }
 
     #[test_only]
-    use hippo_swap::mock_coin;
-
+    use hippo_swap::devcoin_util;
     #[test_only]
-    fun mock_init_pool<X, Y>(admin: &signer, lp_name: vector<u8>, lp_symbol: vector<u8>) {
+    use coin_list::devnet_coins;
+    #[test_only]
+    use coin_list::devnet_coins::{DevnetUSDT as USDT, DevnetUSDC as USDC};
+    #[test_only]
+    fun mock_init_pool<X, Y>(admin: &signer, coin_list_admin: &signer, lp_name: vector<u8>, lp_symbol: vector<u8>) {
         let billion = 1000000000;
-        if (!coin::is_coin_initialized<X>()) {
-            mock_coin::initialize<X>(admin, 6);
-        };
-        if (!coin::is_coin_initialized<Y>()) {
-            mock_coin::initialize<Y>(admin, 6);
-        };
+        devcoin_util::init_coin<X>(coin_list_admin,6);
+        devcoin_util::init_coin<Y>(coin_list_admin,6);
         create_new_pool<X, Y>(
             admin,
             lp_name,
@@ -437,19 +436,20 @@ module piece_swap {
     #[test_only]
     fun mock_add_liquidity_direct_equal<X, Y>(amount: u64)
     : (coin::Coin<X>, coin::Coin<Y>, coin::Coin<LPToken<X, Y>>) acquires PieceSwapPoolInfo {
-        let coin_x = mock_coin::mint<X>(amount);
-        let coin_y = mock_coin::mint<Y>(amount);
+        let coin_x = devnet_coins::mint<X>(amount);
+        let coin_y = devnet_coins::mint<Y>(amount);
         add_liquidity_direct(coin_x, coin_y)
     }
 
     #[test_only]
     fun mock_init_pool_and_add_liquidity_direct<X, Y>(
         admin: &signer,
+        coin_list_admin: &signer,
         lp_name: vector<u8>,
         lp_symbol: vector<u8>,
         initial_amt: u64
     ): coin::Coin<LPToken<X, Y>> acquires PieceSwapPoolInfo {
-        mock_init_pool<X, Y>(admin, lp_name, lp_symbol);
+        mock_init_pool<X, Y>(admin, coin_list_admin, lp_name, lp_symbol);
         // add liquidity
         let (remain_x, remain_y, lp) = mock_add_liquidity_direct_equal<X, Y>(initial_amt);
         assert!(coin::value(&remain_x) == 0, 0);
@@ -463,25 +463,27 @@ module piece_swap {
     #[test_only]
     fun mock_init_pool_and_add_liquidity<X, Y>(
         admin: &signer,
+        coin_list_admin: &signer,
         user: &signer,
         lp_name: vector<u8>,
         lp_symbol: vector<u8>,
         initial_amt: u64
     ): (u64, u64, u64) acquires PieceSwapPoolInfo {
-        mock_init_pool<X, Y>(admin, lp_name, lp_symbol);
+        mock_init_pool<X, Y>(admin, coin_list_admin, lp_name, lp_symbol);
         // add liquidity
-        mock_coin::faucet_mint_to<X>(user, initial_amt);
-        mock_coin::faucet_mint_to<Y>(user, initial_amt);
+        devnet_coins::mint_to_wallet<X>(user, initial_amt);
+        devnet_coins::mint_to_wallet<Y>(user, initial_amt);
         add_liquidity<X, Y>(user, initial_amt, initial_amt)
     }
 
-    #[test(admin=@hippo_swap, user=@0x12345)]
-    fun test_create_pool_with_liquidity(admin: &signer, user: &signer) acquires PieceSwapPoolInfo {
+    #[test(admin=@hippo_swap, coin_list_admin = @coin_list, user=@0x12345)]
+    fun test_create_pool_with_liquidity(admin: &signer, coin_list_admin: &signer, user: &signer) acquires PieceSwapPoolInfo {
         use aptos_framework::account;
         account::create_account(signer::address_of(admin));
         account::create_account(signer::address_of(user));
-        let lp = mock_init_pool_and_add_liquidity_direct<mock_coin::WUSDT, mock_coin::WUSDC>(
+        let lp = mock_init_pool_and_add_liquidity_direct<USDT, USDC>(
             admin,
+            coin_list_admin,
             b"USDT-USDC LP for PieceSwap",
             b"USDT-USDC LP(PieceSwap)",
             100000
@@ -489,14 +491,15 @@ module piece_swap {
         check_and_deposit(user, lp);
     }
 
-    #[test(admin=@hippo_swap, user=@0x12345)]
-    fun test_create_pool_with_liquidity_then_remove(admin: &signer, user: &signer) acquires PieceSwapPoolInfo {
+    #[test(admin=@hippo_swap, coin_list_admin = @coin_list, user=@0x12345)]
+    fun test_create_pool_with_liquidity_then_remove(admin: &signer, coin_list_admin: &signer, user: &signer) acquires PieceSwapPoolInfo {
         use aptos_framework::account;
         account::create_account(signer::address_of(admin));
         account::create_account(signer::address_of(user));
         let amt = 1000000;
-        let lp = mock_init_pool_and_add_liquidity_direct<mock_coin::WUSDT, mock_coin::WUSDC>(
+        let lp = mock_init_pool_and_add_liquidity_direct<USDT, USDC>(
             admin,
+            coin_list_admin,
             b"USDT-USDC LP for PieceSwap",
             b"USDT-USDC LP(PieceSwap)",
             amt
@@ -508,36 +511,38 @@ module piece_swap {
         check_and_deposit(user, coin_y);
     }
 
-    #[test(admin=@hippo_swap, user=@0x12345)]
-    fun test_remove_liquidity(admin: &signer, user: &signer) acquires PieceSwapPoolInfo {
+    #[test(admin=@hippo_swap, coin_list_admin = @coin_list, user=@0x12345)]
+    fun test_remove_liquidity(admin: &signer, coin_list_admin: &signer, user: &signer) acquires PieceSwapPoolInfo {
         use aptos_framework::account;
         account::create_account(signer::address_of(admin));
         account::create_account(signer::address_of(user));
         let amt = 1000000;
-        let lp = mock_init_pool_and_add_liquidity_direct<mock_coin::WUSDT, mock_coin::WUSDC>(
+        let lp = mock_init_pool_and_add_liquidity_direct<USDT, USDC>(
             admin,
+            coin_list_admin,
             b"USDT-USDC LP for PieceSwap",
             b"USDT-USDC LP(PieceSwap)",
             amt
         );
         check_and_deposit(user, lp);
-        let (amt_x, amt_y) = remove_liquidity<mock_coin::WUSDT, mock_coin::WUSDC>(user, amt);
+        let (amt_x, amt_y) = remove_liquidity<USDT, USDC>(user, amt);
         let user_addr = signer::address_of(user);
-        assert!(coin::balance<mock_coin::WUSDT>(user_addr) == amt_x, 0);
-        assert!(coin::balance<mock_coin::WUSDC>(user_addr) == amt_y, 0);
+        assert!(coin::balance<USDT>(user_addr) == amt_x, 0);
+        assert!(coin::balance<USDC>(user_addr) == amt_y, 0);
         assert!(amt == amt_x, 0);
         assert!(amt == amt_y, 0);
-        assert!(coin::balance<LPToken<mock_coin::WUSDT, mock_coin::WUSDC>>(user_addr) == 0, 0);
+        assert!(coin::balance<LPToken<USDT, USDC>>(user_addr) == 0, 0);
     }
 
-    #[test(admin=@hippo_swap, user=@0x12345)]
-    fun test_add_liquidity(admin: &signer, user: &signer) acquires PieceSwapPoolInfo {
+    #[test(admin=@hippo_swap, coin_list_admin = @coin_list, user=@0x12345)]
+    fun test_add_liquidity(admin: &signer, coin_list_admin: &signer, user: &signer) acquires PieceSwapPoolInfo {
         use aptos_framework::account;
         account::create_account(signer::address_of(admin));
         account::create_account(signer::address_of(user));
         let amt = 1000000;
-        let (added_x, added_y, lp_amt) = mock_init_pool_and_add_liquidity<mock_coin::WUSDT, mock_coin::WUSDC>(
+        let (added_x, added_y, lp_amt) = mock_init_pool_and_add_liquidity<USDT, USDC>(
             admin,
+            coin_list_admin,
             user,
             b"USDT-USDC LP for PieceSwap",
             b"USDT-USDC LP(PieceSwap)",
@@ -548,19 +553,20 @@ module piece_swap {
         assert!(lp_amt == amt, 0);
     }
 
-    #[test(admin=@hippo_swap, user=@0x12345)]
+    #[test(admin=@hippo_swap, coin_list_admin = @coin_list, user=@0x12345)]
     #[expected_failure]
-    fun test_add_initial_liquidity_unequal(admin: &signer, user: &signer) acquires PieceSwapPoolInfo {
+    fun test_add_initial_liquidity_unequal(admin: &signer, coin_list_admin: &signer, user: &signer) acquires PieceSwapPoolInfo {
         use aptos_framework::account;
         account::create_account(signer::address_of(admin));
         account::create_account(signer::address_of(user));
-        mock_init_pool<mock_coin::WUSDT, mock_coin::WUSDC>(
+        mock_init_pool<USDT, USDC>(
             admin,
+            coin_list_admin,
             b"USDT-USDC LP for PieceSwap",
             b"USDT-USDC LP(PieceSwap)",
         );
-        let coin_x = mock_coin::mint<mock_coin::WUSDT>(100000);
-        let coin_y = mock_coin::mint<mock_coin::WUSDC>(10000);
+        let coin_x = devnet_coins::mint<USDT>(100000);
+        let coin_y = devnet_coins::mint<USDC>(10000);
         let (remain_x, remain_y, lp) = add_liquidity_direct(coin_x, coin_y);
         check_and_deposit(user, remain_x);
         check_and_deposit(user, remain_y);
@@ -570,14 +576,16 @@ module piece_swap {
     #[test_only]
     fun test_swap_x_to_y_parameterized(
         admin: &signer,
+        coin_list_admin: &signer,
         user: &signer,
         multiplier: u64,
         swap_amt: u64,
         liquidity_amt: u64,
     ) acquires PieceSwapPoolInfo {
         let amt = liquidity_amt * multiplier;
-        mock_init_pool_and_add_liquidity<mock_coin::WUSDT, mock_coin::WUSDC>(
+        mock_init_pool_and_add_liquidity<USDT, USDC>(
             admin,
+            coin_list_admin,
             user,
             b"USDT-USDC LP for PieceSwap",
             b"USDT-USDC LP(PieceSwap)",
@@ -585,32 +593,32 @@ module piece_swap {
         );
         let user_addr = signer::address_of(user);
         swap_amt = swap_amt * multiplier;
-        mock_coin::faucet_mint_to<mock_coin::WUSDT>(user, swap_amt);
-        swap_x_to_y<mock_coin::WUSDT, mock_coin::WUSDC>(user, swap_amt);
-        assert!(coin::balance<mock_coin::WUSDT>(user_addr) == 0, 0);
-        assert!(coin::balance<mock_coin::WUSDC>(user_addr) != 0, 0);
+        devnet_coins::mint_to_wallet<USDT>(user, swap_amt);
+        swap_x_to_y<USDT, USDC>(user, swap_amt);
+        assert!(coin::balance<USDT>(user_addr) == 0, 0);
+        assert!(coin::balance<USDC>(user_addr) != 0, 0);
         // check fees
-        let pool = borrow_global<PieceSwapPoolInfo<mock_coin::WUSDT, mock_coin::WUSDC>>(signer::address_of(admin));
+        let pool = borrow_global<PieceSwapPoolInfo<USDT, USDC>>(signer::address_of(admin));
         assert!(coin::value(&pool.protocol_fee_x) == 0, 0);
         assert!(coin::value(&pool.protocol_fee_y) > 0, 0);
     }
 
-    #[test(admin=@hippo_swap, user=@0x12345)]
-    fun test_swap_x_to_y(admin: &signer, user: &signer) acquires PieceSwapPoolInfo {
+    #[test(admin=@hippo_swap, coin_list_admin = @coin_list, user=@0x12345)]
+    fun test_swap_x_to_y(admin: &signer, coin_list_admin: &signer, user: &signer) acquires PieceSwapPoolInfo {
         use aptos_framework::account;
         account::create_account(signer::address_of(admin));
         account::create_account(signer::address_of(user));
         let multiplier = 1000000;
         let swap_amt = 1;
         let liquidity_amt = 100000000;
-        test_swap_x_to_y_parameterized(admin, user, multiplier, swap_amt, liquidity_amt);
+        test_swap_x_to_y_parameterized(admin, coin_list_admin, user, multiplier, swap_amt, liquidity_amt);
         let user_addr = signer::address_of(user);
-        assert!(coin::balance<mock_coin::WUSDC>(user_addr) > swap_amt * multiplier * 999 / 1000, 0);
-        assert!(coin::balance<mock_coin::WUSDC>(user_addr) < swap_amt * multiplier * 1001 / 1000, 0);
+        assert!(coin::balance<USDC>(user_addr) > swap_amt * multiplier * 999 / 1000, 0);
+        assert!(coin::balance<USDC>(user_addr) < swap_amt * multiplier * 1001 / 1000, 0);
 
-        let pool = borrow_global<PieceSwapPoolInfo<mock_coin::WUSDT, mock_coin::WUSDC>>(signer::address_of(admin));
+        let pool = borrow_global<PieceSwapPoolInfo<USDT, USDC>>(signer::address_of(admin));
         assert!(
-            coin::balance<mock_coin::WUSDC>(user_addr) +
+            coin::balance<USDC>(user_addr) +
             coin::value(&pool.reserve_y) +
             coin::value(&pool.protocol_fee_y) == liquidity_amt * multiplier,
             0
@@ -620,14 +628,16 @@ module piece_swap {
     #[test_only]
     fun test_swap_y_to_x_parameterized(
         admin: &signer,
+        coin_list_admin: &signer,
         user: &signer,
         multiplier: u64,
         swap_amt: u64,
         liquidity_amt: u64,
     ) acquires PieceSwapPoolInfo {
         let amt = liquidity_amt * multiplier;
-        mock_init_pool_and_add_liquidity<mock_coin::WUSDT, mock_coin::WUSDC>(
+        mock_init_pool_and_add_liquidity<USDT, USDC>(
             admin,
+            coin_list_admin,
             user,
             b"USDT-USDC LP for PieceSwap",
             b"USDT-USDC LP(PieceSwap)",
@@ -635,32 +645,32 @@ module piece_swap {
         );
         let user_addr = signer::address_of(user);
         swap_amt = swap_amt * multiplier;
-        mock_coin::faucet_mint_to<mock_coin::WUSDC>(user, swap_amt);
-        swap_y_to_x<mock_coin::WUSDT, mock_coin::WUSDC>(user, swap_amt);
-        assert!(coin::balance<mock_coin::WUSDC>(user_addr) == 0, 0);
-        assert!(coin::balance<mock_coin::WUSDT>(user_addr) > 0, 0);
+        devnet_coins::mint_to_wallet<USDC>(user, swap_amt);
+        swap_y_to_x<USDT, USDC>(user, swap_amt);
+        assert!(coin::balance<USDC>(user_addr) == 0, 0);
+        assert!(coin::balance<USDT>(user_addr) > 0, 0);
         // check fees
-        let pool = borrow_global<PieceSwapPoolInfo<mock_coin::WUSDT, mock_coin::WUSDC>>(signer::address_of(admin));
+        let pool = borrow_global<PieceSwapPoolInfo<USDT, USDC>>(signer::address_of(admin));
         assert!(coin::value(&pool.protocol_fee_x) > 0, 0);
         assert!(coin::value(&pool.protocol_fee_y) == 0, 0);
     }
 
-    #[test(admin=@hippo_swap, user=@0x12345)]
-    fun test_swap_y_to_x(admin: &signer, user: &signer) acquires PieceSwapPoolInfo {
+    #[test(admin=@hippo_swap, coin_list_admin = @coin_list, user=@0x12345)]
+    fun test_swap_y_to_x(admin: &signer, coin_list_admin: &signer, user: &signer) acquires PieceSwapPoolInfo {
         use aptos_framework::account;
         account::create_account(signer::address_of(admin));
         account::create_account(signer::address_of(user));
         let multiplier = 1000000;
         let swap_amt = 1;
         let liquidity_amt = 100000000;
-        test_swap_y_to_x_parameterized(admin, user, multiplier, swap_amt, liquidity_amt);
+        test_swap_y_to_x_parameterized(admin, coin_list_admin, user, multiplier, swap_amt, liquidity_amt);
         let user_addr = signer::address_of(user);
-        assert!(coin::balance<mock_coin::WUSDT>(user_addr) > swap_amt * multiplier * 999 / 1000, 0);
-        assert!(coin::balance<mock_coin::WUSDT>(user_addr) < swap_amt * multiplier* 1001 / 1000, 0);
+        assert!(coin::balance<USDT>(user_addr) > swap_amt * multiplier * 999 / 1000, 0);
+        assert!(coin::balance<USDT>(user_addr) < swap_amt * multiplier* 1001 / 1000, 0);
 
-        let pool = borrow_global<PieceSwapPoolInfo<mock_coin::WUSDT, mock_coin::WUSDC>>(signer::address_of(admin));
+        let pool = borrow_global<PieceSwapPoolInfo<USDT, USDC>>(signer::address_of(admin));
         assert!(
-            coin::balance<mock_coin::WUSDT>(user_addr) +
+            coin::balance<USDT>(user_addr) +
             coin::value(&pool.reserve_x) +
             coin::value(&pool.protocol_fee_x) == liquidity_amt * multiplier,
             0

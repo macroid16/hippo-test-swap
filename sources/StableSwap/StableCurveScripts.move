@@ -4,8 +4,6 @@ module hippo_swap::stable_curve_scripts {
     use hippo_swap::stable_curve_swap;
     use std::signer;
     use coin_list::coin_list;
-    use hippo_swap::mock_deploy;
-    use hippo_swap::mock_coin;
     use aptos_framework::coin;
     use hippo_swap::math;
 
@@ -165,38 +163,22 @@ module hippo_swap::stable_curve_scripts {
         coin_list::add_to_list<stable_curve_swap::LPToken<X,Y>>(admin);
 
         // 2. add liquidity
-        let some_x = mock_coin::mint<X>(left_amt);
-        let some_y = mock_coin::mint<Y>(right_amt);
+        let some_x = devnet_coins::mint<X>(left_amt);
+        let some_y = devnet_coins::mint<Y>(right_amt);
 
         let (unused_x, unused_y, some_lp) = stable_curve_swap::add_liquidity_direct(some_x, some_y);
 
         assert!(coin::value(&some_lp) == lp_amt, 5);
-
-        mock_coin::burn(unused_x);
-        mock_coin::burn(unused_y);
-        coin::deposit(signer::address_of(admin), some_lp);
+        devnet_coins::deposit(admin,unused_x);
+        devnet_coins::deposit(admin,unused_y);
+        devnet_coins::deposit(admin,some_lp);
     }
 
-
-
-    // coinlist registry must be initialized before this method
     #[cmd]
     public entry fun mock_deploy_script(admin: &signer) {
-        /*
-           1. initialize coins (and add them to registry)
-           2. create token pairs
-           3. adds liquidity
-       */
-
-        // 1
-        mock_deploy::init_coin_and_register<mock_coin::WUSDC>(admin, b"USDC", b"USDC", 8);
-        mock_deploy::init_coin_and_register<mock_coin::WUSDT>(admin, b"USDT", b"USDT", 8);
-        mock_deploy::init_coin_and_register<mock_coin::WDAI>(admin, b"DAI", b"DAI", 8);
-
-        // 2
         let (fee, admin_fee) = (3000, 200000);
         let coin_amt = 1000000000;
-        mock_create_pair_and_add_liquidity<mock_coin::WUSDC, mock_coin::WUSDT>(
+        mock_create_pair_and_add_liquidity<devnet_coins::DevnetUSDC, devnet_coins::DevnetUSDT>(
             admin,
             b"USDC-USDT-CURVE-LP",
             fee, admin_fee,
@@ -204,7 +186,7 @@ module hippo_swap::stable_curve_scripts {
             coin_amt * 100,
             200000000000
         );
-        mock_create_pair_and_add_liquidity<mock_coin::WUSDC, mock_coin::WDAI>(
+        mock_create_pair_and_add_liquidity<devnet_coins::DevnetUSDC, devnet_coins::DevnetSOL>(
             admin,
             b"USDC-DAI-CURVE-LP",
             fee, admin_fee,
@@ -216,30 +198,21 @@ module hippo_swap::stable_curve_scripts {
     #[test_only]
     use aptos_framework::coins;
     use std::vector;
+    use coin_list::devnet_coins;
+    #[test_only]
+    use hippo_swap::devcoin_util::init_registry_and_devnet_coins;
 
     #[test_only]
     fun start_up(admin: &signer, coin_list_admin: &signer, user: &signer, core: &signer) {
         use aptos_framework::coin;
-        use hippo_swap::mock_coin;
+        use coin_list::devnet_coins;
         use aptos_framework::account;
         account::create_account(signer::address_of(admin));
         account::create_account(signer::address_of(user));
-        mock_deploy::init_registry(coin_list_admin);
+        init_registry_and_devnet_coins(coin_list_admin);
         timestamp::set_time_has_started_for_testing(core);
 
-        mock_deploy::init_coin_and_register<mock_coin::WUSDT>(
-            admin,
-            b"USDT",
-            b"USDT",
-            6,
-        );
-        mock_deploy::init_coin_and_register<mock_coin::WDAI>(
-            admin,
-            b"DAI",
-            b"DAI",
-            6,
-        );
-        create_new_pool<mock_coin::WUSDT, mock_coin::WDAI>(
+        create_new_pool<devnet_coins::DevnetUSDT, devnet_coins::DevnetSOL>(
             admin,
             b"Curve:WUSDT-WDAI",
             b"WUWD",
@@ -248,72 +221,67 @@ module hippo_swap::stable_curve_scripts {
             3000, // 0.3 %
             200000, // 20 % from lp_fee -> 0.06 %
         );
-        let x = mock_coin::mint<mock_coin::WUSDT>(100000000);
-        let y = mock_coin::mint<mock_coin::WDAI>(100000000);
+        let x = devnet_coins::mint<devnet_coins::DevnetUSDT>(100000000);
+        let y = devnet_coins::mint<devnet_coins::DevnetSOL>(100000000);
         let trader_addr = signer::address_of(user);
-        coins::register_internal<mock_coin::WUSDT>(user);
-        coins::register_internal<mock_coin::WDAI>(user);
-        coins::register_internal<stable_curve_swap::LPToken<mock_coin::WUSDT, mock_coin::WDAI>>(user);
+        coins::register_internal<devnet_coins::DevnetUSDT>(user);
+        coins::register_internal<devnet_coins::DevnetSOL>(user);
+        coins::register_internal<stable_curve_swap::LPToken<devnet_coins::DevnetUSDT, devnet_coins::DevnetSOL>>(user);
         coin::deposit(trader_addr, x);
         coin::deposit(trader_addr, y);
     }
 
     #[test(admin = @hippo_swap, coin_list_admin = @coin_list, user = @0x1234567, core = @aptos_framework)]
     fun test_scripts(admin: &signer, coin_list_admin: &signer, user: &signer, core: &signer) {
-        use hippo_swap::mock_coin;
         start_up(admin, coin_list_admin, user, core);
 
-        add_liquidity<mock_coin::WUSDT, mock_coin::WDAI>(user, 10000000, 20000000);
-        swap_script<mock_coin::WUSDT, mock_coin::WDAI>(user, 2000000, 0, 0, 100);
-        swap_script<mock_coin::WUSDT, mock_coin::WDAI>(user, 0, 2000000, 110, 0);
-        remove_liquidity<mock_coin::WUSDT, mock_coin::WDAI>(user, 400000, 100, 100);
+        add_liquidity<devnet_coins::DevnetUSDT, devnet_coins::DevnetSOL>(user, 10000000, 20000000);
+        swap_script<devnet_coins::DevnetUSDT, devnet_coins::DevnetSOL>(user, 2000000, 0, 0, 100);
+        swap_script<devnet_coins::DevnetUSDT, devnet_coins::DevnetSOL>(user, 0, 2000000, 110, 0);
+        remove_liquidity<devnet_coins::DevnetUSDT, devnet_coins::DevnetSOL>(user, 400000, 100, 100);
     }
 
     #[test(admin = @hippo_swap, coin_list_admin = @coin_list, user = @0x1234567, core = @aptos_framework)]
     #[expected_failure(abort_code = 0)]
     fun test_failx(admin: &signer, coin_list_admin: &signer, user: &signer, core: &signer) {
-        use hippo_swap::mock_coin;
         start_up(admin, coin_list_admin, user, core);
 
-        add_liquidity<mock_coin::WUSDT, mock_coin::WDAI>(user, 10000000, 20000000);
-        swap_script<mock_coin::WUSDT, mock_coin::WDAI>(user, 0, 0, 0, 100);
+        add_liquidity<devnet_coins::DevnetUSDT, devnet_coins::DevnetSOL>(user, 10000000, 20000000);
+        swap_script<devnet_coins::DevnetUSDT, devnet_coins::DevnetSOL>(user, 0, 0, 0, 100);
     }
 
     #[test(admin = @hippo_swap, coin_list_admin = @coin_list, user = @0x1234567, core = @aptos_framework)]
     #[expected_failure(abort_code = 1)]
     fun test_faily(admin: &signer, coin_list_admin: &signer, user: &signer, core: &signer) {
-        use hippo_swap::mock_coin;
         start_up(admin, coin_list_admin, user, core);
 
-        add_liquidity<mock_coin::WUSDT, mock_coin::WDAI>(user, 10000000, 20000000);
-        swap_script<mock_coin::WUSDT, mock_coin::WDAI>(user, 120, 0, 10, 10);
+        add_liquidity<devnet_coins::DevnetUSDT, devnet_coins::DevnetSOL>(user, 10000000, 20000000);
+        swap_script<devnet_coins::DevnetUSDT, devnet_coins::DevnetSOL>(user, 120, 0, 10, 10);
     }
 
     #[test(admin = @hippo_swap, coin_list_admin = @coin_list, user = @0x1234567, core = @aptos_framework)]
     #[expected_failure(abort_code = 3)]
     fun test_fail_output_less_x(admin: &signer, coin_list_admin: &signer, user: &signer, core: &signer) {
-        use hippo_swap::mock_coin;
         start_up(admin, coin_list_admin, user, core);
 
-        add_liquidity<mock_coin::WUSDT, mock_coin::WDAI>(user, 20000000, 20000000);
-        swap_script<mock_coin::WUSDT, mock_coin::WDAI>(user, 1, 0, 0, 100000000000);
+        add_liquidity<devnet_coins::DevnetUSDT, devnet_coins::DevnetSOL>(user, 20000000, 20000000);
+        swap_script<devnet_coins::DevnetUSDT, devnet_coins::DevnetSOL>(user, 1, 0, 0, 100000000000);
     }
 
     #[test(admin = @hippo_swap, coin_list_admin = @coin_list, user = @0x1234567, core = @aptos_framework)]
     #[expected_failure(abort_code = 3)]
     fun test_fail_output_less_y(admin: &signer, coin_list_admin: &signer, user: &signer, core: &signer) {
-        use hippo_swap::mock_coin;
         start_up(admin, coin_list_admin, user, core);
 
-        add_liquidity<mock_coin::WUSDT, mock_coin::WDAI>(user, 20000000, 20000000);
-        swap_script<mock_coin::WUSDT, mock_coin::WDAI>(user, 0, 1, 10000000000, 0);
+        add_liquidity<devnet_coins::DevnetUSDT, devnet_coins::DevnetSOL>(user, 20000000, 20000000);
+        swap_script<devnet_coins::DevnetUSDT, devnet_coins::DevnetSOL>(user, 0, 1, 10000000000, 0);
     }
 
     #[test(admin = @hippo_swap, coin_list_admin = @coin_list, core = @aptos_framework)]
     fun test_mock_deploy(admin: &signer, coin_list_admin: &signer, core: &signer) {
         use aptos_framework::account;
         account::create_account(signer::address_of(admin));
-        mock_deploy::init_registry(coin_list_admin);
+        init_registry_and_devnet_coins(coin_list_admin);
         timestamp::set_time_has_started_for_testing(core);
 
         mock_deploy_script(admin);
@@ -325,16 +293,15 @@ module hippo_swap::stable_curve_scripts {
         // mock depoly
         use aptos_framework::account;
         account::create_account(signer::address_of(admin));
-        mock_deploy::init_registry(coin_list_admin);
+        init_registry_and_devnet_coins(coin_list_admin);
         timestamp::set_time_has_started_for_testing(core);
 
         mock_deploy_script(admin);
 
         let btc_amt = 1000000000;
         let (fee, admin_fee) = (3000, 200000);
-        mock_deploy::init_coin_and_register<mock_coin::WDAI>(admin, b"Dai", b"DAI", 8);
         std::debug::print(&110000000);
-        mock_create_pair_and_add_liquidity<mock_coin::WUSDT, mock_coin::WDAI>(
+        mock_create_pair_and_add_liquidity<devnet_coins::DevnetUSDT, devnet_coins::DevnetSOL>(
             admin,
             b"USDT-DAI-LP",
             fee, admin_fee,
@@ -344,26 +311,15 @@ module hippo_swap::stable_curve_scripts {
         )
     }
 
-
-    #[test_only]
-    public fun test_data_set_init_coins(admin: &signer, coin_list_admin: &signer, core: &signer) {
-        mock_deploy::init_registry(coin_list_admin);
-        timestamp::set_time_has_started_for_testing(core);
-
-        mock_deploy::init_coin_and_register<mock_coin::WUSDC>(admin, b"USDC", b"USDC", 8);
-        mock_deploy::init_coin_and_register<mock_coin::WUSDT>(admin, b"USDT", b"USDT", 8);
-        assert!(coin::decimals<mock_coin::WUSDC>() == 8, 1);
-        assert!(coin::decimals<mock_coin::WUSDT>() == 8, 1);
-    }
-
     #[test_only]
     public fun assert_launch_lq(admin: &signer, coin_list_admin: &signer, core: &signer, amt_x: u64, amt_y: u64, lp_predict: u64) {
         use aptos_framework::account;
         account::create_account(signer::address_of(admin));
-        test_data_set_init_coins(admin, coin_list_admin, core);
+        init_registry_and_devnet_coins(coin_list_admin);
+        timestamp::set_time_has_started_for_testing(core);
         let (fee, admin_fee) = (3000, 200000);
         // the A value was initialed with 60.
-        mock_create_pair_and_add_liquidity<mock_coin::WUSDC, mock_coin::WUSDT>(
+        mock_create_pair_and_add_liquidity<devnet_coins::DevnetUSDC, devnet_coins::DevnetUSDT>(
             admin, b"USDC-USDT-LP", fee, admin_fee, amt_x, amt_y, lp_predict
         );
     }
@@ -372,25 +328,26 @@ module hippo_swap::stable_curve_scripts {
     public fun test_data_set_validate_basic(admin: &signer, coin_list_admin: &signer, core: &signer) {
         use aptos_framework::account;
         account::create_account(signer::address_of(admin));
-        test_data_set_init_coins(admin, coin_list_admin, core);
+        init_registry_and_devnet_coins(coin_list_admin);
+        timestamp::set_time_has_started_for_testing(core);
         let usdc_amt = 500000000;
         let usdt_amt = 500000000;
         let (fee, admin_fee) = (3000, 200000);
         // Init with (5, 5) price unit of (x, y), which is the ideal balance and mint lp_token of 10 units.
         // Fee-free for the first investment.
-        mock_create_pair_and_add_liquidity<mock_coin::WUSDC, mock_coin::WUSDT>(
+        mock_create_pair_and_add_liquidity<devnet_coins::DevnetUSDC, devnet_coins::DevnetUSDT>(
             admin, b"USDC-USDT-LP", fee, admin_fee, usdc_amt, usdt_amt, 1000000000
         );
         let (_, _, _, _, _, lp_precision, multiplier_x, multiplier_y, _, _,
-            _, _, _, _) = stable_curve_swap::get_pool_info<mock_coin::WUSDC, mock_coin::WUSDT>();
+            _, _, _, _) = stable_curve_swap::get_pool_info<devnet_coins::DevnetUSDC, devnet_coins::DevnetUSDT>();
 
         assert!(lp_precision == 100000000, 2);  // 10 ** 8 , which is equal to the larger value between x and y.
         assert!(multiplier_x == 1, 2);                // the scaling factor of x and y is 1 because they share the same decimals.
         assert!(multiplier_y == 1, 2);
-        stable_curve_swap::remove_liquidity<mock_coin::WUSDC, mock_coin::WUSDT>(admin, 100000000, 100000, 100000);
+        stable_curve_swap::remove_liquidity<devnet_coins::DevnetUSDC, devnet_coins::DevnetUSDT>(admin, 100000000, 100000, 100000);
         let admin_addr = signer::address_of(admin);
-        let balance_x = coin::balance<mock_coin::WUSDC>(admin_addr);
-        let balance_y = coin::balance<mock_coin::WUSDT>(admin_addr);
+        let balance_x = coin::balance<devnet_coins::DevnetUSDC>(admin_addr);
+        let balance_y = coin::balance<devnet_coins::DevnetUSDT>(admin_addr);
         assert!(balance_x == 50000000, 3);
         assert!(balance_y == 50000000, 3);
     }
@@ -405,13 +362,14 @@ module hippo_swap::stable_curve_scripts {
     #[test(admin = @hippo_swap,coin_list_admin = @coin_list, core = @aptos_framework)]
     #[expected_failure]             //  ARITHMETIC_ERROR:  let new_d = (ann * s + d_p * 2) __*__ d / ((ann - 1) * d + 3 * d_p)
     public fun test_data_set_max_level(admin: &signer, coin_list_admin: &signer, core: &signer) {
-        test_data_set_init_coins(admin, coin_list_admin, core);
+        init_registry_and_devnet_coins(coin_list_admin);
+        timestamp::set_time_has_started_for_testing(core);
         let usdc_amt = 5 * 100000000 * 10000000000;
         // 10 ** 10 of 8 decimal coin will cause the digits overflow from the optimized get_D_origin method.
         // The capacity will be much lower if using the get_D_improved or get_D_newton_method which are mathematically equivalent.
         let usdt_amt = 5 * 100000000 * 10000000000;
         let (fee, admin_fee) = (3000, 200000);
-        mock_create_pair_and_add_liquidity<mock_coin::WUSDC, mock_coin::WUSDT>(
+        mock_create_pair_and_add_liquidity<devnet_coins::DevnetUSDC, devnet_coins::DevnetUSDT>(
             admin, b"USDC-USDT-LP", fee, admin_fee, usdc_amt, usdt_amt,
             10 * 100000000 * 10000000000
         );
@@ -457,15 +415,15 @@ module hippo_swap::stable_curve_scripts {
         let admin_addr = signer::address_of(admin);
         assert_launch_lq(admin, coin_list_admin, core, 500000, 500000, 1000000);
         // let balance = coin::balance<LPToken<Mockcoin::WUSDC, Mockcoin::WUSDT>>(admin_addr);
-        let balance = stable_curve_swap::balance<mock_coin::WUSDC, mock_coin::WUSDT>(admin_addr);
+        let balance = stable_curve_swap::balance<devnet_coins::DevnetUSDC, devnet_coins::DevnetUSDT>(admin_addr);
         assert!(balance == 1000000, 1);
         // let (fee_x, fee_y) = StableCurveSwap::get_fee_reserves<Mockcoin::WUSDC, Mockcoin::WUSDT>();
 
         // The second investment;
 
-        mock_coin::faucet_mint_to<mock_coin::WUSDC>(admin, 500000);
-        mock_coin::faucet_mint_to<mock_coin::WUSDT>(admin, 1000000);
-        stable_curve_swap::add_liquidity<mock_coin::WUSDC, mock_coin::WUSDT>(admin, 500000, 1000000);
+        devnet_coins::mint_to_wallet<devnet_coins::DevnetUSDC>(admin, 500000);
+        devnet_coins::mint_to_wallet<devnet_coins::DevnetUSDT>(admin, 1000000);
+        stable_curve_swap::add_liquidity<devnet_coins::DevnetUSDC, devnet_coins::DevnetUSDT>(admin, 500000, 1000000);
 
         // check intermediate data add_liquidity_direct:
         // d1: 2499147, d0: 1000000
@@ -480,55 +438,55 @@ module hippo_swap::stable_curve_scripts {
         // reserve_y:  1499925 - 500000 = 999925 ( increased including the lp_fee(300), the increase of value of the stake holder), the amount of the part minted is 1499625
         // now the token_supply increased to 2498397
 
-        let balance = stable_curve_swap::balance<mock_coin::WUSDC, mock_coin::WUSDT>(admin_addr);
+        let balance = stable_curve_swap::balance<devnet_coins::DevnetUSDC, devnet_coins::DevnetUSDT>(admin_addr);
         // std::debug::print(&balance);
         // 1500000 incoming currencies totally brings 1498397 lp.
         assert!(balance == 2498397, 1);
-        let (_, _, _, fee_amt_x, fee_amt_y, _, _, _, _, _, _, _, _, _) = stable_curve_swap::get_pool_info<mock_coin::WUSDC, mock_coin::WUSDT>();
+        let (_, _, _, fee_amt_x, fee_amt_y, _, _, _, _, _, _, _, _, _) = stable_curve_swap::get_pool_info<devnet_coins::DevnetUSDC, devnet_coins::DevnetUSDT>();
 
         assert!(fee_amt_x == 74, 1);
         assert!(fee_amt_y == 75, 1);
 
-        mock_coin::faucet_mint_to<mock_coin::WUSDC>(admin, 200000);
-        stable_curve_swap::swap_x_to_exact_y<mock_coin::WUSDC, mock_coin::WUSDT>(admin, 200000, admin_addr);
+        devnet_coins::mint_to_wallet<devnet_coins::DevnetUSDC>(admin, 200000);
+        stable_curve_swap::swap_x_to_exact_y<devnet_coins::DevnetUSDC, devnet_coins::DevnetUSDT>(admin, 200000, admin_addr);
 
-        let balance = coin::balance<mock_coin::WUSDT>(admin_addr);
+        let balance = coin::balance<devnet_coins::DevnetUSDT>(admin_addr);
 
         assert!(balance == 200217, 1);
-        let (_, _, _, fee_amt_x, fee_amt_y, _, _, _, _, _, _, _, _, _) = stable_curve_swap::get_pool_info<mock_coin::WUSDC, mock_coin::WUSDT>();
+        let (_, _, _, fee_amt_x, fee_amt_y, _, _, _, _, _, _, _, _, _) = stable_curve_swap::get_pool_info<devnet_coins::DevnetUSDC, devnet_coins::DevnetUSDT>();
 
         assert!(fee_amt_x == 74, 1);
         assert!(fee_amt_y == 195, 1); // increased 120 = 200000 * 0.003 * 0.2
 
 
-        stable_curve_swap::swap_y_to_exact_x<mock_coin::WUSDC, mock_coin::WUSDT>(admin, 200000, admin_addr);
+        stable_curve_swap::swap_y_to_exact_x<devnet_coins::DevnetUSDC, devnet_coins::DevnetUSDT>(admin, 200000, admin_addr);
 
-        let balance = coin::balance<mock_coin::WUSDC>(admin_addr);
+        let balance = coin::balance<devnet_coins::DevnetUSDC>(admin_addr);
 
         assert!(balance == 198587, 1);      // nearly 2 % loss
-        let (_, _, _, fee_x, fee_y, _, _, _, _, _, _, _, _, _) = stable_curve_swap::get_pool_info<mock_coin::WUSDC, mock_coin::WUSDT>();
+        let (_, _, _, fee_x, fee_y, _, _, _, _, _, _, _, _, _) = stable_curve_swap::get_pool_info<devnet_coins::DevnetUSDC, devnet_coins::DevnetUSDT>();
         assert!(fee_x == 193, 1);
         assert!(fee_y == 195, 1);
 
 
-        mock_coin::faucet_mint_to<mock_coin::WUSDC>(admin, 20000000);
-        stable_curve_swap::swap_x_to_exact_y<mock_coin::WUSDC, mock_coin::WUSDT>(admin, 20000000, admin_addr);
+        devnet_coins::mint_to_wallet<devnet_coins::DevnetUSDC>(admin, 20000000);
+        stable_curve_swap::swap_x_to_exact_y<devnet_coins::DevnetUSDC, devnet_coins::DevnetUSDT>(admin, 20000000, admin_addr);
 
-        let balance = coin::balance<mock_coin::WUSDT>(admin_addr);
+        let balance = coin::balance<devnet_coins::DevnetUSDT>(admin_addr);
 
         assert!(balance == 1495223, 1); // Seems that the pool was exhausted, and the lp earn a lot.
-        let (_, _, _, fee_x, fee_y, _, _, _, _, _, _, _, _, _) = stable_curve_swap::get_pool_info<mock_coin::WUSDC, mock_coin::WUSDT>();
+        let (_, _, _, fee_x, fee_y, _, _, _, _, _, _, _, _, _) = stable_curve_swap::get_pool_info<devnet_coins::DevnetUSDC, devnet_coins::DevnetUSDT>();
         assert!(fee_x == 193, 1);
         assert!(fee_y == 1094, 1);
 
-        mock_coin::faucet_mint_to<mock_coin::WUSDC>(admin, 50000000);
-        mock_coin::faucet_mint_to<mock_coin::WUSDT>(admin, 10000000);
-        stable_curve_swap::add_liquidity<mock_coin::WUSDC, mock_coin::WUSDT>(admin, 50000000, 10000000);
+        devnet_coins::mint_to_wallet<devnet_coins::DevnetUSDC>(admin, 50000000);
+        devnet_coins::mint_to_wallet<devnet_coins::DevnetUSDT>(admin, 10000000);
+        stable_curve_swap::add_liquidity<devnet_coins::DevnetUSDC, devnet_coins::DevnetUSDT>(admin, 50000000, 10000000);
 
-        let balance = stable_curve_swap::balance<mock_coin::WUSDC, mock_coin::WUSDT>(admin_addr);
+        let balance = stable_curve_swap::balance<devnet_coins::DevnetUSDC, devnet_coins::DevnetUSDT>(admin_addr);
 
         assert!(balance == 25338477, 1);
-        let (_, _, _, fee_x, fee_y, _, _, _, _, _, _, _, _, _) = stable_curve_swap::get_pool_info<mock_coin::WUSDC, mock_coin::WUSDT>();
+        let (_, _, _, fee_x, fee_y, _, _, _, _, _, _, _, _, _) = stable_curve_swap::get_pool_info<devnet_coins::DevnetUSDC, devnet_coins::DevnetUSDT>();
         assert!(fee_x == 42969, 1);
         assert!(fee_y == 4083, 1);
     }

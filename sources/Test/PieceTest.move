@@ -1,11 +1,10 @@
 #[test_only]
 module hippo_swap::piece_test {
 
-    use hippo_swap::mock_coin::{WUSDC, WDAI};
     use hippo_swap::TestShared;
     use hippo_swap::router;
     use hippo_swap::piece_swap_script;
-
+    use coin_list::devnet_coins::{DevnetUSDC as USDC, DevnetSOL as DAI};
     // Keep the consts the same with TestShared.move.
 
 
@@ -270,7 +269,7 @@ module hippo_swap::piece_test {
         let add_2 = add_param(P10, P6, P10, P6, P10, 0, 0);
         let swap = swap_param(P10, 0, P10, 977172, 0, 9, 977163);
         let remove_1 = remove_param(2 * P10, 3 * P10, 1022828);
-        test_pool_case<WUSDC, WDAI>(admin, coin_list_admin, investor, swapper, core,
+        test_pool_case<USDC, DAI>(admin, coin_list_admin, investor, swapper, core,
             false, false, POOL_TYPE_PIECEWISE,
             decimal_x, decimal_y,
             k, n1, d1, n2, d2, fee, protocal_fee,
@@ -291,7 +290,7 @@ module hippo_swap::piece_test {
         let add_2 = add_param(P10, P10, P10, P10, P10, 0, 0);
         let swap = swap_param(P4, 0, P4, 9999, 0, 0, 9999);
         let remove_1 = remove_param(2 * P10, 2 * P10 + P4, 2 * P10 - P4 + 1);
-        test_pool_case<WUSDC, WDAI>(admin, coin_list_admin, investor, swapper, core,
+        test_pool_case<USDC, DAI>(admin, coin_list_admin, investor, swapper, core,
             false, false, POOL_TYPE_PIECEWISE,
             decimal_x, decimal_y,
             k, n1, d1, n2, d2, fee, protocal_fee,
@@ -315,7 +314,7 @@ module hippo_swap::piece_test {
         let swap = swap_param(P4, 0, P4, 8000, 0, 0, 8000);
         // TODO: 20% deviation.
         let remove_1 = remove_param(P10, P10, P10 - 1);
-        test_pool_case<WUSDC, WDAI>(admin, coin_list_admin, investor, swapper, core,
+        test_pool_case<USDC, DAI>(admin, coin_list_admin, investor, swapper, core,
             print_debug, false, pool_type,
             decimal_x, decimal_y,
             k, n1, d1, n2, d2, fee, protocal_fee,
@@ -339,7 +338,7 @@ module hippo_swap::piece_test {
         let swap = swap_param(P4, 0, P4, 0, 0, 0, 0);
         // TODO: totally loss.
         let remove_1 = remove_param(P10, P10, P10);
-        test_pool_case<WUSDC, WDAI>(admin, coin_list_admin, investor, swapper, core,
+        test_pool_case<USDC, DAI>(admin, coin_list_admin, investor, swapper, core,
             print_debug, false, pool_type,
             decimal_x, decimal_y,
             k, n1, d1, n2, d2, fee, protocal_fee,
@@ -347,11 +346,11 @@ module hippo_swap::piece_test {
         );
 
 
-        TestShared::fund_for_participants<WUSDC, WDAI>(swapper, P8, 0);
-        TestShared::sync_wallet_save_point<WUSDC, WDAI>(swapper, pool_type);
+        TestShared::fund_for_participants<USDC, DAI>(swapper, P8, 0);
+        TestShared::sync_wallet_save_point<USDC, DAI>(swapper, pool_type);
 
         let swap_2 = swap_param(P8, 0, P8, P8 - 48997, 0, 999, P8 - 49996);  //ideal: dy: P8 - 9000, dfy: 900, receive: P8 - 10000
-        perform_transaction<WUSDC, WDAI>(swapper, pool_type, SWAP, print_debug, swap_2);
+        perform_transaction<USDC, DAI>(swapper, pool_type, SWAP, print_debug, swap_2);
     }
 
     #[test(admin = @hippo_swap, coin_list_admin=@coin_list, investor = @0x2FFF, swapper = @0x2FFE, core = @aptos_framework)]
@@ -368,7 +367,7 @@ module hippo_swap::piece_test {
         let add_2 = add_param(P17, P15, P17, P15, P17, 0, 0);
         let swap = swap_param(P8, 0, P8, P6 - 130, 0, 9, P6 - 139);
         let remove_1 = remove_param(P10, P10 + 5, P8 - 1);
-        test_pool_case<WUSDC, WDAI>(admin, coin_list_admin, investor, swapper, core,
+        test_pool_case<USDC, DAI>(admin, coin_list_admin, investor, swapper, core,
             print_debug, false, pool_type,
             decimal_x, decimal_y,
             k, n1, d1, n2, d2, fee, protocal_fee,
@@ -399,44 +398,44 @@ module hippo_swap::piece_test {
         let add_4 = add_param(P17 - P8, P15 - P6, P17 - P8, P15 - P6, P17 - P8, 0, 0);
         // The fee was based on the deviation between the proportion of reserve coins and the input coins.
 
-        TestShared::prepare_for_test<WUSDC, WDAI>(admin, coin_list_admin, investor, swapper, core, pool_type, decimal_x, decimal_y, k, n1, d1, n2, d2, fee, protocal_fee);
-        TestShared::fund_for_participants<WUSDC, WDAI>(investor, 4 * P17 - 3 * P8, 4 * P15 + 3 * P6);
-        TestShared::sync_wallet_save_point<WUSDC, WDAI>(investor, pool_type);
+        TestShared::prepare_for_test<USDC, DAI>(admin, coin_list_admin, investor, swapper, core, pool_type, decimal_x, decimal_y, k, n1, d1, n2, d2, fee, protocal_fee);
+        TestShared::fund_for_participants<USDC, DAI>(investor, 4 * P17 - 3 * P8, 4 * P15 + 3 * P6);
+        TestShared::sync_wallet_save_point<USDC, DAI>(investor, pool_type);
 
-        perform_transaction<WUSDC, WDAI>(investor, pool_type, ADD_LIQUIDITY, print_debug, add_1);
-        perform_transaction<WUSDC, WDAI>(investor, pool_type, ADD_LIQUIDITY, print_debug, add_2);
-        perform_transaction<WUSDC, WDAI>(investor, pool_type, ADD_LIQUIDITY, print_debug, add_3);
-        perform_transaction<WUSDC, WDAI>(investor, pool_type, ADD_LIQUIDITY, print_debug, add_4);
+        perform_transaction<USDC, DAI>(investor, pool_type, ADD_LIQUIDITY, print_debug, add_1);
+        perform_transaction<USDC, DAI>(investor, pool_type, ADD_LIQUIDITY, print_debug, add_2);
+        perform_transaction<USDC, DAI>(investor, pool_type, ADD_LIQUIDITY, print_debug, add_3);
+        perform_transaction<USDC, DAI>(investor, pool_type, ADD_LIQUIDITY, print_debug, add_4);
 
-        TestShared::fund_for_participants<WUSDC, WDAI>(swapper, P9, P7);
-        TestShared::sync_wallet_save_point<WUSDC, WDAI>(swapper, pool_type);
+        TestShared::fund_for_participants<USDC, DAI>(swapper, P9, P7);
+        TestShared::sync_wallet_save_point<USDC, DAI>(swapper, pool_type);
         let swap_1 = swap_param(P8, 0, P8, P6 - 130, 0, 9, P6 - 139);  // swap 1 doller
         let swap_2 = swap_param(P8, 0, P8, P6 - 130, 0, 9, P6 - 139);  // swap 1 doller
         let swap_3 = swap_param(P8, 0, P8, P6 - 130, 0, 9, P6 - 139);  // swap 1 doller
         let swap_4 = swap_param(P8, 0, P8, P6 - 210, 0, 9, P6 - 219);  // swap 1 doller
-        perform_transaction<WUSDC, WDAI>(swapper, pool_type, SWAP, print_debug, swap_1);
-        perform_transaction<WUSDC, WDAI>(swapper, pool_type, SWAP, print_debug, swap_2);
-        perform_transaction<WUSDC, WDAI>(swapper, pool_type, SWAP, print_debug, swap_3);
-        perform_transaction<WUSDC, WDAI>(swapper, pool_type, SWAP, print_debug, swap_4);
+        perform_transaction<USDC, DAI>(swapper, pool_type, SWAP, print_debug, swap_1);
+        perform_transaction<USDC, DAI>(swapper, pool_type, SWAP, print_debug, swap_2);
+        perform_transaction<USDC, DAI>(swapper, pool_type, SWAP, print_debug, swap_3);
+        perform_transaction<USDC, DAI>(swapper, pool_type, SWAP, print_debug, swap_4);
 
         let rev_swap_1 = swap_param(0, P6, P8 - 20999, P6, 999, 0, P8 - 21998);  // swap 1 doller
         let rev_swap_2 = swap_param(0, P6, P8 - 20999, P6, 999, 0, P8 - 21998);  // swap 1 doller
         let rev_swap_3 = swap_param(0, P6, P8 - 13000, P6, 999, 0, P8 - 13999);  // swap 1 doller
         let rev_swap_4 = swap_param(0, P6, P8 - 13000, P6, 999, 0, P8 - 13999);  // swap 1 doller
-        perform_transaction<WUSDC, WDAI>(swapper, pool_type, SWAP, print_debug, rev_swap_1);
-        perform_transaction<WUSDC, WDAI>(swapper, pool_type, SWAP, print_debug, rev_swap_2);
-        perform_transaction<WUSDC, WDAI>(swapper, pool_type, SWAP, print_debug, rev_swap_3);
-        perform_transaction<WUSDC, WDAI>(swapper, pool_type, SWAP, print_debug, rev_swap_4);
+        perform_transaction<USDC, DAI>(swapper, pool_type, SWAP, print_debug, rev_swap_1);
+        perform_transaction<USDC, DAI>(swapper, pool_type, SWAP, print_debug, rev_swap_2);
+        perform_transaction<USDC, DAI>(swapper, pool_type, SWAP, print_debug, rev_swap_3);
+        perform_transaction<USDC, DAI>(swapper, pool_type, SWAP, print_debug, rev_swap_4);
 
         // reverse action
         let remove_1 = remove_param(P17 - P8, P17 - P8 + 16999, P15 - P6 + 149);
         let remove_2 = remove_param(P17 - P8, P17 - P8 + 16999, P15 - P6 + 150); // erned x: 25007620, 0.25    y: -249923, -0.25
         let remove_3 = remove_param(P17 - P8, P17 - P8 + 16999, P15 - P6 + 150);
         let remove_4 = remove_param(P17, P17 + 17001, P15 + 151);
-        perform_transaction<WUSDC, WDAI>(investor, pool_type, REMOVE_LIQUIDITY, print_debug, remove_1);
-        perform_transaction<WUSDC, WDAI>(investor, pool_type, REMOVE_LIQUIDITY, print_debug, remove_2);
-        perform_transaction<WUSDC, WDAI>(investor, pool_type, REMOVE_LIQUIDITY, print_debug, remove_3);
-        perform_transaction<WUSDC, WDAI>(investor, pool_type, REMOVE_LIQUIDITY, print_debug, remove_4);
+        perform_transaction<USDC, DAI>(investor, pool_type, REMOVE_LIQUIDITY, print_debug, remove_1);
+        perform_transaction<USDC, DAI>(investor, pool_type, REMOVE_LIQUIDITY, print_debug, remove_2);
+        perform_transaction<USDC, DAI>(investor, pool_type, REMOVE_LIQUIDITY, print_debug, remove_3);
+        perform_transaction<USDC, DAI>(investor, pool_type, REMOVE_LIQUIDITY, print_debug, remove_4);
     }
 
     #[test(admin = @hippo_swap, coin_list_admin=@coin_list, investor = @0x2FFF, swapper = @0x2FFE, core = @aptos_framework)]
@@ -456,16 +455,16 @@ module hippo_swap::piece_test {
         let swap = swap_param(P17, 0, P17,  977172461764492, 0, 9772604152,  977162689160340);
 
         let remove_1 = remove_param(2 * P10,   30000000000,  102282753);
-        test_pool_case<WUSDC, WDAI>(admin, coin_list_admin, investor, swapper, core,
+        test_pool_case<USDC, DAI>(admin, coin_list_admin, investor, swapper, core,
             print_debug, false, pool_type,
             decimal_x, decimal_y,
             k, n1, d1, n2, d2, fee, protocal_fee,
             add_1, add_2, swap, remove_1
         );
         let swap_2 = swap_param(0, P6,  104695577, P6, 1047, 0,  104694530);  // swap 1 doller
-        perform_transaction<WUSDC, WDAI>(swapper, pool_type, SWAP, print_debug, swap_2);
+        perform_transaction<USDC, DAI>(swapper, pool_type, SWAP, print_debug, swap_2);
         let remove_2 = remove_param(  199999980000000000,      299999969895304423,    1022827436952755);
-        perform_transaction<WUSDC, WDAI>(investor, pool_type, REMOVE_LIQUIDITY, false, remove_2);
+        perform_transaction<USDC, DAI>(investor, pool_type, REMOVE_LIQUIDITY, false, remove_2);
 
     }
 }

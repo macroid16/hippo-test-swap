@@ -1,10 +1,10 @@
 #[test_only]
 module hippo_swap::curve_test {
-
-    use hippo_swap::mock_coin::{WUSDC, WDAI};
+    use coin_list::devnet_coins::{DevnetUSDC as WUSDC, DevnetSOL as WDAI};
     use hippo_swap::TestShared;
     use hippo_swap::router;
     use hippo_swap::stable_curve_scripts;
+    use hippo_swap::devcoin_util;
 
     // Keep the consts the same with TestShared.move.
 
@@ -213,8 +213,8 @@ module hippo_swap::curve_test {
     ) {
         let pool_type = POOL_TYPE_STABLE_CURVE;
         TestShared::time_start(core);
-        // TestShared::init_regitry_and_mock_coins(admin);
-        TestShared::init_mock_coin_pair<X, Y>(admin, coin_list_admin, decimal_x, decimal_y);
+        devcoin_util::init_registry_and_devnet_coins(admin);
+        TestShared::init_mock_coin_pair<X, Y>(coin_list_admin, decimal_x, decimal_y);
         TestShared::create_pool<X, Y>(admin, pool_type, 0, 0, 0, 0, 0, 100, 100000);
         TestShared::fund_for_participants<X, Y>(investor, P8, P7);
         TestShared::fund_for_participants<X, Y>(swapper, P8, P7);

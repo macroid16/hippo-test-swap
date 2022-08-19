@@ -1,7 +1,6 @@
 #[test_only]
 module hippo_swap::cp_test {
-
-    use hippo_swap::mock_coin::{WUSDT, WBTC, WDAI, WDOT, WETH};
+    use coin_list::devnet_coins::{DevnetUSDT as WUSDT, DevnetBTC as WBTC, DevnetSOL as WDAI, DevnetUSDC as WDOT, DevnetETH as WETH};
     use hippo_swap::TestShared;
     use hippo_swap::router;
     use hippo_swap::cp_scripts;

@@ -2,9 +2,10 @@ address hippo_swap {
 module cp_scripts {
     use hippo_swap::cp_swap;
     use std::signer;
-    use hippo_swap::mock_coin;
+    use std::string;
+    use std::vector;
     use aptos_framework::coin;
-
+    use coin_list::coin_list;
 
     const E_SWAP_ONLY_ONE_IN_ALLOWED: u64 = 0;
     const E_SWAP_ONLY_ONE_OUT_ALLOWED: u64 = 1;
@@ -125,7 +126,6 @@ module cp_scripts {
     #[test_only]
     use aptos_framework::timestamp;
 
-
     fun mock_create_pair_and_add_liquidity<X, Y>(
         admin: &signer,
         symbol: vector<u8>,
@@ -143,16 +143,16 @@ module cp_scripts {
             b"",
         );
 
-        let some_x = mock_coin::mint<X>(left_amt);
-        let some_y = mock_coin::mint<Y>(right_amt);
+        let some_x = devnet_coins::mint<X>(left_amt);
+        let some_y = devnet_coins::mint<Y>(right_amt);
         let (unused_x, unused_y, some_lp) = cp_swap::add_liquidity_direct(some_x, some_y);
 
         assert!(coin::value(&unused_x) == 0, 5);
         assert!(coin::value(&unused_y) == 0, 5);
         assert!(coin::value(&some_lp) == lp_amt, 5);
 
-        mock_coin::burn(unused_x);
-        mock_coin::burn(unused_y);
+        devnet_coins::burn(unused_x);
+        devnet_coins::burn(unused_y);
         coin::deposit(signer::address_of(admin), some_lp);
 
     }
@@ -160,20 +160,8 @@ module cp_scripts {
     // coinlist registry must be initialized before this method
     #[cmd]
     public entry fun mock_deploy_script(admin: &signer) {
-        /*
-             1. initialize coins (and add them to registry)
-             2. create token pairs
-             3. adds liquidity
-         */
-
-        // 1
-        mock_deploy::init_coin_and_register<mock_coin::WBTC>(admin, b"Bitcoin", b"BTC", 8);
-        mock_deploy::init_coin_and_register<mock_coin::WUSDC>(admin,b"USDC", b"USDC", 8);
-        mock_deploy::init_coin_and_register<mock_coin::WUSDT>(admin, b"USDT", b"USDT", 8);
-
-        // 2
         let btc_amt = 1000000000;
-        mock_create_pair_and_add_liquidity<mock_coin::WBTC, mock_coin::WUSDC>(
+        mock_create_pair_and_add_liquidity<devnet_coins::DevnetBTC, devnet_coins::DevnetUSDC>(
             admin,
             b"BTC-USDC-LP",
             btc_amt,
@@ -181,7 +169,7 @@ module cp_scripts {
             btc_amt * 100 - 1000,
         );
 
-        mock_create_pair_and_add_liquidity<mock_coin::WBTC, mock_coin::WUSDT>(
+        mock_create_pair_and_add_liquidity<devnet_coins::DevnetBTC, devnet_coins::DevnetUSDT>(
             admin,
             b"BTC-USDT-LP",
             btc_amt,
@@ -192,42 +180,51 @@ module cp_scripts {
 
     #[test_only]
     use aptos_framework::coins;
-    use coin_list::coin_list;
-    use std::string;
-    use std::vector;
-    use hippo_swap::mock_deploy;
+    use coin_list::devnet_coins;
+    #[test_only]
+    use hippo_swap::devcoin_util;
+
+
+    #[test_only]
+    public fun mock_deploy(admin: &signer, coin_list_admin: &signer){
+        devcoin_util::init_coin_and_register<devnet_coins::DevnetBTC>(coin_list_admin, b"Bitcoin", b"BTC", 8);
+        devcoin_util::init_coin_and_register<devnet_coins::DevnetUSDC>(coin_list_admin,b"USDC", b"USDC", 8);
+        devcoin_util::init_coin_and_register<devnet_coins::DevnetUSDT>(coin_list_admin, b"USDT", b"USDT", 8);
+
+        mock_deploy_script(admin)
+    }
 
     #[test(admin=@hippo_swap, coin_list_admin = @coin_list, user=@0x1234567, core=@aptos_framework)]
-    public entry fun test_initialization_cpswap(admin: &signer, coin_list_admin: &signer, user: &signer, core: &signer) {
+    fun test_initialization_cpswap(admin: &signer, coin_list_admin: &signer, user: &signer, core: &signer) {
 
         use aptos_framework::account;
         account::create_account(signer::address_of(admin));
         account::create_account(signer::address_of(user));
-        mock_deploy::init_registry(coin_list_admin);
+        devcoin_util::init_registry(coin_list_admin);
         timestamp::set_time_has_started_for_testing(core);
         /*
            1. perform local depploy
            2. user trades
        */
         // 1
-        mock_deploy_script(admin);
+        mock_deploy(admin,coin_list_admin);
         // 2
-        coins::register_internal<mock_coin::WBTC>(user);
-        coins::register_internal<mock_coin::WUSDC>(user);
+        coins::register_internal<devnet_coins::DevnetBTC>(user);
+        coins::register_internal<devnet_coins::DevnetUSDC>(user);
         let user_addr = signer::address_of(user);
-        mock_coin::faucet_mint_to<mock_coin::WBTC>(user, 100);
-        assert!(coin::balance<mock_coin::WUSDC>(user_addr)==0, 5);
-        cp_swap::swap_x_to_exact_y<mock_coin::WBTC, mock_coin::WUSDC>(user, 100, user_addr);
-        assert!(coin::balance<mock_coin::WUSDC>(user_addr) > 0, 5);
+        devnet_coins::mint_to_wallet<devnet_coins::DevnetBTC>(user, 100);
+        assert!(coin::balance<devnet_coins::DevnetUSDC>(user_addr)==0, 5);
+        cp_swap::swap_x_to_exact_y<devnet_coins::DevnetBTC, devnet_coins::DevnetUSDC>(user, 100, user_addr);
+        assert!(coin::balance<devnet_coins::DevnetUSDC>(user_addr) > 0, 5);
 
     }
 
     #[test(admin=@hippo_swap, coin_list_admin = @coin_list, user=@0x1234567, core=@aptos_framework)]
-    public entry fun test_add_remove_liquidity(admin: &signer, coin_list_admin: &signer, user: &signer, core: &signer) {
+    fun test_add_remove_liquidity(admin: &signer, coin_list_admin: &signer, user: &signer, core: &signer) {
         use aptos_framework::account;
         account::create_account(signer::address_of(admin));
         account::create_account(signer::address_of(user));
-        mock_deploy::init_registry(coin_list_admin);
+        devcoin_util::init_registry(coin_list_admin);
         timestamp::set_time_has_started_for_testing(core);
         /*
             1. create pools
@@ -236,36 +233,36 @@ module cp_scripts {
         */
 
         // 1
-        mock_deploy_script(admin);
+        mock_deploy(admin,coin_list_admin);
 
         // 2
         let btc_amt = 100;
         let price = 10000;
-        mock_coin::faucet_mint_to<mock_coin::WBTC>(user, btc_amt);
-        mock_coin::faucet_mint_to<mock_coin::WUSDC>(user, btc_amt * price);
-        add_liquidity_script<mock_coin::WBTC, mock_coin::WUSDC>(user, btc_amt, btc_amt * price);
+        devnet_coins::mint_to_wallet<devnet_coins::DevnetBTC>(user, btc_amt);
+        devnet_coins::mint_to_wallet<devnet_coins::DevnetUSDC>(user, btc_amt * price);
+        add_liquidity_script<devnet_coins::DevnetBTC, devnet_coins::DevnetUSDC>(user, btc_amt, btc_amt * price);
 
         let user_addr = signer::address_of(user);
-        assert!(coin::balance<mock_coin::WBTC>(user_addr) == 0, 0);
-        assert!(coin::balance<mock_coin::WUSDC>(user_addr) == 0, 0);
+        assert!(coin::balance<devnet_coins::DevnetBTC>(user_addr) == 0, 0);
+        assert!(coin::balance<devnet_coins::DevnetUSDC>(user_addr) == 0, 0);
 
         // 3
-        remove_liquidity_script<mock_coin::WBTC, mock_coin::WUSDC>(
+        remove_liquidity_script<devnet_coins::DevnetBTC, devnet_coins::DevnetUSDC>(
             user,
-            coin::balance<cp_swap::LPToken<mock_coin::WBTC, mock_coin::WUSDC>>(user_addr),
+            coin::balance<cp_swap::LPToken<devnet_coins::DevnetBTC, devnet_coins::DevnetUSDC>>(user_addr),
             0,
             0,
         );
-        assert!(coin::balance<mock_coin::WBTC>(user_addr) == btc_amt, 0);
-        assert!(coin::balance<mock_coin::WUSDC>(user_addr) == btc_amt * price, 0);
+        assert!(coin::balance<devnet_coins::DevnetBTC>(user_addr) == btc_amt, 0);
+        assert!(coin::balance<devnet_coins::DevnetUSDC>(user_addr) == btc_amt * price, 0);
     }
 
     #[test(admin=@hippo_swap, coin_list_admin = @coin_list, user=@0x1234567, core=@aptos_framework)]
-    public entry fun test_swap(admin: &signer, coin_list_admin: &signer, user: &signer, core: &signer) {
+    fun test_swap(admin: &signer, coin_list_admin: &signer, user: &signer, core: &signer) {
         use aptos_framework::account;
         account::create_account(signer::address_of(admin));
         account::create_account(signer::address_of(user));
-        mock_deploy::init_registry(coin_list_admin);
+        devcoin_util::init_registry(coin_list_admin);
         /*
             1. create pools
             2. swap x to y
@@ -273,19 +270,19 @@ module cp_scripts {
         */
         timestamp::set_time_has_started_for_testing(core);
         // 1
-        mock_deploy_script(admin);
+        mock_deploy(admin,coin_list_admin);
 
         // 2
         let btc_amt = 100;
         let price = 10000;
-        mock_coin::faucet_mint_to<mock_coin::WBTC>(user, btc_amt);
-        swap_script<mock_coin::WBTC, mock_coin::WUSDC>(user, btc_amt, 0, 0, btc_amt * price * 99 / 100);
+        devnet_coins::mint_to_wallet<devnet_coins::DevnetBTC>(user, btc_amt);
+        swap_script<devnet_coins::DevnetBTC, devnet_coins::DevnetUSDC>(user, btc_amt, 0, 0, btc_amt * price * 99 / 100);
 
         // 3
-        let usdc_balance = coin::balance<mock_coin::WUSDC>(signer::address_of(user));
-        swap_script<mock_coin::WBTC, mock_coin::WUSDC>(user, 0, usdc_balance, btc_amt * 99 / 100, 0);
-        assert!(coin::balance<mock_coin::WUSDC>(signer::address_of(user)) == 0, 0);
-        assert!(coin::balance<mock_coin::WBTC>(signer::address_of(user)) >= btc_amt * 99 / 100, 0);
+        let usdc_balance = coin::balance<devnet_coins::DevnetUSDC>(signer::address_of(user));
+        swap_script<devnet_coins::DevnetBTC, devnet_coins::DevnetUSDC>(user, 0, usdc_balance, btc_amt * 99 / 100, 0);
+        assert!(coin::balance<devnet_coins::DevnetUSDC>(signer::address_of(user)) == 0, 0);
+        assert!(coin::balance<devnet_coins::DevnetBTC>(signer::address_of(user)) >= btc_amt * 99 / 100, 0);
 
     }
 
