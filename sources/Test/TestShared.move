@@ -121,7 +121,7 @@ module hippo_swap::TestShared {
     }
 
     #[test_only]
-    public fun init_mock_coin_pair<X, Y>(coin_list_admin: &signer, decimal_x: u64, decimal_y: u64) {
+    public fun init_mock_coin_pair<X, Y>(coin_list_admin: &signer, decimal_x: u8, decimal_y: u8) {
         coin_list::initialize(coin_list_admin);
         devcoin_util::init_coin_and_register<X>(coin_list_admin, b"COIN-X", b"COIN-X", decimal_x);
         devcoin_util::init_coin_and_register<Y>(coin_list_admin, b"COIN-Y", b"COIN-Y", decimal_y);
@@ -180,7 +180,7 @@ module hippo_swap::TestShared {
     #[test_only]
     public fun prepare_for_test<X, Y>(
         admin: &signer, coin_list_admin: &signer, investor: &signer, swapper: &signer, core: &signer,
-        pool_type: u8, decimal_x: u64, decimal_y: u64,
+        pool_type: u8, decimal_x: u8, decimal_y: u8,
         k: u128, n1: u128, d1: u128, n2: u128, d2: u128, fee: u64, protocal_fee: u64
     ) {
         time_start(core);

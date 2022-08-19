@@ -62,6 +62,8 @@ module hippo_swap::cp_swap {
         mint_cap: coin::MintCapability<LPToken<X, Y>>,
         /// Burn capacity of LP Token
         burn_cap: coin::BurnCapability<LPToken<X, Y>>,
+        /// Freeze capacity of LP Token
+        freeze_cap: coin::FreezeCapability<LPToken<X, Y>>,
     }
 
     /// Stores the reservation info required for the token pairs
@@ -79,7 +81,7 @@ module hippo_swap::cp_swap {
         fee_on: bool,
         lp_name: vector<u8>,
         lp_symbol: vector<u8>,
-        decimals: u64,
+        decimals: u8,
     ) {
         let sender_addr = signer::address_of(admin);
         assert!(sender_addr == MODULE_ADMIN, ERROR_NOT_CREATOR);
@@ -88,7 +90,7 @@ module hippo_swap::cp_swap {
         assert!(!exists<TokenPairReserve<Y, X>>(sender_addr), ERROR_ALREADY_INITIALIZED);
 
         // now we init the LP token
-        let (mint_cap, burn_cap) = coin::initialize<LPToken<X, Y>>(
+        let (burn_cap, freeze_cap, mint_cap) = coin::initialize<LPToken<X, Y>>(
             admin,
             string::utf8(lp_name),
             string::utf8(lp_symbol),
@@ -117,7 +119,8 @@ module hippo_swap::cp_swap {
                 balance_x: coin::zero<X>(),
                 balance_y: coin::zero<Y>(),
                 mint_cap,
-                burn_cap
+                burn_cap,
+                freeze_cap,
             }
         );
 
@@ -638,7 +641,8 @@ module hippo_swap::cp_swap {
     #[test_only]
     struct CapContainer<phantom T: key> has key {
         mc: coin::MintCapability<T>,
-        bc: coin::BurnCapability<T>
+        bc: coin::BurnCapability<T>,
+        fc: coin::FreezeCapability<T>,
     }
 
     #[test_only]
@@ -657,11 +661,11 @@ module hippo_swap::cp_swap {
 
     #[test_only]
     fun issue_token<T: key>(admin: &signer, to: &signer, name: vector<u8>, total_supply: u64) {
-        let (mc, bc) = coin::initialize<T>(
+        let (bc, fc, mc) = coin::initialize<T>(
             admin,
             string::utf8(name),
             string::utf8(name),
-            8u64,
+            8,
             true
         );
 
@@ -670,7 +674,7 @@ module hippo_swap::cp_swap {
 
         let a = coin::mint(total_supply, &mc);
         coin::deposit(signer::address_of(to), a);
-        move_to<CapContainer<T>>(admin, CapContainer{ mc, bc });
+        move_to<CapContainer<T>>(admin, CapContainer{ mc, bc, fc });
     }
 
     #[test(admin = @hippo_swap)]
@@ -688,13 +692,13 @@ module hippo_swap::cp_swap {
         );
     }
 
-    #[test(admin = @hippo_swap, token_owner = @0x02, lp_provider = @0x03, lock = @0x01, core_resource=@core_resources)]
-    public fun mint_works(admin: signer, token_owner: signer, lp_provider: signer, lock: signer, core_resource: signer)
+    #[test(admin = @hippo_swap, token_owner = @0x02, lp_provider = @0x03, lock = @0x01)]
+    public fun mint_works(admin: signer, token_owner: signer, lp_provider: signer, lock: signer)
         acquires TokenPairReserve, TokenPairMetadata
     {
         use aptos_framework::account;
         use aptos_framework::genesis;
-        genesis::setup(&core_resource);
+        genesis::setup();
         account::create_account(signer::address_of(&admin));
         account::create_account(signer::address_of(&token_owner));
         account::create_account(signer::address_of(&lp_provider));
@@ -752,13 +756,13 @@ module hippo_swap::cp_swap {
         assert!(r1 == amount_y, 0);
     }
 
-    #[test(admin = @hippo_swap, token_owner = @0x02, lp_provider = @0x03, lock = @0x01, core_resource=@core_resources)]
-    public fun remove_liquidity_works(admin: signer, token_owner: signer, lp_provider: signer, lock: signer, core_resource: signer)
+    #[test(admin = @hippo_swap, token_owner = @0x02, lp_provider = @0x03, lock = @0x01)]
+    public fun remove_liquidity_works(admin: signer, token_owner: signer, lp_provider: signer, lock: signer)
         acquires TokenPairReserve, TokenPairMetadata
     {
         use aptos_framework::account;
         use aptos_framework::genesis;
-        genesis::setup(&core_resource);
+        genesis::setup();
         account::create_account(signer::address_of(&admin));
         account::create_account(signer::address_of(&token_owner));
         account::create_account(signer::address_of(&lp_provider));
@@ -817,13 +821,13 @@ module hippo_swap::cp_swap {
         assert!(coin::balance<Token1>(signer::address_of(&lp_provider)) == amount_y - (MINIMUM_LIQUIDITY as u64), 0);
     }
 
-    #[test(admin = @hippo_swap, token_owner = @0x02, lp_provider = @0x03, lock = @0x01, core_resource=@core_resources)]
-    public fun swap_x_works(admin: signer, token_owner: signer, lp_provider: signer, lock: signer, core_resource: signer)
+    #[test(admin = @hippo_swap, token_owner = @0x02, lp_provider = @0x03, lock = @0x01)]
+    public fun swap_x_works(admin: signer, token_owner: signer, lp_provider: signer, lock: signer)
         acquires TokenPairReserve, TokenPairMetadata
     {
         use aptos_framework::account;
         use aptos_framework::genesis;
-        genesis::setup(&core_resource);
+        genesis::setup();
         account::create_account(signer::address_of(&admin));
         account::create_account(signer::address_of(&token_owner));
         account::create_account(signer::address_of(&lp_provider));

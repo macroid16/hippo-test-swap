@@ -44,7 +44,7 @@ module hippo_swap::stable_curve_scripts {
         let future_time = block_timestamp + 24 * 3600 * MICRO_CONVERSION_FACTOR;
 
         let decimals = math::max((coin::decimals<X>() as u128), (coin::decimals<Y>() as u128));
-        let decimals = (decimals as u64);
+        let decimals = (decimals as u8);
 
         stable_curve_swap::initialize<X, Y>(
             admin,
@@ -141,7 +141,7 @@ module hippo_swap::stable_curve_scripts {
         // It's weird that the coverage does not mark the if branch.
         // Find the reason later from the compiler part of the aptos-core repo.
         let decimals = math::max((coin::decimals<X>() as u128), (coin::decimals<Y>() as u128));
-        let decimals = (decimals as u64);
+        let decimals = (decimals as u8);
         stable_curve_swap::initialize<X, Y>(
             admin, name, name, decimals, initial_A, future_A, initial_A_time, future_A_time, fee, admin_fee
         );
@@ -341,7 +341,7 @@ module hippo_swap::stable_curve_scripts {
         let (_, _, _, _, _, lp_precision, multiplier_x, multiplier_y, _, _,
             _, _, _, _) = stable_curve_swap::get_pool_info<devnet_coins::DevnetUSDC, devnet_coins::DevnetUSDT>();
 
-        assert!(lp_precision == 100000000, 2);  // 10 ** 8 , which is equal to the larger value between x and y.
+        assert!(lp_precision == 8, 2);  // 10 ** 8 , which is equal to the larger value between x and y.
         assert!(multiplier_x == 1, 2);                // the scaling factor of x and y is 1 because they share the same decimals.
         assert!(multiplier_y == 1, 2);
         stable_curve_swap::remove_liquidity<devnet_coins::DevnetUSDC, devnet_coins::DevnetUSDT>(admin, 100000000, 100000, 100000);

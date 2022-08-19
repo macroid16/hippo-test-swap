@@ -17,6 +17,7 @@ module hippo_swap::stable_curve_swap {
     struct LPCapability<phantom X, phantom Y> has key, store {
         mint_cap: coin::MintCapability<LPToken<X, Y>>,
         burn_cap: coin::BurnCapability<LPToken<X, Y>>,
+        freeze_cap: coin::FreezeCapability<LPToken<X, Y>>,
     }
 
     // Swap
@@ -28,7 +29,7 @@ module hippo_swap::stable_curve_swap {
         reserve_y: coin::Coin<Y>,
         fee_x: coin::Coin<X>,
         fee_y: coin::Coin<Y>,
-        lp_precision: u64,
+        lp_precision: u8,
         // example: 1000000
         multiplier_x: u64,
         // example: 100
@@ -74,17 +75,21 @@ module hippo_swap::stable_curve_swap {
         assert!(signer::address_of(signer) == hippo_config::admin_address(), ERROR_SWAP_PRIVILEGE_INSUFFICIENT);
     }
 
-    fun initialize_coin<X, Y>(signer: &signer, name: string::String, symbol: string::String, decimals: u64) {
+    fun initialize_coin<X, Y>(signer: &signer, name: string::String, symbol: string::String, decimals: u8) {
         let addr = signer::address_of(signer);
         assert!(!exists<StableCurvePoolInfo<X, Y>>(addr), ERROR_ALREADY_INITIALIZED);
         assert!(!exists<StableCurvePoolInfo<Y, X>>(addr), ERROR_ALREADY_INITIALIZED);
         assert!(coin::is_coin_initialized<X>(), ERROR_SWAP_INVALID_TOKEN_PAIR);
         assert!(coin::is_coin_initialized<Y>(), ERROR_SWAP_INVALID_TOKEN_PAIR);
-        let (mint_capability, burn_capability) = coin::initialize<LPToken<X, Y>>(
+        let (burn_capability, freeze_capability, mint_capability) = coin::initialize<LPToken<X, Y>>(
             signer, name, symbol, decimals, true
         );
         coins::register_internal<LPToken<X, Y>>(signer);
-        move_to(signer, LPCapability<X, Y>{ mint_cap: mint_capability, burn_cap: burn_capability });
+        move_to(signer, LPCapability<X, Y>{
+            mint_cap: mint_capability,
+            burn_cap: burn_capability,
+            freeze_cap: freeze_capability
+        });
     }
 
     fun mint<X, Y>(amount: u64): coin::Coin<LPToken<X, Y>> acquires LPCapability {
@@ -141,7 +146,7 @@ module hippo_swap::stable_curve_swap {
     }
 
     fun create_pool_info<X, Y>(
-        lp_precision: u64,
+        lp_decimals: u8,
         multiplier_x: u64,
         multiplier_y: u64,
         initial_A: u64,
@@ -157,7 +162,7 @@ module hippo_swap::stable_curve_swap {
             reserve_y: coin::zero<Y>(),
             fee_x: coin::zero<X>(),
             fee_y: coin::zero<Y>(),
-            lp_precision,
+            lp_precision: lp_decimals,
             multiplier_x,
             multiplier_y,
             fee,
@@ -170,18 +175,17 @@ module hippo_swap::stable_curve_swap {
     }
 
     public fun initialize<X, Y>(
-        signer: &signer, lp_name: string::String, lp_symbol: string::String, lp_decimal: u64,
+        signer: &signer, lp_name: string::String, lp_symbol: string::String, lp_decimal: u8,
         initial_A: u64, future_A: u64, initial_A_time: u64, future_A_time: u64,
         fee: u64, admin_fee: u64
     ) {
         assert_admin(signer);
         let (x_decimal, y_decimal) = (coin::decimals<X>(), coin::decimals<Y>());
-        let lp_precision = (math::pow(10, (lp_decimal as u8)) as u64);
         let x_rate = (math::pow(10, ((lp_decimal - x_decimal) as u8)) as u64);
         let y_rate = (math::pow(10, ((lp_decimal - y_decimal) as u8)) as u64);
-        initialize_coin<X, Y>(signer, lp_name, lp_symbol, (lp_precision as u64));
+        initialize_coin<X, Y>(signer, lp_name, lp_symbol, lp_decimal);
         let token_pair = create_pool_info<X, Y>(
-            lp_precision, x_rate, y_rate, initial_A, future_A, initial_A_time, future_A_time, fee, admin_fee
+            lp_decimal, x_rate, y_rate, initial_A, future_A, initial_A_time, future_A_time, fee, admin_fee
         );
         move_to(signer, token_pair);
     }
@@ -466,7 +470,7 @@ module hippo_swap::stable_curve_swap {
 
     // Swap utilities
     #[test_only]
-    public fun get_pool_info<X, Y>():(bool, u64, u64, u64, u64, u64, u64, u64, u64, u64, u64, u64, u64, u64) acquires StableCurvePoolInfo {
+    public fun get_pool_info<X, Y>():(bool, u64, u64, u64, u64, u8, u64, u64, u64, u64, u64, u64, u64, u64) acquires StableCurvePoolInfo {
         let i = borrow_global<StableCurvePoolInfo<X, Y>>(hippo_config::admin_address());
         return (
             i.disabled,
@@ -502,9 +506,9 @@ module hippo_swap::stable_curve_swap {
     }
 
     #[test_only]
-    fun genesis(core: &signer, vm: &signer) {
+    fun genesis(vm: &signer) {
         use aptos_framework::genesis;
-        genesis::setup(core);
+        genesis::setup();
         update_time(vm, time(0));
     }
 
@@ -530,8 +534,8 @@ module hippo_swap::stable_curve_swap {
     }
 
     #[test_only]
-    fun init_lp_token(admin: &signer, coin_list_admin: &signer, core: &signer, vm: &signer) {
-        genesis(core, vm);
+    fun init_lp_token(admin: &signer, coin_list_admin: &signer, vm: &signer) {
+        genesis(vm);
         devcoin_util::init_coin<ETH>(coin_list_admin, 6);
         devcoin_util::init_coin<USDT>(coin_list_admin, 6);
         let (ia, fa, iat, fat) = mock_curve_params();
@@ -546,12 +550,12 @@ module hippo_swap::stable_curve_swap {
     }
 
     #[test(admin = @hippo_swap, coin_list_admin = @coin_list, core = @core_resources, vm = @0)]
-    fun mint_lptoken_coin(admin: &signer, coin_list_admin: &signer, core: &signer, vm: &signer) acquires StableCurvePoolInfo, LPCapability {
+    fun mint_lptoken_coin(admin: &signer, coin_list_admin: &signer, vm: &signer) acquires StableCurvePoolInfo, LPCapability {
         use std::signer;
 
         use aptos_framework::account;
         account::create_account(signer::address_of(admin));
-        init_lp_token(admin, coin_list_admin, core, vm);
+        init_lp_token(admin, coin_list_admin, vm);
         update_time(vm, time(200));
         let x = devnet_coins::mint<ETH>(10000000);
         let y = devnet_coins::mint<USDT>(10000000);
@@ -572,12 +576,12 @@ module hippo_swap::stable_curve_swap {
 
     #[test(admin = @hippo_swap, coin_list_admin = @coin_list, core = @core_resources, vm = @0)]
     #[expected_failure(abort_code = 2007)]
-    public fun fail_add_liquidity(admin: &signer, coin_list_admin: &signer, core: &signer, vm: &signer) acquires StableCurvePoolInfo, LPCapability {
+    public fun fail_add_liquidity(admin: &signer, coin_list_admin: &signer, vm: &signer) acquires StableCurvePoolInfo, LPCapability {
         use std::signer;
 
         use aptos_framework::account;
         account::create_account(signer::address_of(admin));
-        init_lp_token(admin, coin_list_admin, core, vm);
+        init_lp_token(admin, coin_list_admin, vm);
         update_time(vm, time(200));
 
         let x = devnet_coins::mint<ETH>(0);
@@ -590,12 +594,12 @@ module hippo_swap::stable_curve_swap {
 
     #[test(admin = @hippo_swap, coin_list_admin = @coin_list, core = @core_resources, vm = @0)]
     #[expected_failure(abort_code = 2007)]
-    public fun fail_add_liquidity_y(admin: &signer, coin_list_admin: &signer, core: &signer, vm: &signer) acquires StableCurvePoolInfo, LPCapability {
+    public fun fail_add_liquidity_y(admin: &signer, coin_list_admin: &signer, vm: &signer) acquires StableCurvePoolInfo, LPCapability {
         use std::signer;
 
         use aptos_framework::account;
         account::create_account(signer::address_of(admin));
-        init_lp_token(admin, coin_list_admin, core, vm);
+        init_lp_token(admin, coin_list_admin, vm);
         update_time(vm, time(200));
 
         let x = devnet_coins::mint<ETH>(20);
@@ -608,13 +612,13 @@ module hippo_swap::stable_curve_swap {
 
     #[test(admin = @hippo_swap, coin_list_admin = @coin_list, core = @core_resources, vm = @0, trader = @0xFFFFFF01,)]
     #[expected_failure(abort_code = 2020)]
-    public fun fail_add_liquidity_d1(admin: &signer, coin_list_admin: &signer, core: &signer, vm: &signer, trader: &signer) acquires StableCurvePoolInfo, LPCapability {
+    public fun fail_add_liquidity_d1(admin: &signer, coin_list_admin: &signer, vm: &signer, trader: &signer) acquires StableCurvePoolInfo, LPCapability {
         use std::signer;
 
         use aptos_framework::account;
         account::create_account(signer::address_of(admin));
         account::create_account(signer::address_of(trader));
-        init_lp_token(admin, coin_list_admin, core, vm);
+        init_lp_token(admin, coin_list_admin, vm);
         update_time(vm, time(200));
 
         let trader_addr = signer::address_of(trader);
@@ -635,7 +639,7 @@ module hippo_swap::stable_curve_swap {
         use aptos_framework::account;
         account::create_account(signer::address_of(admin));
         initialize_coin<ETH, USDT>(
-            admin, string::utf8(b"Curve:WETH-WUSDT"), string::utf8(b"WEWD"), 1000000);
+            admin, string::utf8(b"Curve:WETH-WUSDT"), string::utf8(b"WEWD"), 6);
     }
 
     #[test(admin = @hippo_swap, coin_list_admin = @coin_list)]
@@ -646,15 +650,15 @@ module hippo_swap::stable_curve_swap {
         account::create_account(signer::address_of(admin));
         devcoin_util::init_coin<ETH>(coin_list_admin, 6);
         initialize_coin<ETH, USDT>(
-            admin, string::utf8(b"Curve:WETH-WUSDT"), string::utf8(b"WEWD"), 1000000);
+            admin, string::utf8(b"Curve:WETH-WUSDT"), string::utf8(b"WEWD"), 6);
     }
 
     #[test(admin = @hippo_swap, coin_list_admin = @coin_list, core = @core_resources, vm = @0)]
-    fun test_swap_pair_case_A(admin: &signer, coin_list_admin: &signer, core: &signer, vm: &signer) acquires StableCurvePoolInfo {
+    fun test_swap_pair_case_A(admin: &signer, coin_list_admin: &signer, vm: &signer) acquires StableCurvePoolInfo {
 
         use aptos_framework::account;
         account::create_account(signer::address_of(admin));
-        init_lp_token(admin, coin_list_admin, core, vm);
+        init_lp_token(admin, coin_list_admin, vm);
         let swap_pair = borrow_global_mut<StableCurvePoolInfo<ETH, USDT>>(hippo_config::admin_address());
         update_time(vm, time(3500));
         let block_timestamp = timestamp::now_seconds();
@@ -669,11 +673,11 @@ module hippo_swap::stable_curve_swap {
     }
 
     #[test(admin = @hippo_swap, coin_list_admin = @coin_list, core = @core_resources, vm = @0)]
-    fun test_swap_pair_case_B(admin: &signer, coin_list_admin: &signer, core: &signer, vm: &signer) acquires StableCurvePoolInfo {
+    fun test_swap_pair_case_B(admin: &signer, coin_list_admin: &signer, vm: &signer) acquires StableCurvePoolInfo {
 
         use aptos_framework::account;
         account::create_account(signer::address_of(admin));
-        init_lp_token(admin, coin_list_admin, core, vm);
+        init_lp_token(admin, coin_list_admin, vm);
         let swap_pair = borrow_global_mut<StableCurvePoolInfo<ETH, USDT>>(hippo_config::admin_address());
         update_time(vm, time(10000));
         let block_timestamp = timestamp::now_seconds();
@@ -689,13 +693,13 @@ module hippo_swap::stable_curve_swap {
 
 
     #[test(admin = @hippo_swap, coin_list_admin = @coin_list, core = @core_resources, vm = @0, trader = @0xFFFFFF01, )]
-    fun mock_add_liquidity(admin: &signer, coin_list_admin: &signer, core: &signer, vm: &signer, trader: &signer) acquires StableCurvePoolInfo, LPCapability {
+    fun mock_add_liquidity(admin: &signer, coin_list_admin: &signer, vm: &signer, trader: &signer) acquires StableCurvePoolInfo, LPCapability {
         use std::signer;
 
         use aptos_framework::account;
         account::create_account(signer::address_of(admin));
         account::create_account(signer::address_of(trader));
-        init_lp_token(admin, coin_list_admin, core, vm);
+        init_lp_token(admin, coin_list_admin, vm);
         update_time(vm, time(200));
         let trader_addr = signer::address_of(trader);
         coins::register_internal<ETH>(trader);
@@ -716,11 +720,11 @@ module hippo_swap::stable_curve_swap {
     }
 
     #[test(admin = @hippo_swap, coin_list_admin = @coin_list, core = @core_resources, vm = @0)]
-    fun test_exchange_coin(admin: &signer, coin_list_admin: &signer, core: &signer, vm: &signer) acquires StableCurvePoolInfo, LPCapability {
+    fun test_exchange_coin(admin: &signer, coin_list_admin: &signer, vm: &signer) acquires StableCurvePoolInfo, LPCapability {
         use std::signer;
         use aptos_framework::account;
         account::create_account(signer::address_of(admin));
-        init_lp_token(admin, coin_list_admin, core, vm);
+        init_lp_token(admin, coin_list_admin, vm);
         update_time(vm, time(200));
         let x = devnet_coins::mint<ETH>(2000000);
         let y = devnet_coins::mint<USDT>(10000000);
@@ -737,10 +741,10 @@ module hippo_swap::stable_curve_swap {
 
 
     #[test(admin = @hippo_swap, coin_list_admin = @coin_list, core = @core_resources, vm = @0)]
-    fun test_ramp_A_stop_ramp_A(admin: &signer, coin_list_admin: &signer, core: &signer, vm: &signer) acquires StableCurvePoolInfo {
+    fun test_ramp_A_stop_ramp_A(admin: &signer, coin_list_admin: &signer, vm: &signer) acquires StableCurvePoolInfo {
         use aptos_framework::account;
         account::create_account(signer::address_of(admin));
-        init_lp_token(admin, coin_list_admin, core, vm);
+        init_lp_token(admin, coin_list_admin, vm);
         update_time(vm, time(200));
         ramp_A<ETH, USDT>(admin, 300, time( 10000));
         update_time(vm, time(300));
@@ -749,10 +753,10 @@ module hippo_swap::stable_curve_swap {
 
     #[test(admin = @hippo_swap, coin_list_admin = @coin_list, core = @core_resources, vm = @0)]
     #[expected_failure(abort_code = 2009)]
-    fun test_fail_ramp_A_timestamp(admin: &signer, coin_list_admin: &signer, core: &signer, vm: &signer) acquires StableCurvePoolInfo {
+    fun test_fail_ramp_A_timestamp(admin: &signer, coin_list_admin: &signer, vm: &signer) acquires StableCurvePoolInfo {
         use aptos_framework::account;
         account::create_account(signer::address_of(admin));
-        init_lp_token(admin, coin_list_admin, core, vm);
+        init_lp_token(admin, coin_list_admin, vm);
         update_time(vm, time(200));
         ramp_A<ETH, USDT>(admin, 300, time(10000));
         ramp_A<ETH, USDT>(admin, 400, time(10000));
@@ -760,49 +764,49 @@ module hippo_swap::stable_curve_swap {
 
     #[test(admin = @hippo_swap, coin_list_admin = @coin_list, core = @core_resources, vm = @0)]
     #[expected_failure(abort_code = 2009)]
-    fun test_fail_ramp_A_future_time(admin: &signer, coin_list_admin: &signer, core: &signer, vm: &signer) acquires StableCurvePoolInfo {
+    fun test_fail_ramp_A_future_time(admin: &signer, coin_list_admin: &signer, vm: &signer) acquires StableCurvePoolInfo {
         use aptos_framework::account;
         account::create_account(signer::address_of(admin));
-        init_lp_token(admin, coin_list_admin, core, vm);
+        init_lp_token(admin, coin_list_admin, vm);
         update_time(vm, time(200));
         ramp_A<ETH, USDT>(admin, 300, 10000);
     }
 
     #[test(admin = @hippo_swap, coin_list_admin = @coin_list, core = @core_resources, vm = @0)]
     #[expected_failure(abort_code = 2010)]
-    fun test_fail_ramp_A_future_A_value(admin: &signer, coin_list_admin: &signer, core: &signer, vm: &signer) acquires StableCurvePoolInfo {
+    fun test_fail_ramp_A_future_A_value(admin: &signer, coin_list_admin: &signer, vm: &signer) acquires StableCurvePoolInfo {
         use aptos_framework::account;
         account::create_account(signer::address_of(admin));
-        init_lp_token(admin, coin_list_admin, core, vm);
+        init_lp_token(admin, coin_list_admin, vm);
         update_time(vm, time(200));
         ramp_A<ETH, USDT>(admin, 3000000000, time(10000));
     }
 
     #[test(admin = @hippo_swap, coin_list_admin = @coin_list, core = @core_resources, vm = @0)]
     #[expected_failure(abort_code = 2010)]
-    fun test_fail_ramp_A_future_A_value_b(admin: &signer, coin_list_admin: &signer, core: &signer, vm: &signer) acquires StableCurvePoolInfo {
+    fun test_fail_ramp_A_future_A_value_b(admin: &signer, coin_list_admin: &signer, vm: &signer) acquires StableCurvePoolInfo {
         use aptos_framework::account;
         account::create_account(signer::address_of(admin));
-        init_lp_token(admin, coin_list_admin, core, vm);
+        init_lp_token(admin, coin_list_admin, vm);
         update_time(vm, time(200));
         ramp_A<ETH, USDT>(admin, 2, time(10000));
     }
 
     #[test(admin = @hippo_swap, coin_list_admin = @coin_list, core = @core_resources, vm = @0)]
     #[expected_failure(abort_code = 2010)]
-    fun test_fail_ramp_A_future_A_value_c(admin: &signer, coin_list_admin: &signer, core: &signer, vm: &signer) acquires StableCurvePoolInfo {
+    fun test_fail_ramp_A_future_A_value_c(admin: &signer, coin_list_admin: &signer, vm: &signer) acquires StableCurvePoolInfo {
         use aptos_framework::account;
         account::create_account(signer::address_of(admin));
-        init_lp_token(admin, coin_list_admin, core, vm);
+        init_lp_token(admin, coin_list_admin, vm);
         update_time(vm, time(200));
         ramp_A<ETH, USDT>(admin, 20000, time(10000));
     }
 
 
     #[test_only]
-    fun init_with_liquidity(admin: &signer, coin_list_admin: &signer, core: &signer, vm: &signer, trader: &signer) acquires StableCurvePoolInfo, LPCapability {
+    fun init_with_liquidity(admin: &signer, coin_list_admin: &signer, vm: &signer, trader: &signer) acquires StableCurvePoolInfo, LPCapability {
         use std::signer;
-        init_lp_token(admin, coin_list_admin, core, vm);
+        init_lp_token(admin, coin_list_admin, vm);
         update_time(vm, time(200));
         let trader_addr = signer::address_of(trader);
         coins::register_internal<ETH>(trader);
@@ -817,23 +821,23 @@ module hippo_swap::stable_curve_swap {
         add_liquidity<ETH, USDT>(trader, 21000000, 38200000);
     }
 
-    #[test(admin = @hippo_swap, coin_list_admin = @coin_list, core = @core_resources, vm = @0, trader = @0xFFFFFF01, )]
+    #[test(admin = @hippo_swap, coin_list_admin = @coin_list, vm = @0, trader = @0xFFFFFF01, )]
     #[expected_failure(abort_code = 2001)]
-    fun test_fail_remove_liquidity_amount_x(admin: &signer, coin_list_admin: &signer, core: &signer, vm: &signer, trader: &signer) acquires StableCurvePoolInfo, LPCapability {
+    fun test_fail_remove_liquidity_amount_x(admin: &signer, coin_list_admin: &signer, vm: &signer, trader: &signer) acquires StableCurvePoolInfo, LPCapability {
         use aptos_framework::account;
         account::create_account(signer::address_of(admin));
         account::create_account(signer::address_of(trader));
-        init_with_liquidity(admin, coin_list_admin, core, vm, trader);
+        init_with_liquidity(admin, coin_list_admin, vm, trader);
         remove_liquidity<ETH, USDT>(trader, 1000000, 20000000, 2000);
     }
 
-    #[test(admin = @hippo_swap, coin_list_admin = @coin_list, core = @core_resources, vm = @0, trader = @0xFFFFFF01, )]
+    #[test(admin = @hippo_swap, coin_list_admin = @coin_list, vm = @0, trader = @0xFFFFFF01, )]
     #[expected_failure(abort_code = 2001)]
-    fun test_fail_remove_liquidity_amount_y(admin: &signer, coin_list_admin: &signer, core: &signer, vm: &signer, trader: &signer) acquires StableCurvePoolInfo, LPCapability {
+    fun test_fail_remove_liquidity_amount_y(admin: &signer, coin_list_admin: &signer, vm: &signer, trader: &signer) acquires StableCurvePoolInfo, LPCapability {
         use aptos_framework::account;
         account::create_account(signer::address_of(admin));
         account::create_account(signer::address_of(trader));
-        init_with_liquidity(admin, coin_list_admin, core, vm, trader);
+        init_with_liquidity(admin, coin_list_admin, vm, trader);
         remove_liquidity<ETH, USDT>(trader, 1000000, 2000, 200000000);
     }
 

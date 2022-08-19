@@ -30,6 +30,7 @@ module piece_swap {
         lp_amt: u64,
         lp_mint_cap: coin::MintCapability<LPToken<X,Y>>,
         lp_burn_cap: coin::BurnCapability<LPToken<X,Y>>,
+        lp_freeze_cap: coin::FreezeCapability<LPToken<X, Y>>,
         K: u128,
         K2: u128,
         Xa: u128,
@@ -50,7 +51,7 @@ module piece_swap {
         admin: &signer,
         lp_name: vector<u8>,
         lp_symbol: vector<u8>,
-        lp_decimals: u64,
+        lp_decimals: u8,
         k: u128,
         w1_numerator: u128,
         w1_denominator: u128,
@@ -77,7 +78,7 @@ module piece_swap {
         assert!(coin::is_coin_initialized<Y>(), ERROR_COIN_NOT_INITIALIZED);
 
         // 3. initialize LP
-        let (lp_mint_cap, lp_burn_cap) = coin::initialize<LPToken<X,Y>>(
+        let (lp_burn_cap, lp_freeze_cap, lp_mint_cap) = coin::initialize<LPToken<X,Y>>(
             admin,
             string::utf8(lp_name),
             string::utf8(lp_symbol),
@@ -113,6 +114,7 @@ module piece_swap {
                 lp_amt: 0,
                 lp_mint_cap,
                 lp_burn_cap,
+                lp_freeze_cap,
                 K: k,
                 K2: k2,
                 Xa: xa,

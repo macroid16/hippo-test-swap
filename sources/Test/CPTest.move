@@ -214,8 +214,8 @@ module hippo_swap::cp_test {
         print_debug: bool,
         skip_swap: bool,
         pool_type: u8,
-        decimal_x: u64, // The decimal of coin x
-        decimal_y: u64, // The decimal of coin y
+        decimal_x: u8, // The decimal of coin x
+        decimal_y: u8, // The decimal of coin y
         fee: u64,
         protocal_fee: u64,
         add_1: TransactionParams,

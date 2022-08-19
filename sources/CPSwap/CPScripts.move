@@ -40,7 +40,7 @@ module cp_scripts {
         assert!(!coin_list::is_coin_in_list<cp_swap::LPToken<Y,X>>(admin_addr), E_LP_TOKEN_ALREADY_IN_COIN_LIST);
 
         let decimals = math::max((coin::decimals<X>() as u128), (coin::decimals<Y>() as u128));
-        let decimals = (decimals as u64);
+        let decimals = (decimals as u8);
 
         cp_swap::create_token_pair<X, Y>(admin, fee_to, fee_on, lp_name, lp_symbol, decimals);
 

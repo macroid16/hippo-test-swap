@@ -209,7 +209,7 @@ module hippo_swap::curve_test {
 
     #[test_only]
     public fun test_pool<X, Y>(
-        admin: &signer, coin_list_admin: &signer, investor: &signer, swapper: &signer, core: &signer, decimal_x: u64, decimal_y: u64
+        admin: &signer, coin_list_admin: &signer, investor: &signer, swapper: &signer, core: &signer, decimal_x: u8, decimal_y: u8
     ) {
         let pool_type = POOL_TYPE_STABLE_CURVE;
         TestShared::time_start(core);
@@ -276,8 +276,8 @@ module hippo_swap::curve_test {
         print_debug: bool,
         skip_swap: bool,
         pool_type: u8,
-        decimal_x: u64, // The decimal of coin x
-        decimal_y: u64, // The decimal of coin y
+        decimal_x: u8, // The decimal of coin x
+        decimal_y: u8, // The decimal of coin y
         fee: u64,
         protocal_fee: u64,
         add_1: TransactionParams,
