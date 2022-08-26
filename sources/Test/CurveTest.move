@@ -314,10 +314,10 @@ module hippo_swap::curve_test {
     #[test(admin = @hippo_swap, coin_list_admin = @coin_list, investor = @0x2FFF, swapper = @0x2FFE, core = @aptos_framework)]
     public fun test_pool_stable_curve_add_remove(admin: &signer, coin_list_admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
         use std::signer;
-        use aptos_framework::account;
-        account::create_account(signer::address_of(admin));
-        account::create_account(signer::address_of(investor));
-        account::create_account(signer::address_of(swapper));
+        use aptos_framework::aptos_account;
+        aptos_account::create_account(signer::address_of(admin));
+        aptos_account::create_account(signer::address_of(investor));
+        aptos_account::create_account(signer::address_of(swapper));
         let (decimal_x, decimal_y, fee, protocal_fee) = (8, 7, 100, 100000);
         let add_1 = new_transaction_param(
             P8, P7, 0,
@@ -365,10 +365,10 @@ module hippo_swap::curve_test {
     #[test(admin = @hippo_swap, coin_list_admin = @coin_list, investor = @0x2FFF, swapper = @0x2FFE, core = @aptos_framework)]
     public fun test_pool_stable_curve_standard(admin: &signer, coin_list_admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
         use std::signer;
-        use aptos_framework::account;
-        account::create_account(signer::address_of(admin));
-        account::create_account(signer::address_of(investor));
-        account::create_account(signer::address_of(swapper));
+        use aptos_framework::aptos_account;
+        aptos_account::create_account(signer::address_of(admin));
+        aptos_account::create_account(signer::address_of(investor));
+        aptos_account::create_account(signer::address_of(swapper));
 
         // This test case demonstrates that the pool works fine when it has
         // reserve x of 2 units and y of 2 units
@@ -397,10 +397,10 @@ module hippo_swap::curve_test {
     #[test(admin = @hippo_swap, coin_list_admin = @coin_list, investor = @0x2FFF, swapper = @0x2FFE, core = @aptos_framework)]
     public fun test_pool_stable_curve_2(admin: &signer, coin_list_admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
         use std::signer;
-        use aptos_framework::account;
-        account::create_account(signer::address_of(admin));
-        account::create_account(signer::address_of(investor));
-        account::create_account(signer::address_of(swapper));
+        use aptos_framework::aptos_account;
+        aptos_account::create_account(signer::address_of(admin));
+        aptos_account::create_account(signer::address_of(investor));
+        aptos_account::create_account(signer::address_of(swapper));
         // This test case demonstrates a small pool in different decimals of x & y which only has
         // reserve x of 2 units and y of 2 units works good when
         // exchanging 0.01 unit (1/200 of reserve) of x, outcoming 0.0099982 unit of y, The margin of error was 0.012 %.
@@ -430,10 +430,10 @@ module hippo_swap::curve_test {
     #[test(admin = @hippo_swap, coin_list_admin = @coin_list, investor = @0x2FFF, swapper = @0x2FFE, core = @aptos_framework)]
     public fun test_pool_stable_curve_3(admin: &signer, coin_list_admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
         use std::signer;
-        use aptos_framework::account;
-        account::create_account(signer::address_of(admin));
-        account::create_account(signer::address_of(investor));
-        account::create_account(signer::address_of(swapper));
+        use aptos_framework::aptos_account;
+        aptos_account::create_account(signer::address_of(admin));
+        aptos_account::create_account(signer::address_of(investor));
+        aptos_account::create_account(signer::address_of(swapper));
 
         // This case demonstrates the stability of exchange rate when decimal varies.
         // the case test_pool_stable_curve_standard results decimal 7 of y 9892678
@@ -454,10 +454,10 @@ module hippo_swap::curve_test {
     #[test(admin = @hippo_swap, coin_list_admin = @coin_list, investor = @0x2FFF, swapper = @0x2FFE, core = @aptos_framework)]
     public fun test_pool_stable_curve_tiny_amt(admin: &signer, coin_list_admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
         use std::signer;
-        use aptos_framework::account;
-        account::create_account(signer::address_of(admin));
-        account::create_account(signer::address_of(investor));
-        account::create_account(signer::address_of(swapper));
+        use aptos_framework::aptos_account;
+        aptos_account::create_account(signer::address_of(admin));
+        aptos_account::create_account(signer::address_of(investor));
+        aptos_account::create_account(signer::address_of(swapper));
         // When exchange a very small amount like 1e-5 unit, the outcoming accuracy is good.
         // And the fees are lost.
         let (decimal_x, decimal_y, fee, protocal_fee) = (8, 6, 100, 100000);
@@ -474,10 +474,10 @@ module hippo_swap::curve_test {
     #[test(admin = @hippo_swap, coin_list_admin = @coin_list, investor = @0x2FFF, swapper = @0x2FFE, core = @aptos_framework)]
     public fun test_pool_stable_curve_4(admin: &signer, coin_list_admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
         use std::signer;
-        use aptos_framework::account;
-        account::create_account(signer::address_of(admin));
-        account::create_account(signer::address_of(investor));
-        account::create_account(signer::address_of(swapper));
+        use aptos_framework::aptos_account;
+        aptos_account::create_account(signer::address_of(admin));
+        aptos_account::create_account(signer::address_of(investor));
+        aptos_account::create_account(signer::address_of(swapper));
         // Demonstrates the stability of exchange rate accuracy in large difference of decimals.
         // The change rate was exactly the same when the decimal changes.
         let (decimal_x, decimal_y, fee, protocal_fee) = (10, 6, 100, 100000);
@@ -493,10 +493,10 @@ module hippo_swap::curve_test {
     #[test(admin = @hippo_swap, coin_list_admin = @coin_list, investor = @0x2FFF, swapper = @0x2FFE, core = @aptos_framework)]
     public fun test_pool_stable_curve_5(admin: &signer, coin_list_admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
         use std::signer;
-        use aptos_framework::account;
-        account::create_account(signer::address_of(admin));
-        account::create_account(signer::address_of(investor));
-        account::create_account(signer::address_of(swapper));
+        use aptos_framework::aptos_account;
+        aptos_account::create_account(signer::address_of(admin));
+        aptos_account::create_account(signer::address_of(investor));
+        aptos_account::create_account(signer::address_of(swapper));
         // Accuracy and precisions pretty good when the reserve amount much bigger than swap amount.
         // Only 0.01% pool fee charged.
         let (pool_type, print_debug) = (POOL_TYPE_STABLE_CURVE, false);
@@ -519,10 +519,10 @@ module hippo_swap::curve_test {
     #[test(admin = @hippo_swap, coin_list_admin = @coin_list, investor = @0x2FFF, swapper = @0x2FFE, core = @aptos_framework)]
     public fun test_pool_stable_curve_6(admin: &signer, coin_list_admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
         use std::signer;
-        use aptos_framework::account;
-        account::create_account(signer::address_of(admin));
-        account::create_account(signer::address_of(investor));
-        account::create_account(signer::address_of(swapper));
+        use aptos_framework::aptos_account;
+        aptos_account::create_account(signer::address_of(admin));
+        aptos_account::create_account(signer::address_of(investor));
+        aptos_account::create_account(signer::address_of(swapper));
         // The capacity of the stable curve pool size, nealy 10^17.
         let (pool_type, print_debug) = (POOL_TYPE_STABLE_CURVE, false);
         let (decimal_x, decimal_y, fee, protocal_fee) = (10, 10, 100, 100000);
@@ -539,10 +539,10 @@ module hippo_swap::curve_test {
     #[expected_failure]         // ARITHMETIC_ERROR
     public fun test_pool_stable_curve_7(admin: &signer, coin_list_admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
         use std::signer;
-        use aptos_framework::account;
-        account::create_account(signer::address_of(admin));
-        account::create_account(signer::address_of(investor));
-        account::create_account(signer::address_of(swapper));
+        use aptos_framework::aptos_account;
+        aptos_account::create_account(signer::address_of(admin));
+        aptos_account::create_account(signer::address_of(investor));
+        aptos_account::create_account(signer::address_of(swapper));
         // Overflow
         let (pool_type, print_debug) = (POOL_TYPE_STABLE_CURVE, false);
         let (decimal_x, decimal_y, fee, protocal_fee) = (10, 10, 100, 100000);
@@ -558,10 +558,10 @@ module hippo_swap::curve_test {
     #[test(admin = @hippo_swap, coin_list_admin = @coin_list, investor = @0x2FFF, swapper = @0x2FFE, core = @aptos_framework)]
     public fun test_pool_stable_curve_8(admin: &signer, coin_list_admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
         use std::signer;
-        use aptos_framework::account;
-        account::create_account(signer::address_of(admin));
-        account::create_account(signer::address_of(investor));
-        account::create_account(signer::address_of(swapper));
+        use aptos_framework::aptos_account;
+        aptos_account::create_account(signer::address_of(admin));
+        aptos_account::create_account(signer::address_of(investor));
+        aptos_account::create_account(signer::address_of(swapper));
 
         // Usually the pool reserves are much bigger than the swap amount. And proportion of x and y is in between 1 : 5.
         // This case reveals a typical fee charges of a swap proc.
@@ -583,10 +583,10 @@ module hippo_swap::curve_test {
     #[test(admin = @hippo_swap, coin_list_admin = @coin_list, investor = @0x2FFF, swapper = @0x2FFE, core = @aptos_framework)]
     public fun test_pool_stable_curve_accumulative_giant(admin: &signer, coin_list_admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
         use std::signer;
-        use aptos_framework::account;
-        account::create_account(signer::address_of(admin));
-        account::create_account(signer::address_of(investor));
-        account::create_account(signer::address_of(swapper));
+        use aptos_framework::aptos_account;
+        aptos_account::create_account(signer::address_of(admin));
+        aptos_account::create_account(signer::address_of(investor));
+        aptos_account::create_account(signer::address_of(swapper));
 
         // We perform trading actions continiously in this case.
         // The fee charged in add_liquidity comes from the inequality between the proportion of incoming x y and reserve x y.
@@ -647,10 +647,10 @@ module hippo_swap::curve_test {
     #[test(admin = @hippo_swap, coin_list_admin = @coin_list, investor = @0x2FFF, swapper = @0x2FFE, core = @aptos_framework)]
     public fun test_pool_stable_curve_accumulative_loop_swap(admin: &signer, coin_list_admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
         use std::signer;
-        use aptos_framework::account;
-        account::create_account(signer::address_of(admin));
-        account::create_account(signer::address_of(investor));
-        account::create_account(signer::address_of(swapper));
+        use aptos_framework::aptos_account;
+        aptos_account::create_account(signer::address_of(admin));
+        aptos_account::create_account(signer::address_of(investor));
+        aptos_account::create_account(signer::address_of(swapper));
         // Demonstrates the stability in large number of transactions
         // Slippage happens when swapping accumulatively.
         let (pool_type, print_debug) = (POOL_TYPE_STABLE_CURVE, false);
@@ -687,10 +687,10 @@ module hippo_swap::curve_test {
     #[test(admin = @hippo_swap, coin_list_admin = @coin_list, investor = @0x2FFF, swapper = @0x2FFE, core = @aptos_framework)]
     public fun test_pool_stable_curve_deviant(admin: &signer, coin_list_admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
         use std::signer;
-        use aptos_framework::account;
-        account::create_account(signer::address_of(admin));
-        account::create_account(signer::address_of(investor));
-        account::create_account(signer::address_of(swapper));
+        use aptos_framework::aptos_account;
+        aptos_account::create_account(signer::address_of(admin));
+        aptos_account::create_account(signer::address_of(investor));
+        aptos_account::create_account(signer::address_of(swapper));
         // If we change the proportion evidently in the add liquidity process, we'll get much more fee lost.
         let (pool_type, print_debug) = (POOL_TYPE_STABLE_CURVE, false);
         let (decimal_x, decimal_y, fee, protocal_fee) = (8, 6, 100, 100000);

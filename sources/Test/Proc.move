@@ -105,10 +105,10 @@ module hippo_swap::proc {
     #[test(admin = @hippo_swap, coin_list_admin = @coin_list, investor = @0x2FFF, swapper = @0x2FFE, core = @aptos_framework)]
     public fun test_pool_constant_product(admin: &signer, coin_list_admin:&signer, investor: &signer, swapper: &signer, core: &signer) {
         use std::signer;
-        use aptos_framework::account;
-        account::create_account(signer::address_of(admin));
-        account::create_account(signer::address_of(investor));
-        account::create_account(signer::address_of(swapper));
+        use aptos_framework::aptos_account;
+        aptos_account::create_account(signer::address_of(admin));
+        aptos_account::create_account(signer::address_of(investor));
+        aptos_account::create_account(signer::address_of(swapper));
         let pool_type = POOL_TYPE_CONSTANT_PRODUCT;
         TestShared::time_start(core);
         devcoin_util::init_registry_and_devnet_coins(coin_list_admin);

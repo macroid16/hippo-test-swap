@@ -41,9 +41,9 @@ module hippo_swap::devcoin_util {
     }
     #[test(admin = @hippo_swap, coin_list_admin = @coin_list)]
     fun test_init_coin(admin: &signer, coin_list_admin: &signer) {
-        use aptos_framework::account;
+        use aptos_framework::aptos_account;
         use std::signer;
-        account::create_account(signer::address_of(admin));
+        aptos_account::create_account(signer::address_of(admin));
 
         coin_list::initialize(coin_list_admin);
         assert!(coin_list::is_registry_initialized(), 1);

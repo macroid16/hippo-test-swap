@@ -1,7 +1,6 @@
 address hippo_swap {
 module router {
     use aptos_framework::coin;
-    use aptos_framework::coins;
     use std::signer;
     use hippo_swap::cp_swap;
     use hippo_swap::stable_curve_swap;
@@ -81,7 +80,7 @@ module router {
         assert!(coin_z_amt >= z_min_out, E_OUTPUT_LESS_THAN_MINIMUM);
         let sender_addr = signer::address_of(sender);
         if (!coin::is_account_registered<Z>(sender_addr)) {
-            coins::register_internal<Z>(sender);
+            coin::register<Z>(sender);
         };
         coin::deposit(sender_addr, coin_z);
         coin_z_amt
@@ -131,7 +130,7 @@ module router {
         assert!(coin::value(&coin_a) >= a_min_out, E_OUTPUT_LESS_THAN_MINIMUM);
         let sender_addr = signer::address_of(sender);
         if (!coin::is_account_registered<A>(sender_addr)) {
-            coins::register_internal<A>(sender);
+            coin::register<A>(sender);
         };
         coin::deposit(sender_addr, coin_a);
     }
@@ -181,9 +180,9 @@ module router {
 
     #[test(admin=@hippo_swap, coin_list_admin = @coin_list, user=@0x12345, core=@aptos_framework)]
     public entry fun test_two_step(admin: &signer, coin_list_admin: &signer, user: &signer, core: &signer) {
-        use aptos_framework::account;
-        account::create_account(signer::address_of(admin));
-        account::create_account(signer::address_of(user));
+        use aptos_framework::aptos_account;
+        aptos_account::create_account(signer::address_of(admin));
+        aptos_account::create_account(signer::address_of(user));
         devcoin_util::init_registry_and_devnet_coins(coin_list_admin);
         timestamp::set_time_has_started_for_testing(core);
         // 1
@@ -216,9 +215,9 @@ module router {
 
     #[test(admin=@hippo_swap, coin_list_admin=@coin_list, user=@0x12345, core=@aptos_framework)]
     public entry fun test_three_step(admin: &signer, coin_list_admin: &signer, user: &signer, core: &signer) {
-        use aptos_framework::account;
-        account::create_account(signer::address_of(admin));
-        account::create_account(signer::address_of(user));
+        use aptos_framework::aptos_account;
+        aptos_account::create_account(signer::address_of(admin));
+        aptos_account::create_account(signer::address_of(user));
         devcoin_util::init_registry_and_devnet_coins(coin_list_admin);
         timestamp::set_time_has_started_for_testing(core);
         // 1

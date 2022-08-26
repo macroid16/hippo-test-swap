@@ -6,6 +6,7 @@ module cp_scripts {
     use std::vector;
     use aptos_framework::coin;
     use coin_list::coin_list;
+    use coin_list::devnet_coins;
 
     const E_SWAP_ONLY_ONE_IN_ALLOWED: u64 = 0;
     const E_SWAP_ONLY_ONE_OUT_ALLOWED: u64 = 1;
@@ -179,9 +180,6 @@ module cp_scripts {
     }
 
     #[test_only]
-    use aptos_framework::coins;
-    use coin_list::devnet_coins;
-    #[test_only]
     use hippo_swap::devcoin_util;
 
 
@@ -197,9 +195,9 @@ module cp_scripts {
     #[test(admin=@hippo_swap, coin_list_admin = @coin_list, user=@0x1234567, core=@aptos_framework)]
     fun test_initialization_cpswap(admin: &signer, coin_list_admin: &signer, user: &signer, core: &signer) {
 
-        use aptos_framework::account;
-        account::create_account(signer::address_of(admin));
-        account::create_account(signer::address_of(user));
+        use aptos_framework::aptos_account;
+        aptos_account::create_account(signer::address_of(admin));
+        aptos_account::create_account(signer::address_of(user));
         devcoin_util::init_registry(coin_list_admin);
         timestamp::set_time_has_started_for_testing(core);
         /*
@@ -209,8 +207,8 @@ module cp_scripts {
         // 1
         mock_deploy(admin,coin_list_admin);
         // 2
-        coins::register_internal<devnet_coins::DevnetBTC>(user);
-        coins::register_internal<devnet_coins::DevnetUSDC>(user);
+        coin::register<devnet_coins::DevnetBTC>(user);
+        coin::register<devnet_coins::DevnetUSDC>(user);
         let user_addr = signer::address_of(user);
         devnet_coins::mint_to_wallet<devnet_coins::DevnetBTC>(user, 100);
         assert!(coin::balance<devnet_coins::DevnetUSDC>(user_addr)==0, 5);
@@ -221,9 +219,9 @@ module cp_scripts {
 
     #[test(admin=@hippo_swap, coin_list_admin = @coin_list, user=@0x1234567, core=@aptos_framework)]
     fun test_add_remove_liquidity(admin: &signer, coin_list_admin: &signer, user: &signer, core: &signer) {
-        use aptos_framework::account;
-        account::create_account(signer::address_of(admin));
-        account::create_account(signer::address_of(user));
+        use aptos_framework::aptos_account;
+        aptos_account::create_account(signer::address_of(admin));
+        aptos_account::create_account(signer::address_of(user));
         devcoin_util::init_registry(coin_list_admin);
         timestamp::set_time_has_started_for_testing(core);
         /*
@@ -259,9 +257,9 @@ module cp_scripts {
 
     #[test(admin=@hippo_swap, coin_list_admin = @coin_list, user=@0x1234567, core=@aptos_framework)]
     fun test_swap(admin: &signer, coin_list_admin: &signer, user: &signer, core: &signer) {
-        use aptos_framework::account;
-        account::create_account(signer::address_of(admin));
-        account::create_account(signer::address_of(user));
+        use aptos_framework::aptos_account;
+        aptos_account::create_account(signer::address_of(admin));
+        aptos_account::create_account(signer::address_of(user));
         devcoin_util::init_registry(coin_list_admin);
         /*
             1. create pools

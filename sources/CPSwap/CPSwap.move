@@ -5,7 +5,6 @@ module hippo_swap::cp_swap {
     use std::string;
 
     use aptos_framework::coin;
-    use aptos_framework::coins;
     use aptos_framework::timestamp;
 
     use hippo_swap::safe_math;
@@ -125,13 +124,13 @@ module hippo_swap::cp_swap {
         );
 
         // create LP CoinStore for admin, which is needed as a lock for minimum_liquidity
-        coins::register_internal<LPToken<X,Y>>(admin);
+        coin::register<LPToken<X,Y>>(admin);
     }
 
     /// The init process for a sender. One must call this function first
     /// before interacting with the mint/burn.
     public fun register_account<X, Y>(sender: &signer) {
-        coins::register_internal<LPToken<X, Y>>(sender);
+        coin::register<LPToken<X, Y>>(sender);
     }
 
     // ====================== Getters ===========================
@@ -160,7 +159,7 @@ module hippo_swap::cp_swap {
 
     fun check_coin_store<X>(sender: &signer) {
         if (!coin::is_account_registered<X>(signer::address_of(sender))) {
-            coins::register_internal<X>(sender);
+            coin::register<X>(sender);
         };
     }
 
@@ -669,8 +668,8 @@ module hippo_swap::cp_swap {
             true
         );
 
-        coins::register_internal<T>(admin);
-        coins::register_internal<T>(to);
+        coin::register<T>(admin);
+        coin::register<T>(to);
 
         let a = coin::mint(total_supply, &mc);
         coin::deposit(signer::address_of(to), a);
@@ -679,8 +678,8 @@ module hippo_swap::cp_swap {
 
     #[test(admin = @hippo_swap)]
     public fun init_works(admin: &signer) {
-        use aptos_framework::account;
-        account::create_account(signer::address_of(admin));
+        use aptos_framework::aptos_account;
+        aptos_account::create_account(signer::address_of(admin));
         let fee_to = signer::address_of(admin);
         create_token_pair<Token0, Token1>(
             admin,
@@ -696,12 +695,12 @@ module hippo_swap::cp_swap {
     public fun mint_works(admin: signer, token_owner: signer, lp_provider: signer, lock: signer)
         acquires TokenPairReserve, TokenPairMetadata
     {
-        use aptos_framework::account;
+        use aptos_framework::aptos_account;
         use aptos_framework::genesis;
         genesis::setup();
-        account::create_account(signer::address_of(&admin));
-        account::create_account(signer::address_of(&token_owner));
-        account::create_account(signer::address_of(&lp_provider));
+        aptos_account::create_account(signer::address_of(&admin));
+        aptos_account::create_account(signer::address_of(&token_owner));
+        aptos_account::create_account(signer::address_of(&lp_provider));
         // initial setup work
         let decimals: u8 = 8;
         let total_supply: u64 = (expand_to_decimals(1000000, 8) as u64);
@@ -722,8 +721,8 @@ module hippo_swap::cp_swap {
         register_account<Token0, Token1>(&lp_provider);
         register_account<Token0, Token1>(&lock);
 
-        coins::register_internal<Token0>(&lp_provider);
-        coins::register_internal<Token1>(&lp_provider);
+        coin::register<Token0>(&lp_provider);
+        coin::register<Token1>(&lp_provider);
 
         // now perform the test
         let amount_x = expand_to_decimals(1u64, decimals);
@@ -760,12 +759,12 @@ module hippo_swap::cp_swap {
     public fun remove_liquidity_works(admin: signer, token_owner: signer, lp_provider: signer, lock: signer)
         acquires TokenPairReserve, TokenPairMetadata
     {
-        use aptos_framework::account;
+        use aptos_framework::aptos_account;
         use aptos_framework::genesis;
         genesis::setup();
-        account::create_account(signer::address_of(&admin));
-        account::create_account(signer::address_of(&token_owner));
-        account::create_account(signer::address_of(&lp_provider));
+        aptos_account::create_account(signer::address_of(&admin));
+        aptos_account::create_account(signer::address_of(&token_owner));
+        aptos_account::create_account(signer::address_of(&lp_provider));
         // initial setup work
         let decimals: u8 = 8;
         let total_supply: u64 = (expand_to_decimals(1000000, 8) as u64);
@@ -785,8 +784,8 @@ module hippo_swap::cp_swap {
 
         register_account<Token0, Token1>(&lp_provider);
         register_account<Token0, Token1>(&lock);
-        coins::register_internal<Token0>(&lp_provider);
-        coins::register_internal<Token1>(&lp_provider);
+        coin::register<Token0>(&lp_provider);
+        coin::register<Token1>(&lp_provider);
 
         let amount_x = expand_to_decimals(3u64, decimals);
         let amount_y = expand_to_decimals(3u64, decimals);
@@ -825,12 +824,12 @@ module hippo_swap::cp_swap {
     public fun swap_x_works(admin: signer, token_owner: signer, lp_provider: signer, lock: signer)
         acquires TokenPairReserve, TokenPairMetadata
     {
-        use aptos_framework::account;
+        use aptos_framework::aptos_account;
         use aptos_framework::genesis;
         genesis::setup();
-        account::create_account(signer::address_of(&admin));
-        account::create_account(signer::address_of(&token_owner));
-        account::create_account(signer::address_of(&lp_provider));
+        aptos_account::create_account(signer::address_of(&admin));
+        aptos_account::create_account(signer::address_of(&token_owner));
+        aptos_account::create_account(signer::address_of(&lp_provider));
         // initial setup work
         let decimals: u8 = 8;
         let total_supply: u64 = (expand_to_decimals(1000000, 8) as u64);
@@ -851,8 +850,8 @@ module hippo_swap::cp_swap {
         register_account<Token0, Token1>(&lp_provider);
         register_account<Token0, Token1>(&lock);
         register_account<Token0, Token1>(&token_owner);
-        coins::register_internal<Token0>(&lp_provider);
-        coins::register_internal<Token1>(&lp_provider);
+        coin::register<Token0>(&lp_provider);
+        coin::register<Token1>(&lp_provider);
 
         let amount_x = expand_to_decimals(5u64, decimals);
         let amount_y = expand_to_decimals(10u64, decimals);

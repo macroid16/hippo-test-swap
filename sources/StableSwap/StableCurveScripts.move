@@ -6,6 +6,7 @@ module hippo_swap::stable_curve_scripts {
     use coin_list::coin_list;
     use aptos_framework::coin;
     use hippo_swap::math;
+    use std::vector;
 
     const MICRO_CONVERSION_FACTOR: u64 = 1000000;
 
@@ -196,7 +197,6 @@ module hippo_swap::stable_curve_scripts {
         );
     }
     #[test_only]
-    use aptos_framework::coins;
     use std::vector;
     use coin_list::devnet_coins;
     #[test_only]
@@ -206,9 +206,9 @@ module hippo_swap::stable_curve_scripts {
     fun start_up(admin: &signer, coin_list_admin: &signer, user: &signer, core: &signer) {
         use aptos_framework::coin;
         use coin_list::devnet_coins;
-        use aptos_framework::account;
-        account::create_account(signer::address_of(admin));
-        account::create_account(signer::address_of(user));
+        use aptos_framework::aptos_account;
+        aptos_account::create_account(signer::address_of(admin));
+        aptos_account::create_account(signer::address_of(user));
         init_registry_and_devnet_coins(coin_list_admin);
         timestamp::set_time_has_started_for_testing(core);
 
@@ -224,9 +224,9 @@ module hippo_swap::stable_curve_scripts {
         let x = devnet_coins::mint<devnet_coins::DevnetUSDT>(100000000);
         let y = devnet_coins::mint<devnet_coins::DevnetSOL>(100000000);
         let trader_addr = signer::address_of(user);
-        coins::register_internal<devnet_coins::DevnetUSDT>(user);
-        coins::register_internal<devnet_coins::DevnetSOL>(user);
-        coins::register_internal<stable_curve_swap::LPToken<devnet_coins::DevnetUSDT, devnet_coins::DevnetSOL>>(user);
+        coin::register<devnet_coins::DevnetUSDT>(user);
+        coin::register<devnet_coins::DevnetSOL>(user);
+        coin::register<stable_curve_swap::LPToken<devnet_coins::DevnetUSDT, devnet_coins::DevnetSOL>>(user);
         coin::deposit(trader_addr, x);
         coin::deposit(trader_addr, y);
     }
@@ -279,8 +279,8 @@ module hippo_swap::stable_curve_scripts {
 
     #[test(admin = @hippo_swap, coin_list_admin = @coin_list, core = @aptos_framework)]
     fun test_mock_deploy(admin: &signer, coin_list_admin: &signer, core: &signer) {
-        use aptos_framework::account;
-        account::create_account(signer::address_of(admin));
+        use aptos_framework::aptos_account;
+        aptos_account::create_account(signer::address_of(admin));
         init_registry_and_devnet_coins(coin_list_admin);
         timestamp::set_time_has_started_for_testing(core);
 
@@ -291,8 +291,8 @@ module hippo_swap::stable_curve_scripts {
     #[expected_failure(abort_code = 5)]
     fun fail_lp_amt(admin: &signer, coin_list_admin: &signer, core: &signer) {
         // mock depoly
-        use aptos_framework::account;
-        account::create_account(signer::address_of(admin));
+        use aptos_framework::aptos_account;
+        aptos_account::create_account(signer::address_of(admin));
         init_registry_and_devnet_coins(coin_list_admin);
         timestamp::set_time_has_started_for_testing(core);
 
@@ -313,8 +313,8 @@ module hippo_swap::stable_curve_scripts {
 
     #[test_only]
     public fun assert_launch_lq(admin: &signer, coin_list_admin: &signer, core: &signer, amt_x: u64, amt_y: u64, lp_predict: u64) {
-        use aptos_framework::account;
-        account::create_account(signer::address_of(admin));
+        use aptos_framework::aptos_account;
+        aptos_account::create_account(signer::address_of(admin));
         init_registry_and_devnet_coins(coin_list_admin);
         timestamp::set_time_has_started_for_testing(core);
         let (fee, admin_fee) = (3000, 200000);
@@ -326,8 +326,8 @@ module hippo_swap::stable_curve_scripts {
 
     #[test(admin = @hippo_swap, coin_list_admin = @coin_list, core = @aptos_framework)]
     public fun test_data_set_validate_basic(admin: &signer, coin_list_admin: &signer, core: &signer) {
-        use aptos_framework::account;
-        account::create_account(signer::address_of(admin));
+        use aptos_framework::aptos_account;
+        aptos_account::create_account(signer::address_of(admin));
         init_registry_and_devnet_coins(coin_list_admin);
         timestamp::set_time_has_started_for_testing(core);
         let usdc_amt = 500000000;

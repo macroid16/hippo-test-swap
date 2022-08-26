@@ -15,7 +15,6 @@ module hippo_swap::TestShared {
     use hippo_swap::stable_curve_swap;
     use hippo_swap::piece_swap;
     use aptos_framework::coin;
-    use aptos_framework::coins;
     use std::option;
     use coin_list::coin_list;
     use coin_list::devnet_coins;
@@ -165,14 +164,14 @@ module hippo_swap::TestShared {
 
     #[test_only]
     public fun init_debug_utils_for_user<X, Y>(signer: &signer, pool_type: u8) {
-        coins::register_internal<X>(signer);
-        coins::register_internal<Y>(signer);
+        coin::register<X>(signer);
+        coin::register<Y>(signer);
         if ( pool_type == POOL_TYPE_CONSTANT_PRODUCT ) {
-            coins::register_internal<cp_swap::LPToken<X, Y>>(signer);
+            coin::register<cp_swap::LPToken<X, Y>>(signer);
         } else if ( pool_type == POOL_TYPE_STABLE_CURVE ) {
-            coins::register_internal<stable_curve_swap::LPToken<X, Y>>(signer);
+            coin::register<stable_curve_swap::LPToken<X, Y>>(signer);
         } else if ( pool_type == POOL_TYPE_PIECEWISE ) {
-            coins::register_internal<piece_swap::LPToken<X, Y>>(signer);
+            coin::register<piece_swap::LPToken<X, Y>>(signer);
         };
         move_to<WalletBalanceSavePoint>(signer, WalletBalanceSavePoint{ coin_x: 0, coin_y: 0, coin_lp: 0, });
     }

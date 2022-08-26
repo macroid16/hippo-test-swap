@@ -252,10 +252,10 @@ module hippo_swap::cp_test {
     #[test(admin = @hippo_swap, coin_list_admin = @coin_list, investor = @0x2FFF, swapper = @0x2FFE, core = @aptos_framework)]
     public fun test_pool_constant_product_1(admin: &signer, coin_list_admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
         use std::signer;
-        use aptos_framework::account;
-        account::create_account(signer::address_of(admin));
-        account::create_account(signer::address_of(investor));
-        account::create_account(signer::address_of(swapper));
+        use aptos_framework::aptos_account;
+        aptos_account::create_account(signer::address_of(admin));
+        aptos_account::create_account(signer::address_of(investor));
+        aptos_account::create_account(signer::address_of(swapper));
         // tiny swap amount
         let (pool_type, print_debug) = (POOL_TYPE_CONSTANT_PRODUCT, false);
         let (decimal_x, decimal_y, fee, protocal_fee) = (8, 6, 100, 100000);
@@ -272,10 +272,10 @@ module hippo_swap::cp_test {
     #[expected_failure]
     public fun test_pool_constant_product_2(admin: &signer, coin_list_admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
         use std::signer;
-        use aptos_framework::account;
-        account::create_account(signer::address_of(admin));
-        account::create_account(signer::address_of(investor));
-        account::create_account(signer::address_of(swapper));
+        use aptos_framework::aptos_account;
+        aptos_account::create_account(signer::address_of(admin));
+        aptos_account::create_account(signer::address_of(investor));
+        aptos_account::create_account(signer::address_of(swapper));
         // tiny swap amount
         let (pool_type, print_debug) = (POOL_TYPE_CONSTANT_PRODUCT, false);
         let (decimal_x, decimal_y, fee, protocal_fee) = (8, 6, 100, 100000);
@@ -292,10 +292,10 @@ module hippo_swap::cp_test {
     #[test(admin = @hippo_swap, coin_list_admin = @coin_list, investor = @0x2FFF, swapper = @0x2FFE, core = @aptos_framework)]
     public fun test_pool_constant_product_3(admin: &signer, coin_list_admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
         use std::signer;
-        use aptos_framework::account;
-        account::create_account(signer::address_of(admin));
-        account::create_account(signer::address_of(investor));
-        account::create_account(signer::address_of(swapper));
+        use aptos_framework::aptos_account;
+        aptos_account::create_account(signer::address_of(admin));
+        aptos_account::create_account(signer::address_of(investor));
+        aptos_account::create_account(signer::address_of(swapper));
         // tiny swap amount
         let (pool_type, print_debug) = (POOL_TYPE_CONSTANT_PRODUCT, false);
         let (decimal_x, decimal_y, fee, protocal_fee) = (8, 6, 100, 100000);
@@ -318,10 +318,10 @@ module hippo_swap::cp_test {
     #[test(admin = @hippo_swap, coin_list_admin = @coin_list, investor = @0x2FFF, swapper = @0x2FFE, core = @aptos_framework)]
     public fun test_pool_constant_product_accumulative_giant_amt(admin: &signer, coin_list_admin: &signer, investor: &signer, swapper: &signer, core: &signer) {
         use std::signer;
-        use aptos_framework::account;
-        account::create_account(signer::address_of(admin));
-        account::create_account(signer::address_of(investor));
-        account::create_account(signer::address_of(swapper));
+        use aptos_framework::aptos_account;
+        aptos_account::create_account(signer::address_of(admin));
+        aptos_account::create_account(signer::address_of(investor));
+        aptos_account::create_account(signer::address_of(swapper));
         // tiny swap amount
         let (pool_type, print_debug) = (POOL_TYPE_CONSTANT_PRODUCT, false);
         let (decimal_x, decimal_y, fee, protocal_fee) = (8, 6, 100, 100000);

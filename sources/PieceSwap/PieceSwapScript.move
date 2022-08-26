@@ -201,8 +201,8 @@ module piece_swap_script {
 
     #[test(admin=@hippo_swap, coin_list_admin = @coin_list)]
     public entry fun test_mock_deploy(admin: &signer, coin_list_admin: &signer) {
-        use aptos_framework::account;
-        account::create_account(signer::address_of(admin));
+        use aptos_framework::aptos_account;
+        aptos_account::create_account(signer::address_of(admin));
         init_registry_and_devnet_coins(coin_list_admin);
         mock_deploy_script(admin);
     }
@@ -210,8 +210,8 @@ module piece_swap_script {
     #[test(admin=@hippo_swap, coin_list_admin = @coin_list)]
     public entry fun test_remove_liquidity(admin: &signer, coin_list_admin: &signer) {
         use aptos_framework::coin;
-        use aptos_framework::account;
-        account::create_account(signer::address_of(admin));
+        use aptos_framework::aptos_account;
+        aptos_account::create_account(signer::address_of(admin));
         init_registry_and_devnet_coins(coin_list_admin);
         /*
             1. mock_deploy
@@ -235,9 +235,9 @@ module piece_swap_script {
     public entry fun test_swap(admin: &signer, coin_list_admin: &signer, user: &signer) {
         use coin_list::devnet_coins;
         use aptos_framework::coin;
-        use aptos_framework::account;
-        account::create_account(signer::address_of(admin));
-        account::create_account(signer::address_of(user));
+        use aptos_framework::aptos_account;
+        aptos_account::create_account(signer::address_of(admin));
+        aptos_account::create_account(signer::address_of(user));
         init_registry_and_devnet_coins(coin_list_admin);
         /*
             1. create pools

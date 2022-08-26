@@ -8,7 +8,6 @@ module piece_swap {
     */
 
     use aptos_framework::coin;
-    use aptos_framework::coins;
     use std::signer;
     use std::string;
     use hippo_swap::piece_swap_math;
@@ -131,7 +130,7 @@ module piece_swap {
         );
 
         // 5.
-        coins::register_internal<LPToken<X, Y>>(admin);
+        coin::register<LPToken<X, Y>>(admin);
     }
 
     public fun add_liquidity<X, Y>(
@@ -264,7 +263,7 @@ module piece_swap {
 
     fun check_and_deposit<TokenType>(to: &signer, coin: coin::Coin<TokenType>) {
         if(!coin::is_account_registered<TokenType>(signer::address_of(to))) {
-            coins::register_internal<TokenType>(to);
+            coin::register<TokenType>(to);
         };
         coin::deposit(signer::address_of(to), coin);
     }
@@ -480,9 +479,9 @@ module piece_swap {
 
     #[test(admin=@hippo_swap, coin_list_admin = @coin_list, user=@0x12345)]
     fun test_create_pool_with_liquidity(admin: &signer, coin_list_admin: &signer, user: &signer) acquires PieceSwapPoolInfo {
-        use aptos_framework::account;
-        account::create_account(signer::address_of(admin));
-        account::create_account(signer::address_of(user));
+        use aptos_framework::aptos_account;
+        aptos_account::create_account(signer::address_of(admin));
+        aptos_account::create_account(signer::address_of(user));
         let lp = mock_init_pool_and_add_liquidity_direct<USDT, USDC>(
             admin,
             coin_list_admin,
@@ -495,9 +494,9 @@ module piece_swap {
 
     #[test(admin=@hippo_swap, coin_list_admin = @coin_list, user=@0x12345)]
     fun test_create_pool_with_liquidity_then_remove(admin: &signer, coin_list_admin: &signer, user: &signer) acquires PieceSwapPoolInfo {
-        use aptos_framework::account;
-        account::create_account(signer::address_of(admin));
-        account::create_account(signer::address_of(user));
+        use aptos_framework::aptos_account;
+        aptos_account::create_account(signer::address_of(admin));
+        aptos_account::create_account(signer::address_of(user));
         let amt = 1000000;
         let lp = mock_init_pool_and_add_liquidity_direct<USDT, USDC>(
             admin,
@@ -515,9 +514,9 @@ module piece_swap {
 
     #[test(admin=@hippo_swap, coin_list_admin = @coin_list, user=@0x12345)]
     fun test_remove_liquidity(admin: &signer, coin_list_admin: &signer, user: &signer) acquires PieceSwapPoolInfo {
-        use aptos_framework::account;
-        account::create_account(signer::address_of(admin));
-        account::create_account(signer::address_of(user));
+        use aptos_framework::aptos_account;
+        aptos_account::create_account(signer::address_of(admin));
+        aptos_account::create_account(signer::address_of(user));
         let amt = 1000000;
         let lp = mock_init_pool_and_add_liquidity_direct<USDT, USDC>(
             admin,
@@ -538,9 +537,9 @@ module piece_swap {
 
     #[test(admin=@hippo_swap, coin_list_admin = @coin_list, user=@0x12345)]
     fun test_add_liquidity(admin: &signer, coin_list_admin: &signer, user: &signer) acquires PieceSwapPoolInfo {
-        use aptos_framework::account;
-        account::create_account(signer::address_of(admin));
-        account::create_account(signer::address_of(user));
+        use aptos_framework::aptos_account;
+        aptos_account::create_account(signer::address_of(admin));
+        aptos_account::create_account(signer::address_of(user));
         let amt = 1000000;
         let (added_x, added_y, lp_amt) = mock_init_pool_and_add_liquidity<USDT, USDC>(
             admin,
@@ -558,9 +557,9 @@ module piece_swap {
     #[test(admin=@hippo_swap, coin_list_admin = @coin_list, user=@0x12345)]
     #[expected_failure]
     fun test_add_initial_liquidity_unequal(admin: &signer, coin_list_admin: &signer, user: &signer) acquires PieceSwapPoolInfo {
-        use aptos_framework::account;
-        account::create_account(signer::address_of(admin));
-        account::create_account(signer::address_of(user));
+        use aptos_framework::aptos_account;
+        aptos_account::create_account(signer::address_of(admin));
+        aptos_account::create_account(signer::address_of(user));
         mock_init_pool<USDT, USDC>(
             admin,
             coin_list_admin,
@@ -607,9 +606,9 @@ module piece_swap {
 
     #[test(admin=@hippo_swap, coin_list_admin = @coin_list, user=@0x12345)]
     fun test_swap_x_to_y(admin: &signer, coin_list_admin: &signer, user: &signer) acquires PieceSwapPoolInfo {
-        use aptos_framework::account;
-        account::create_account(signer::address_of(admin));
-        account::create_account(signer::address_of(user));
+        use aptos_framework::aptos_account;
+        aptos_account::create_account(signer::address_of(admin));
+        aptos_account::create_account(signer::address_of(user));
         let multiplier = 1000000;
         let swap_amt = 1;
         let liquidity_amt = 100000000;
@@ -659,9 +658,9 @@ module piece_swap {
 
     #[test(admin=@hippo_swap, coin_list_admin = @coin_list, user=@0x12345)]
     fun test_swap_y_to_x(admin: &signer, coin_list_admin: &signer, user: &signer) acquires PieceSwapPoolInfo {
-        use aptos_framework::account;
-        account::create_account(signer::address_of(admin));
-        account::create_account(signer::address_of(user));
+        use aptos_framework::aptos_account;
+        aptos_account::create_account(signer::address_of(admin));
+        aptos_account::create_account(signer::address_of(user));
         let multiplier = 1000000;
         let swap_amt = 1;
         let liquidity_amt = 100000000;
