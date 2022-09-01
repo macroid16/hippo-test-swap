@@ -691,16 +691,16 @@ module hippo_swap::cp_swap {
         );
     }
 
-    #[test(admin = @hippo_swap, token_owner = @0x02, lp_provider = @0x03, lock = @0x01)]
-    public fun mint_works(admin: signer, token_owner: signer, lp_provider: signer, lock: signer)
+    #[test(admin = @hippo_swap, token_owner = @0x02, lp_provider = @0x03, lock = @0x04, core = @aptos_framework)]
+    public fun mint_works(admin: signer, token_owner: signer, lp_provider: signer, lock: signer, core: signer)
         acquires TokenPairReserve, TokenPairMetadata
     {
         use aptos_framework::aptos_account;
-        use aptos_framework::genesis;
-        genesis::setup();
+        timestamp::set_time_has_started_for_testing(&core);
         aptos_account::create_account(signer::address_of(&admin));
         aptos_account::create_account(signer::address_of(&token_owner));
         aptos_account::create_account(signer::address_of(&lp_provider));
+        aptos_account::create_account(signer::address_of(&lock));
         // initial setup work
         let decimals: u8 = 8;
         let total_supply: u64 = (expand_to_decimals(1000000, 8) as u64);
@@ -763,8 +763,6 @@ module hippo_swap::cp_swap {
         use aptos_framework::genesis;
         genesis::setup();
         aptos_account::create_account(signer::address_of(&admin));
-        aptos_account::create_account(signer::address_of(&token_owner));
-        aptos_account::create_account(signer::address_of(&lp_provider));
         // initial setup work
         let decimals: u8 = 8;
         let total_supply: u64 = (expand_to_decimals(1000000, 8) as u64);
@@ -820,7 +818,7 @@ module hippo_swap::cp_swap {
         assert!(coin::balance<Token1>(signer::address_of(&lp_provider)) == amount_y - (MINIMUM_LIQUIDITY as u64), 0);
     }
 
-    #[test(admin = @hippo_swap, token_owner = @0x02, lp_provider = @0x03, lock = @0x01)]
+    #[test(admin = @hippo_swap, token_owner = @0x02, lp_provider = @0x03, lock = @0x04)]
     public fun swap_x_works(admin: signer, token_owner: signer, lp_provider: signer, lock: signer)
         acquires TokenPairReserve, TokenPairMetadata
     {
@@ -828,8 +826,6 @@ module hippo_swap::cp_swap {
         use aptos_framework::genesis;
         genesis::setup();
         aptos_account::create_account(signer::address_of(&admin));
-        aptos_account::create_account(signer::address_of(&token_owner));
-        aptos_account::create_account(signer::address_of(&lp_provider));
         // initial setup work
         let decimals: u8 = 8;
         let total_supply: u64 = (expand_to_decimals(1000000, 8) as u64);

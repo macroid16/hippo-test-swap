@@ -196,8 +196,7 @@ module hippo_swap::stable_curve_scripts {
             200000000000
         );
     }
-    #[test_only]
-    use std::vector;
+
     use coin_list::devnet_coins;
     #[test_only]
     use hippo_swap::devcoin_util::init_registry_and_devnet_coins;
