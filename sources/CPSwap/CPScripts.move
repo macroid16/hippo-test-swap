@@ -164,7 +164,7 @@ module cp_scripts {
         let btc_amt = 1000000000;
         mock_create_pair_and_add_liquidity<devnet_coins::DevnetBTC, devnet_coins::DevnetUSDC>(
             admin,
-            b"BTC-USDC-LP",
+            b"BTC-USDC",
             btc_amt,
             btc_amt * 10000,
             btc_amt * 100 - 1000,
@@ -172,7 +172,7 @@ module cp_scripts {
 
         mock_create_pair_and_add_liquidity<devnet_coins::DevnetBTC, devnet_coins::DevnetUSDT>(
             admin,
-            b"BTC-USDT-LP",
+            b"BTC-USDT",
             btc_amt,
             btc_amt * 10000,
             btc_amt * 100 - 1000,

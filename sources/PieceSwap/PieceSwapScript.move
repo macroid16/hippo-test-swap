@@ -163,7 +163,7 @@ module piece_swap_script {
         create_new_pool_script<devnet_coins::DevnetUSDT, devnet_coins::DevnetUSDC>(
             admin,
             b"USDT-USDC PieceSwap LP Token",
-            b"USDT-USDC-PS_LP",
+            b"USDT-USDC",
             billion * billion,
             110,
             100,
@@ -176,7 +176,7 @@ module piece_swap_script {
         create_new_pool_script<devnet_coins::DevnetDAI, devnet_coins::DevnetUSDC>(
             admin,
             b"DAI-USDC PieceSwap LP Token",
-            b"DAI-USDC-PS_LP",
+            b"DAI-USDC",
             billion * billion,
             110,
             100,

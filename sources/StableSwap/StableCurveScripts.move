@@ -181,7 +181,7 @@ module hippo_swap::stable_curve_scripts {
         let coin_amt = 1000000000;
         mock_create_pair_and_add_liquidity<devnet_coins::DevnetUSDC, devnet_coins::DevnetUSDT>(
             admin,
-            b"USDC-USDT-CURVE-LP",
+            b"USDC-USDT",
             fee, admin_fee,
             coin_amt * 100,
             coin_amt * 100,
@@ -189,7 +189,7 @@ module hippo_swap::stable_curve_scripts {
         );
         mock_create_pair_and_add_liquidity<devnet_coins::DevnetUSDC, devnet_coins::DevnetSOL>(
             admin,
-            b"USDC-DAI-CURVE-LP",
+            b"USDC-DAI",
             fee, admin_fee,
             coin_amt * 100,
             coin_amt * 100,
