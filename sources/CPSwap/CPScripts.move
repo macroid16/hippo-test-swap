@@ -2,8 +2,6 @@ address hippo_swap {
 module cp_scripts {
     use hippo_swap::cp_swap;
     use std::signer;
-    use std::string;
-    use std::vector;
     use aptos_framework::coin;
     use coin_list::coin_list;
     use coin_list::devnet_coins;
@@ -25,8 +23,8 @@ module cp_scripts {
         fee_on: bool,
         lp_name: vector<u8>,
         lp_symbol: vector<u8>,
-        lp_logo_url: vector<u8>,
-        lp_project_url: vector<u8>,
+        _lp_logo_url: vector<u8>,
+        _lp_project_url: vector<u8>,
     ) {
         use hippo_swap::math;
 
@@ -44,24 +42,6 @@ module cp_scripts {
         let decimals = (decimals as u8);
 
         cp_swap::create_token_pair<X, Y>(admin, fee_to, fee_on, lp_name, lp_symbol, decimals);
-
-
-        coin_list::add_to_registry_by_signer<cp_swap::LPToken<X,Y>>(
-            admin,
-            string::utf8(lp_name),
-            string::utf8(lp_symbol),
-            string::utf8(vector::empty<u8>()),
-            string::utf8(lp_logo_url),
-            string::utf8(lp_project_url),
-            false,
-        );
-        if (!coin_list::is_coin_in_list<X>(admin_addr)){
-            coin_list::add_to_list<X>(admin);
-        };
-        if (!coin_list::is_coin_in_list<Y>(admin_addr)){
-            coin_list::add_to_list<Y>(admin);
-        };
-        coin_list::add_to_list<cp_swap::LPToken<X,Y>>(admin);
     }
     #[cmd]
     public entry fun create_new_pool_script<X, Y>(

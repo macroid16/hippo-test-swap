@@ -36,7 +36,9 @@ module hippo_swap::devcoin_util {
         };
     }
 
+    #[test_only]
     public fun init_registry_and_devnet_coins(coin_list_admin: &signer){
+        coin_list::initialize(coin_list_admin);
         devnet_coins::deploy(coin_list_admin);
     }
     #[test(admin = @hippo_swap, coin_list_admin = @coin_list)]

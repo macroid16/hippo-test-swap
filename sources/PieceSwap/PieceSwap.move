@@ -486,7 +486,7 @@ module piece_swap {
             admin,
             coin_list_admin,
             b"USDT-USDC LP for PieceSwap",
-            b"USDT-USDC LP(PieceSwap)",
+            b"USDT-USDC",
             100000
         );
         check_and_deposit(user, lp);
@@ -502,7 +502,7 @@ module piece_swap {
             admin,
             coin_list_admin,
             b"USDT-USDC LP for PieceSwap",
-            b"USDT-USDC LP(PieceSwap)",
+            b"USDT-USDC",
             amt
         );
         let (coin_x, coin_y) = remove_liquidity_direct(lp);
@@ -522,7 +522,7 @@ module piece_swap {
             admin,
             coin_list_admin,
             b"USDT-USDC LP for PieceSwap",
-            b"USDT-USDC LP(PieceSwap)",
+            b"USDT-USDC",
             amt
         );
         check_and_deposit(user, lp);
@@ -546,7 +546,7 @@ module piece_swap {
             coin_list_admin,
             user,
             b"USDT-USDC LP for PieceSwap",
-            b"USDT-USDC LP(PieceSwap)",
+            b"USDT-USDC",
             amt
         );
         assert!(added_x == amt, 0);
@@ -564,7 +564,7 @@ module piece_swap {
             admin,
             coin_list_admin,
             b"USDT-USDC LP for PieceSwap",
-            b"USDT-USDC LP(PieceSwap)",
+            b"USDT-USDC",
         );
         let coin_x = devnet_coins::mint<USDT>(100000);
         let coin_y = devnet_coins::mint<USDC>(10000);
@@ -589,7 +589,7 @@ module piece_swap {
             coin_list_admin,
             user,
             b"USDT-USDC LP for PieceSwap",
-            b"USDT-USDC LP(PieceSwap)",
+            b"USDT-USDC",
             amt
         );
         let user_addr = signer::address_of(user);
@@ -641,7 +641,7 @@ module piece_swap {
             coin_list_admin,
             user,
             b"USDT-USDC LP for PieceSwap",
-            b"USDT-USDC LP(PieceSwap)",
+            b"USDT-USDC",
             amt
         );
         let user_addr = signer::address_of(user);

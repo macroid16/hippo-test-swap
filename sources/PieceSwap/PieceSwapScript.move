@@ -3,8 +3,6 @@ module piece_swap_script {
     use std::signer;
     use hippo_swap::piece_swap;
     use aptos_framework::coin;
-    use std::vector;
-    use std::string;
     use coin_list::coin_list;
     use coin_list::devnet_coins;
 
@@ -30,8 +28,8 @@ module piece_swap_script {
         admin: &signer,
         lp_name: vector<u8>,
         lp_symbol: vector<u8>,
-        lp_logo_url: vector<u8>,
-        lp_project_url: vector<u8>,
+        _lp_logo_url: vector<u8>,
+        _lp_project_url: vector<u8>,
         k: u128,
         w1_numerator: u128,
         w1_denominator: u128,
@@ -68,24 +66,6 @@ module piece_swap_script {
             swap_fee_per_million,
             protocol_fee_share_per_thousand,
         );
-
-        coin_list::add_to_registry_by_signer<piece_swap::LPToken<X,Y>>(
-            admin,
-            string::utf8(lp_name),
-            string::utf8(lp_symbol),
-            string::utf8(vector::empty<u8>()),
-            string::utf8(lp_logo_url),
-            string::utf8(lp_project_url),
-            false,
-        );
-        if (!coin_list::is_coin_in_list<X>(admin_addr)){
-            coin_list::add_to_list<X>(admin);
-        };
-        if (!coin_list::is_coin_in_list<Y>(admin_addr)){
-            coin_list::add_to_list<Y>(admin);
-        };
-        coin_list::add_to_list<piece_swap::LPToken<X,Y>>(admin);
-
     }
 
     #[cmd]

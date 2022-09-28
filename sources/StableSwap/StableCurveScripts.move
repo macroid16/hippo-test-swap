@@ -6,7 +6,6 @@ module hippo_swap::stable_curve_scripts {
     use coin_list::coin_list;
     use aptos_framework::coin;
     use hippo_swap::math;
-    use std::vector;
 
     const MICRO_CONVERSION_FACTOR: u64 = 1000000;
 
@@ -25,8 +24,8 @@ module hippo_swap::stable_curve_scripts {
         admin: &signer,
         lp_name: vector<u8>,
         lp_symbol: vector<u8>,
-        lp_logo_url: vector<u8>,
-        lp_project_url: vector<u8>,
+        _lp_logo_url: vector<u8>,
+        _lp_project_url: vector<u8>,
         fee: u64,
         admin_fee: u64
     ) {
@@ -59,24 +58,6 @@ module hippo_swap::stable_curve_scripts {
             fee,
             admin_fee
         );
-
-
-        coin_list::add_to_registry_by_signer<stable_curve_swap::LPToken<X,Y>>(
-            admin,
-            string::utf8(lp_name),
-            string::utf8(lp_symbol),
-            string::utf8(vector::empty<u8>()),
-            string::utf8(lp_logo_url),
-            string::utf8(lp_project_url),
-            false,
-        );
-        if (!coin_list::is_coin_in_list<X>(admin_addr)){
-            coin_list::add_to_list<X>(admin);
-        };
-        if (!coin_list::is_coin_in_list<Y>(admin_addr)){
-            coin_list::add_to_list<Y>(admin);
-        };
-        coin_list::add_to_list<stable_curve_swap::LPToken<X,Y>>(admin);
     }
 
     #[cmd]
@@ -133,7 +114,6 @@ module hippo_swap::stable_curve_scripts {
         lp_amt: u64,
     ) {
         // 1. create pair(pool)
-        let admin_addr = signer::address_of(admin);
         let name = string::utf8(symbol);
         let (initial_A, future_A) = (60, 100);
         let initial_A_time = timestamp::now_microseconds();
@@ -146,22 +126,6 @@ module hippo_swap::stable_curve_scripts {
         stable_curve_swap::initialize<X, Y>(
             admin, name, name, decimals, initial_A, future_A, initial_A_time, future_A_time, fee, admin_fee
         );
-        coin_list::add_to_registry_by_signer<stable_curve_swap::LPToken<X,Y>>(
-            admin,
-            string::utf8(symbol),
-            string::utf8(symbol),
-            string::utf8(vector::empty<u8>()),
-            string::utf8(vector::empty<u8>()),
-            string::utf8(vector::empty<u8>()),
-            false,
-        );
-        if (!coin_list::is_coin_in_list<X>(admin_addr)){
-            coin_list::add_to_list<X>(admin);
-        };
-        if (!coin_list::is_coin_in_list<Y>(admin_addr)){
-            coin_list::add_to_list<Y>(admin);
-        };
-        coin_list::add_to_list<stable_curve_swap::LPToken<X,Y>>(admin);
 
         // 2. add liquidity
         let some_x = devnet_coins::mint<X>(left_amt);
@@ -302,7 +266,7 @@ module hippo_swap::stable_curve_scripts {
         std::debug::print(&110000000);
         mock_create_pair_and_add_liquidity<devnet_coins::DevnetUSDT, devnet_coins::DevnetSOL>(
             admin,
-            b"USDT-DAI-LP",
+            b"USDT-DAI",
             fee, admin_fee,
             btc_amt,
             btc_amt * 10000,
@@ -319,7 +283,7 @@ module hippo_swap::stable_curve_scripts {
         let (fee, admin_fee) = (3000, 200000);
         // the A value was initialed with 60.
         mock_create_pair_and_add_liquidity<devnet_coins::DevnetUSDC, devnet_coins::DevnetUSDT>(
-            admin, b"USDC-USDT-LP", fee, admin_fee, amt_x, amt_y, lp_predict
+            admin, b"USDC-USDT", fee, admin_fee, amt_x, amt_y, lp_predict
         );
     }
 
@@ -335,7 +299,7 @@ module hippo_swap::stable_curve_scripts {
         // Init with (5, 5) price unit of (x, y), which is the ideal balance and mint lp_token of 10 units.
         // Fee-free for the first investment.
         mock_create_pair_and_add_liquidity<devnet_coins::DevnetUSDC, devnet_coins::DevnetUSDT>(
-            admin, b"USDC-USDT-LP", fee, admin_fee, usdc_amt, usdt_amt, 1000000000
+            admin, b"USDC-USDT", fee, admin_fee, usdc_amt, usdt_amt, 1000000000
         );
         let (_, _, _, _, _, lp_precision, multiplier_x, multiplier_y, _, _,
             _, _, _, _) = stable_curve_swap::get_pool_info<devnet_coins::DevnetUSDC, devnet_coins::DevnetUSDT>();
@@ -369,7 +333,7 @@ module hippo_swap::stable_curve_scripts {
         let usdt_amt = 5 * 100000000 * 10000000000;
         let (fee, admin_fee) = (3000, 200000);
         mock_create_pair_and_add_liquidity<devnet_coins::DevnetUSDC, devnet_coins::DevnetUSDT>(
-            admin, b"USDC-USDT-LP", fee, admin_fee, usdc_amt, usdt_amt,
+            admin, b"USDC-USDT", fee, admin_fee, usdc_amt, usdt_amt,
             10 * 100000000 * 10000000000
         );
     }
