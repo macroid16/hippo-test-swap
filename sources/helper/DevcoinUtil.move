@@ -3,7 +3,6 @@ module hippo_swap::devcoin_util {
     use coin_list::coin_list;
     use coin_list::devnet_coins;
     use std::string;
-    use std::vector;
 
     public fun init_coin<CoinType>(coin_list_admin: &signer,decimals: u8){
         if (!coin::is_coin_initialized<CoinType>()) {
@@ -22,9 +21,6 @@ module hippo_swap::devcoin_util {
                 admin,
                 string::utf8(name),
                 string::utf8(symbol),
-                string::utf8(vector::empty<u8>()),
-                string::utf8(vector::empty<u8>()),
-                string::utf8(vector::empty<u8>()),
                 decimals
             );
         };
