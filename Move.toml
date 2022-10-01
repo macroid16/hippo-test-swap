@@ -8,4 +8,4 @@ AptosStdlib = { git = "https://github.com/aptos-labs/aptos-core.git", subdir = "
 CoinList = { git = "https://github.com/hippospace/aptos-coin-list.git", subdir = "", rev = "30e1612ba27de83dff047737ed18089721f7e06f" }
 
 [addresses]
-hippo_swap = "a61e1e86e9f596e483283727d2739ba24b919012720648c29380f9cd0a96c11a"
+hippo_swap = "46e159be621e7493284112c551733e6378f931fd2fc851975bc36bedaae4de0f"
