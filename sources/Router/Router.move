@@ -3,7 +3,6 @@ module router {
     use aptos_framework::coin;
     use std::signer;
     use hippo_swap::cp_swap;
-    use hippo_swap::stable_curve_swap;
     use hippo_swap::piece_swap;
 
     const POOL_TYPE_CONSTANT_PRODUCT:u8 = 1;
@@ -12,6 +11,7 @@ module router {
 
     const E_UNKNOWN_POOL_TYPE: u64 = 1;
     const E_OUTPUT_LESS_THAN_MINIMUM: u64 = 2;
+    const E_DEPRECATED: u64 = 3;
 
     #[noke]
     public fun get_intermediate_output<X, Y>(pool_type: u8, is_x_to_y: bool, x_in: coin::Coin<X>): coin::Coin<Y> {
@@ -28,18 +28,7 @@ module router {
             }
         }
         else if (pool_type == POOL_TYPE_STABLE_CURVE) {
-            if (is_x_to_y) {
-                let (zero, zero2, y_out) = stable_curve_swap::swap_x_to_exact_y_direct<X, Y>(x_in);
-                coin::destroy_zero(zero);
-                coin::destroy_zero(zero2);
-                y_out
-            }
-            else {
-                let (zero, y_out, zero2) = stable_curve_swap::swap_y_to_exact_x_direct<Y, X>(x_in);
-                coin::destroy_zero(zero);
-                coin::destroy_zero(zero2);
-                y_out
-            }
+            abort E_DEPRECATED
         }
         else if (pool_type == POOL_TYPE_PIECEWISE) {
             if (is_x_to_y) {
@@ -257,8 +246,6 @@ module router {
     public fun add_liquidity_route<X, Y>(signer: &signer, pool_type: u8, amount_x: u64, amount_y: u64):(u64, u64, u64) {
         if (pool_type == POOL_TYPE_CONSTANT_PRODUCT) {
             cp_swap::add_liquidity<X, Y>(signer, amount_x, amount_y)
-        } else if (pool_type == POOL_TYPE_STABLE_CURVE) {
-            stable_curve_swap::add_liquidity<X, Y>(signer, amount_x, amount_y)
         } else if ( pool_type == POOL_TYPE_PIECEWISE) {
             piece_swap::add_liquidity<X, Y>(signer, amount_x, amount_y)
         } else {
@@ -269,8 +256,6 @@ module router {
     public fun remove_liquidity_route<X, Y>(signer: &signer, pool_type: u8, liquidity: u64, amount_x_min: u64, amount_y_min: u64):(u64, u64) {
         if (pool_type == POOL_TYPE_CONSTANT_PRODUCT) {
             cp_swap::remove_liquidity<X, Y>(signer, liquidity, amount_x_min, amount_y_min)
-        } else if (pool_type == POOL_TYPE_STABLE_CURVE) {
-            stable_curve_swap::remove_liquidity<X, Y>(signer, liquidity, amount_x_min, amount_y_min)
         } else if ( pool_type == POOL_TYPE_PIECEWISE) {
             piece_swap::remove_liquidity<X, Y>(signer, liquidity)
         } else {

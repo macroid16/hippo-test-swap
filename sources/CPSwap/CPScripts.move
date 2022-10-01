@@ -3,7 +3,6 @@ module cp_scripts {
     use hippo_swap::cp_swap;
     use std::signer;
     use aptos_framework::coin;
-    use coin_list::coin_list;
     use coin_list::devnet_coins;
 
     const E_SWAP_ONLY_ONE_IN_ALLOWED: u64 = 0;
@@ -27,16 +26,6 @@ module cp_scripts {
         _lp_project_url: vector<u8>,
     ) {
         use hippo_swap::math;
-
-        let admin_addr = signer::address_of(admin);
-        assert!(coin_list::is_registry_initialized(), E_TOKEN_REGISTRY_NOT_INITIALIZED);
-        assert!(coin_list::is_coin_registered<X>(), E_TOKEN_X_NOT_REGISTERED);
-        assert!(coin_list::is_coin_registered<Y>(), E_TOKEN_Y_NOT_REGISTERED);
-        assert!(!coin_list::is_coin_registered<cp_swap::LPToken<X,Y>>(), E_LP_TOKEN_ALREADY_REGISTERED);
-        assert!(!coin_list::is_coin_registered<cp_swap::LPToken<Y,X>>(), E_LP_TOKEN_ALREADY_REGISTERED);
-
-        assert!(!coin_list::is_coin_in_list<cp_swap::LPToken<X,Y>>(admin_addr), E_LP_TOKEN_ALREADY_IN_COIN_LIST);
-        assert!(!coin_list::is_coin_in_list<cp_swap::LPToken<Y,X>>(admin_addr), E_LP_TOKEN_ALREADY_IN_COIN_LIST);
 
         let decimals = math::max((coin::decimals<X>() as u128), (coin::decimals<Y>() as u128));
         let decimals = (decimals as u8);

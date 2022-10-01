@@ -50,6 +50,8 @@ module piece_swap_math {
         if (current_x == 0 || current_y == 0) {
             // we do require that, at initialization, equal amount of x and y are added
             // initialize Lp amount to be same as x & y
+            std::debug::print(&add_amt_x);
+            std::debug::print(&add_amt_y);
             assert!(add_amt_x == add_amt_y, E_X_Y_NOT_EQUAL);
             return (add_amt_x, add_amt_y, add_amt_x)
         };

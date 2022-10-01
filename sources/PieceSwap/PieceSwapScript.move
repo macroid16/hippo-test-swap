@@ -1,9 +1,7 @@
 address hippo_swap {
 module piece_swap_script {
-    use std::signer;
     use hippo_swap::piece_swap;
     use aptos_framework::coin;
-    use coin_list::coin_list;
     use coin_list::devnet_coins;
 
     const E_SWAP_ONLY_ONE_IN_ALLOWED: u64 = 0;
@@ -39,16 +37,6 @@ module piece_swap_script {
         protocol_fee_share_per_thousand: u64,
     ) {
         use hippo_swap::math;
-
-        let admin_addr = signer::address_of(admin);
-        assert!(coin_list::is_registry_initialized(), E_TOKEN_REGISTRY_NOT_INITIALIZED);
-        assert!(coin_list::is_coin_registered<X>(), E_TOKEN_X_NOT_REGISTERED);
-        assert!(coin_list::is_coin_registered<Y>(), E_TOKEN_Y_NOT_REGISTERED);
-        assert!(!coin_list::is_coin_registered<piece_swap::LPToken<X,Y>>(), E_LP_TOKEN_ALREADY_REGISTERED);
-        assert!(!coin_list::is_coin_registered<piece_swap::LPToken<Y,X>>(), E_LP_TOKEN_ALREADY_REGISTERED);
-
-        assert!(!coin_list::is_coin_in_list<piece_swap::LPToken<X,Y>>(admin_addr), E_LP_TOKEN_ALREADY_IN_COIN_LIST);
-        assert!(!coin_list::is_coin_in_list<piece_swap::LPToken<Y,X>>(admin_addr), E_LP_TOKEN_ALREADY_IN_COIN_LIST);
 
         let decimals = math::max((coin::decimals<X>() as u128), (coin::decimals<Y>() as u128));
         let decimals = (decimals as u8);
@@ -178,6 +166,8 @@ module piece_swap_script {
     }
     #[test_only]
     use hippo_swap::devcoin_util::init_registry_and_devnet_coins;
+    #[test_only]
+    use std::signer;
 
     #[test(admin=@hippo_swap, coin_list_admin = @coin_list)]
     public entry fun test_mock_deploy(admin: &signer, coin_list_admin: &signer) {
