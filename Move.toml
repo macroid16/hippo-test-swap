@@ -5,7 +5,7 @@ version = "0.0.1"
 [dependencies]
 AptosFramework = { git = "https://github.com/aptos-labs/aptos-core.git", subdir = "aptos-move/framework/aptos-framework/", rev = "827e1c63739bbf06dad94f503a325e08b0daeb97" }
 AptosStdlib = { git = "https://github.com/aptos-labs/aptos-core.git", subdir = "aptos-move/framework/aptos-stdlib/", rev = "827e1c63739bbf06dad94f503a325e08b0daeb97" }
-CoinList = { git = "https://github.com/hippospace/aptos-coin-list.git", subdir = "", rev = "d0d04325ea70b6bede189865ac1e09a18297b7c5" }
+CoinList = { git = "https://github.com/hippospace/aptos-coin-list.git", subdir = "", rev = "30e1612ba27de83dff047737ed18089721f7e06f" }
 
 [addresses]
-hippo_swap = "dad1c1d54fcff3bf0d83b4b0067d7cf0ebdca3ff17556f77115ada2db1ff23fe"
+hippo_swap = "46e159be621e7493284112c551733e6378f931fd2fc851975bc36bedaae4de0f"
