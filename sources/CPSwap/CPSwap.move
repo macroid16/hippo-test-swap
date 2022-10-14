@@ -691,7 +691,7 @@ module hippo_swap::cp_swap {
         );
     }
 
-    #[test(admin = @hippo_swap, token_owner = @0x02, lp_provider = @0x03, lock = @0x04, core = @aptos_framework)]
+    #[test(admin = @hippo_swap, token_owner = @0x12, lp_provider = @0x13, lock = @0x14, core = @aptos_framework)]
     public fun mint_works(admin: signer, token_owner: signer, lp_provider: signer, lock: signer, core: signer)
         acquires TokenPairReserve, TokenPairMetadata
     {
